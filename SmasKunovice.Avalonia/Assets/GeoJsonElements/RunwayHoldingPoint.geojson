@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "RunwayHoldingPoint",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5514" } },
+"features": [
+{ "type": "Feature", "properties": { "gml_id": "uuid.43944217-069c-4748-8c42-667a8145f63d", "identifier": "43944217-069c-4748-8c42-667a8145f63d", "beginPosition": "2022-02-24T07:28:43.000Z", "interpretation": "BASELINE", "sequenceNumber": 1, "correctionNumber": 0, "landingCategory": "NON_PRECISION", "status": "NORMAL", "associatedGuidanceLine_href": "urn:uuid:3991ce61-8b8d-44ef-ac40-cd0a05962b47", "protectedRunway_href": "urn:uuid:BEA831FD-8C11-4CCB-935C-D217A26B174F", "elevation": 176.53, "elevation_uom": "M", "geoidUndulation": 42.87, "geoidUndulation_uom": "M", "verticalDatum": "OTHER:EPSG_5705", "verticalAccuracy": 0.5, "verticalAccuracy_uom": "M" }, "geometry": { "type": "Point", "coordinates": [ -539187.126022407785058, -1184386.478680120315403 ] } },
+{ "type": "Feature", "properties": { "gml_id": "uuid.effbbb35-1f69-484c-b9c9-352da8496819", "identifier": "effbbb35-1f69-484c-b9c9-352da8496819", "beginPosition": "2022-02-24T07:41:04.000Z", "interpretation": "BASELINE", "sequenceNumber": 1, "correctionNumber": 0, "landingCategory": "NON_PRECISION", "status": "NORMAL", "associatedGuidanceLine_href": "urn:uuid:cd71e4c1-9e94-4374-8b1e-3bff484b4c84", "protectedRunway_href": "urn:uuid:BEA831FD-8C11-4CCB-935C-D217A26B174F", "elevation": 176.28, "elevation_uom": "M", "geoidUndulation": 42.87, "geoidUndulation_uom": "M", "verticalDatum": "OTHER:EPSG_5705", "verticalAccuracy": 0.5, "verticalAccuracy_uom": "M" }, "geometry": { "type": "Point", "coordinates": [ -538983.007456579827704, -1184494.352702187141404 ] } }
+]
+}

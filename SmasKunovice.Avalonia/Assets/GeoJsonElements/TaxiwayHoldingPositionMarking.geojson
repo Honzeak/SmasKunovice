@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "TaxiwayHoldingPositionMarking",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5514" } },
+"features": [
+{ "type": "Feature", "properties": { "gml_id": "uuid.9b9c4647-ccf4-4a17-b34b-d832fef7da2b", "identifier": "9b9c4647-ccf4-4a17-b34b-d832fef7da2b", "beginPosition": "2022-02-25T06:53:04.000Z", "interpretation": "BASELINE", "sequenceNumber": 1, "correctionNumber": 0, "markingICAOStandard": "YES", "condition": "GOOD", "colour": "YELLOW", "style": "SOLID", "elevation": 176.3, "elevation_uom": "M", "geoidUndulation": 42.87, "geoidUndulation_uom": "M", "verticalDatum": "OTHER:EPSG_5705", "verticalAccuracy": 0.5, "verticalAccuracy_uom": "M", "markedTaxiHold_href": "urn:uuid:effbbb35-1f69-484c-b9c9-352da8496819" }, "geometry": { "type": "LineString", "coordinates": [ [ -538982.414420538349077, -1184491.401536101242527 ], [ -538983.007456579827704, -1184494.352702187141404 ], [ -538983.602400536416098, -1184497.31597260851413 ] ] } },
+{ "type": "Feature", "properties": { "gml_id": "uuid.bbfaf7c7-75ce-4f62-8cf6-e8f7649cb479", "identifier": "bbfaf7c7-75ce-4f62-8cf6-e8f7649cb479", "beginPosition": "2022-02-25T06:57:43.000Z", "interpretation": "BASELINE", "sequenceNumber": 1, "correctionNumber": 0, "markingICAOStandard": "YES", "condition": "GOOD", "colour": "YELLOW", "style": "SOLID", "elevation": 176.53, "elevation_uom": "M", "geoidUndulation": 42.87, "geoidUndulation_uom": "M", "verticalDatum": "OTHER:EPSG_5705", "verticalAccuracy": 0.5, "verticalAccuracy_uom": "M", "markedTaxiHold_href": "urn:uuid:43944217-069c-4748-8c42-667a8145f63d" }, "geometry": { "type": "LineString", "coordinates": [ [ -539189.769535407191142, -1184390.918028391432017 ], [ -539187.126022407785058, -1184386.478680120315403 ], [ -539184.527350740274414, -1184382.11542277247645 ] ] } }
+]
+}

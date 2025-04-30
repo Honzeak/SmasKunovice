@@ -23,7 +23,9 @@
             <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
         </PackageReference>
+        <PackageReference Include="BruTile.MbTiles" Version="5.0.6" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1"/>
+        <PackageReference Include="Mapsui.ArcGIS" Version="4.1.9" />
         <PackageReference Include="Mapsui.Avalonia" Version="4.1.9" />
         <PackageReference Include="Mapsui.Extensions" Version="4.1.9" />
     </ItemGroup>

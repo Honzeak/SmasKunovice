@@ -3,12 +3,17 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:mapsui="clr-namespace:Mapsui.UI.Avalonia;assembly=Mapsui.UI.Avalonia"
+             xmlns:viewmodels="clr-namespace:SmasKunovice.Avalonia.ViewModels"
+             x:DataType="viewmodels:MainViewViewModel"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="SmasKunovice.Avalonia.Views.MainView">
+    <Design.DataContext>
+        <viewmodels:MainViewViewModel></viewmodels:MainViewViewModel>
+    </Design.DataContext>
 
-    <Grid RowDefinitions="*,Auto">
+    <Grid RowDefinitions="*,Auto,Auto">
         <mapsui:MapControl Grid.Row="0" x:Name="MapControl" />
-        <TextBox Grid.Row="1" Text="Mrdka to je xd"></TextBox>
+        <TextBox Grid.Row="1" Text="{Binding Path=Greeting}"></TextBox>
     </Grid>
 
 </UserControl>

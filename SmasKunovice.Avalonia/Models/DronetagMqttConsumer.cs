@@ -4,90 +4,15 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using MQTTnet;
-using MQTTnet.Client;
-using MQTTnet.Client.Options;
+
+namespace SmasKunovice.Avalonia.Models;
 
 public class DronetagMqttConsumer
 {
-    // Class to hold the JSON/ODID data structure, mirroring the document
-    public class OdidData
-    {
-        public BasicId[]? BasicID { get; set; }
-        public Location? Location { get; set; }
-        public SelfId? SelfID { get; set; }
-        public SystemData? System { get; set; }
-        public OperatorId? OperatorID { get; set; }
-    }
-
-    public class BasicId
-    {
-        public int UAType { get; set; }
-        public int IDType { get; set; }
-        public string? UASID { get; set; }
-    }
-
-    public class Location
-    {
-        public int Status { get; set; }
-        public float? Longitude { get; set; }
-        public float? Latitude { get; set; }
-        public int? Direction { get; set; }
-        public float? SpeedHorizontal { get; set; }
-        public float? SpeedVertical { get; set; }
-        public float? AltitudeBaro { get; set; }
-        public float? AltitudeGeo { get; set; }
-        public int HeightType { get; set; }
-        public float? Height { get; set; }
-        public int HorizAccuracy { get; set; }
-        public int VertAccuracy { get; set; }
-        public int BaroAccuracy { get; set; }
-        public int SpeedAccuracy { get; set; }
-        public int TSAccuracy { get; set; }
-        public string? Timestamp { get; set; }
-    }
-
-    public class SelfId
-    {
-        public int DescType { get; set; }
-        public string? Desc { get; set; }
-    }
-
-    public class SystemData
-    {
-        public int OperatorLocationType { get; set; }
-        public int ClassificationType { get; set; }
-        public float? OperatorLatitude { get; set; }
-        public float? OperatorLongitude { get; set; }
-        public int AreaCount { get; set; }
-        public int AreaRadius { get; set; }
-        public float? AreaCeiling { get; set; }
-        public float? AreaFloor { get; set; }
-        public int CategoryEU { get; set; }
-        public int ClassEU { get; set; }
-        public float? OperatorAltitudeGeo { get; set; }
-        public string? Timestamp { get; set; }
-    }
-
-    public class OperatorId
-    {
-        public int OperatorIdType { get; set; }
-        public string? OperatorId { get; set; }
-    }
-    public class ScoutData
-    {
-        public int rssi { get; set; }
-        public string[]? tech { get; set; }
-        public int recv_id { get; set; }
-        public int module_id { get; set; }
-        public int module_type { get; set; }
-        public int msg_type { get; set; }
-        public OdidData? odid { get; set; }
-    }
-
     public static async Task RunAsync()
     {
         // Create a new MQTT client
-        var factory = new MqttFactory();
+        var factory = new MqttClientFactory();
         using (var client = factory.CreateMqttClient())
         {
             // Configure MQTT client options (replace with your broker details)
@@ -120,7 +45,7 @@ public class DronetagMqttConsumer
 
             };
 
-            client.MessageReceivedAsync += e =>
+            client.ApplicationMessageReceivedAsync += e =>
             {
                 try
                 {
@@ -180,33 +105,32 @@ public class DronetagMqttConsumer
     {
         // Example: Print some of the received data
         Console.WriteLine("------------------------------------------");
-        Console.WriteLine($"RSSI: {data.rssi}");
-        Console.WriteLine($"Technology: {string.Join(", ", data.tech ?? Array.Empty<string>())}"); // null check
-        Console.WriteLine($"Module ID: {data.module_id}");
-        Console.WriteLine($"Message Type: {data.msg_type}");
+        Console.WriteLine($"RSSI: {data.Rssi}");
+        Console.WriteLine($"Technology: {string.Join(", ", data.Tech ?? Array.Empty<string>())}"); // null check
+        Console.WriteLine($"Module ID: {data.ModuleId}");
+        Console.WriteLine($"Message Type: {data.MsgType}");
 
-        if (data.odid?.Location != null)
+        if (data.Odid?.Location != null)
         {
-            Console.WriteLine($"  Latitude: {data.odid.Location.Latitude}");
-            Console.WriteLine($"  Longitude: {data.odid.Location.Longitude}");
-            Console.WriteLine($"  Altitude (Baro): {data.odid.Location.AltitudeBaro}");
-            Console.WriteLine($"  Timestamp: {data.odid.Location.Timestamp}");
+            Console.WriteLine($"  Latitude: {data.Odid.Location.Latitude}");
+            Console.WriteLine($"  Longitude: {data.Odid.Location.Longitude}");
+            Console.WriteLine($"  Altitude (Baro): {data.Odid.Location.AltitudeBaro}");
+            Console.WriteLine($"  Timestamp: {data.Odid.Location.Timestamp}");
         }
-        if (data.odid?.BasicID != null)
+        if (data.Odid?.BasicId != null)
         {
-            foreach (var basicId in data.odid.BasicID)
+            foreach (var basicId in data.Odid.BasicId)
             {
-                Console.WriteLine($"  UAS ID: {basicId.UASID}");
-                Console.WriteLine($"    UA Type: {basicId.UAType}");
-                Console.WriteLine($"    ID Type: {basicId.IDType}");
+                Console.WriteLine($"  UAS ID: {basicId.UasId}");
+                Console.WriteLine($"    UA Type: {basicId.UaType}");
+                Console.WriteLine($"    ID Type: {basicId.IdType}");
             }
         }
         // Add more data processing here as needed
     }
 
-    public static void Main(string[] args)
-    {
-        RunAsync().Wait();
-    }
+    // public static void Main(string[] args)
+    // {
+    //     RunAsync().Wait();
+    // }
 }
-

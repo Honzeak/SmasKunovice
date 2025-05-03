@@ -27,6 +27,7 @@
         <PackageReference Include="Mapsui.ArcGIS" Version="4.1.9" />
         <PackageReference Include="Mapsui.Avalonia" Version="4.1.9" />
         <PackageReference Include="Mapsui.Extensions" Version="4.1.9" />
+        <PackageReference Include="MQTTnet" Version="5.0.1.1416" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
         <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     </ItemGroup>

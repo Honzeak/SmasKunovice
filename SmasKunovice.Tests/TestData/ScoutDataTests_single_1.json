@@ -1,0 +1,54 @@
+{
+  "rssi": -92,
+  "tech": "B5",
+  "recv_id": 2,
+  "module_id": 0,
+  "module_type": 11,
+  "msg_type": 15,
+  "odid": {
+    "BasicID": [
+      {
+        "UAType": 0,
+        "IDType": 1,
+        "UASID": "1596F359746167260079"
+      }
+    ],
+    "Location": {
+      "Status": 1,
+      "Direction": null,
+      "SpeedHorizontal": null,
+      "SpeedVertical": null,
+      "Latitude": null,
+      "Longitude": null,
+      "AltitudeBaro": -23.5,
+      "AltitudeGeo": null,
+      "HeightType": 0,
+      "Height": 0.0,
+      "HorizAccuracy": 0,
+      "VertAccuracy": 0,
+      "BaroAccuracy": 0,
+      "SpeedAccuracy": 0,
+      "TSAccuracy": 0,
+      "Timestamp": "2025-04-06T06:22:58"
+    },
+    "SelfID": null,
+    "System": {
+      "OperatorLocationType": 0,
+      "ClassificationType": 1,
+      "OperatorLatitude": null,
+      "OperatorLongitude": null,
+      "AreaCount": 1,
+      "AreaRadius": 0,
+      "AreaCeiling": null,
+      "AreaFloor": null,
+      "CategoryEU": 1,
+      "ClassEU": 0,
+      "OperatorAltitudeGeo": null,
+      "Timestamp": "2025-04-06T07:22:58"
+    },
+    "OperatorID": {
+      "OperatorIdType": 0,
+      "OperatorId": ""
+    }
+  }
+}

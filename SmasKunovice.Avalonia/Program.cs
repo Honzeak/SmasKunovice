@@ -1,5 +1,7 @@
 ﻿using Avalonia;
 using System;
+using Avalonia.Logging;
+using SmasKunovice.Avalonia.Views;
 
 namespace SmasKunovice.Avalonia;
 
@@ -17,5 +19,5 @@ sealed class Program
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
-            .LogToTrace();
+            .AfterSetup(_ =>  Logger.Sink = new SerilogSink() );
 }

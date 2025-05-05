@@ -10,7 +10,7 @@
   },
   {
     "id": "TASK_2",
-    "priority": "HIGH",
+    "priority": "MEDIUM",
     "tags": [
       "Map"
     ],
@@ -53,6 +53,24 @@
       "Data"
     ],
     "description": "Integrate vehicle database",
+    "status": "TODO"
+  },
+  {
+    "id": "TASK_7",
+    "priority": "LOW",
+    "tags": [
+      "Map"
+    ],
+    "description": "Set up airport elements colors",
+    "status": "TODO"
+  },
+  {
+    "id": "TASK_8",
+    "priority": "MEDIUM",
+    "tags": [
+      "Map"
+    ],
+    "description": "Use multiple ZTM layers based on zoom level",
     "status": "TODO"
   }
 ]

@@ -1,0 +1,58 @@
+[
+  {
+    "id": "TASK_1",
+    "priority": "LOW",
+    "tags": [
+      "MQTT"
+    ],
+    "description": "Add heartbeat message format",
+    "status": "TODO"
+  },
+  {
+    "id": "TASK_2",
+    "priority": "HIGH",
+    "tags": [
+      "Map"
+    ],
+    "description": "Lock view to airport extents",
+    "status": "TODO"
+  },
+  {
+    "id": "TASK_3",
+    "priority": "MEDIUM",
+    "tags": [
+      "Map"
+    ],
+    "description": "Display different datasets based on zoom level",
+    "status": "TODO"
+  },
+  {
+    "id": "TASK_4",
+    "priority": "MEDIUM",
+    "tags": [
+      "Data",
+      "MQTT"
+    ],
+    "description": "Add MQTT client code",
+    "status": "TODO"
+  },
+  {
+    "id": "TASK_5",
+    "priority": "HIGH",
+    "tags": [
+      "Data",
+      "Map"
+    ],
+    "description": "Add plane visualization",
+    "status": "TODO"
+  },
+  {
+    "id": "TASK_6",
+    "priority": "HIGH",
+    "tags": [
+      "Data"
+    ],
+    "description": "Integrate vehicle database",
+    "status": "TODO"
+  }
+]

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Avalonia.Logging;
@@ -36,7 +37,7 @@ public static class ZtmDynamicLayerFactory
         Logger.Sink!.Log(LogEventLevel.Fatal, LogArea.Control, null, url);
         capabilitiesHelper.GetCapabilities(url, CapabilitiesType.DynamicServiceCapabilities);
         
-        Task.WhenAny(capabilitiesTask.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+        var completedTask = Task.WhenAny(capabilitiesTask.Task, Task.Delay(TimeSpan.FromSeconds(10))).Result;
         if (capabilitiesTask.Task.IsCompleted == false)
         {
             Logger.Sink!.Log(LogEventLevel.Fatal, LogArea.Control, null, "Timeout while getting capabilities");

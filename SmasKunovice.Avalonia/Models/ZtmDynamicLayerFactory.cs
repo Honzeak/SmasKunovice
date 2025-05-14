@@ -34,7 +34,7 @@ public static class ZtmDynamicLayerFactory
                 capabilitiesTask.TrySetException(new InvalidOperationException("Failed to get valid capabilities"));
         };
         
-        Logger.Sink!.Log(LogEventLevel.Fatal, LogArea.Control, null, url);
+        Logger.Sink!.Log(LogEventLevel.Information, LogArea.Control, null, url);
         capabilitiesHelper.GetCapabilities(url, CapabilitiesType.DynamicServiceCapabilities);
         
         var completedTask = Task.WhenAny(capabilitiesTask.Task, Task.Delay(TimeSpan.FromSeconds(10))).Result;

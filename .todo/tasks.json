@@ -43,8 +43,8 @@
       "Data",
       "Map"
     ],
-    "description": "Add plane visualization",
-    "status": "TODO"
+    "description": "Add plane visualization\n\nHint:\n- mapinfo/singleCallout\n- mapinfo/geojsonInfo\n- animations/animatedPoints",
+    "status": "DONE"
   },
   {
     "id": "TASK_6",

@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Mapsui;
 using Mapsui.Extensions.Provider;
 using Mapsui.Layers;
+using Mapsui.Layers.AnimatedLayers;
 using Mapsui.Nts;
 using Mapsui.Nts.Providers;
 using Mapsui.Styles;
@@ -34,7 +35,7 @@ public partial class MainViewViewModel : ViewModelBase
             map.CRS = "EPSG:5514";
             map.Layers.Add(ZtmDynamicLayerFactory.CreateDynamicLayer(ZtmDatasets.ZTM100));
             map.Layers.Add(CreateAirportElementsLayers());
-            map.Layers.Add(CreatePlanesPointLayer());
+            map.Layers.Add(CreatePlanesAnimatedPointLayer());
             map.Navigator.CenterOnAndZoomTo(new MPoint(-539192.3d, -1184647.4d), 900);
         }
         catch (Exception e)
@@ -46,17 +47,25 @@ public partial class MainViewViewModel : ViewModelBase
         return map;
     }
 
-    private ILayer CreatePlanesPointLayer()
+    private ILayer CreatePlanesAnimatedPointLayer()
     {
         var svgStyleProvider = new SvgStyleProvider(_svgBasePath);
         var airplaneId = svgStyleProvider.RegisterSvg("airplane.svg");
-        var feature = new PointFeature(-539192.3d, -1184647.4d);
-        var style = new SymbolStyle()
+        var themeStyle = new ThemeStyle(feature =>
         {
-            BitmapId = airplaneId,
-            SymbolScale = .03f
-        };
-        return new MemoryLayer("Planes") { Features = [feature], Style = style };
+            return new SymbolStyle
+            {
+                BitmapId = airplaneId,
+                SymbolScale = .03f,
+                SymbolRotation = feature["Message"] switch
+                {
+                    DroneTagMessage message => message.Heading,
+                    _ => 0
+                }
+            };
+        });
+
+        return new AnimatedPointLayer(new DynamicPlanePositionProvider(new FakeDroneTagClient())){ Style = themeStyle };
     }
 
     private ILayer[] CreateAirportElementsLayers()
@@ -109,6 +118,7 @@ public partial class MainViewViewModel : ViewModelBase
         }
     };
 
+    [Obsolete("Agreed to use ARCGis dynamic tiling")]
     private static ILayer CreateGeoTiffLayer()
     {
         // var MbTilesFilePath = @"C:\Users\honza\OneDrive\Code\SMAS-Data\Kunovice_tiff\mbTiles\output_file.mbtiles";
@@ -124,11 +134,4 @@ public partial class MainViewViewModel : ViewModelBase
         var layer = new RasterizingTileLayer(gifLayer);
         return gifLayer;
     }
-
-    // public static class GeoJsonAirportStyleProvider
-    // {
-    //     public static VectorStyle GetStyle(GeoJsonProvider provider)
-    //     {
-    //         var extent = provider.GetExtent(
-    //     }
 }

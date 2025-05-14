@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Mapsui;
 using Mapsui.Extensions.Provider;
@@ -20,11 +18,11 @@ public partial class MainViewViewModel : ViewModelBase
 {
     [ObservableProperty] private string _greeting = "Welcome to Avalonia!";
 
-    [ObservableProperty] private Map _map = new ();
+    [ObservableProperty] private Map _map = new();
+    private string _svgBasePath = @"C:\Users\honza\codes\SmasKunovice\SmasKunovice.Avalonia\Assets\Svg\";
 
     public MainViewViewModel()
     {
-        // Task.Run(async () => { Map = await CreateMapAsync(); });
         Map = CreateMap();
     }
 
@@ -36,12 +34,29 @@ public partial class MainViewViewModel : ViewModelBase
             map.CRS = "EPSG:5514";
             map.Layers.Add(ZtmDynamicLayerFactory.CreateDynamicLayer(ZtmDatasets.ZTM100));
             map.Layers.Add(CreateAirportElementsLayers());
+            map.Layers.Add(CreatePlanesPointLayer());
+            map.Navigator.CenterOnAndZoomTo(new MPoint(-539192.3d, -1184647.4d), 900);
         }
         catch (Exception e)
         {
             Greeting = e.Message;
+            throw;
         }
+
         return map;
+    }
+
+    private ILayer CreatePlanesPointLayer()
+    {
+        var svgStyleProvider = new SvgStyleProvider(_svgBasePath);
+        var airplaneId = svgStyleProvider.RegisterSvg("airplane.svg");
+        var feature = new PointFeature(-539192.3d, -1184647.4d);
+        var style = new SymbolStyle()
+        {
+            BitmapId = airplaneId,
+            SymbolScale = .03f
+        };
+        return new MemoryLayer("Planes") { Features = [feature], Style = style };
     }
 
     private ILayer[] CreateAirportElementsLayers()

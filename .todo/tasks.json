@@ -56,6 +56,15 @@
     "status": "TODO"
   },
   {
+    "id": "TASK_9",
+    "priority": "LOW",
+    "tags": [
+      "Data"
+    ],
+    "description": "Get data from embedded resource instead of static disk location.",
+    "status": "TODO"
+  },
+  {
     "id": "TASK_7",
     "priority": "LOW",
     "tags": [

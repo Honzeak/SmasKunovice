@@ -9,19 +9,20 @@ using Mapsui.Providers;
 
 namespace SmasKunovice.Avalonia.Models;
 
-public class DynamicPlanePositionProvider: MemoryProvider, IDynamic,  IDisposable
+public class DynamicScoutDataProvider: MemoryProvider, IDynamic,  IDisposable
 {
     public event DataChangedEventHandler? DataChanged;
     private readonly IDroneTagClient _client;
-    private IEnumerable<DroneTagMessage>? _latestMessageData;
+    private List<ScoutData> _latestMessageData;
 
-    public DynamicPlanePositionProvider(IDroneTagClient client)
+    public DynamicScoutDataProvider(IDroneTagClient client)
     {
         _client = client;
+        _latestMessageData = [];
         client.MessageReceived += ClientOnMessageReceived;
     }
 
-    private void ClientOnMessageReceived(object sender, DroneTagMessageReceivedEventArgs e)
+    private void ClientOnMessageReceived(object sender, ScoutDataReceivedEventArgs e)
     {
         _latestMessageData = e.Messages;
         DataHasChanged();
@@ -34,8 +35,12 @@ public class DynamicPlanePositionProvider: MemoryProvider, IDynamic,  IDisposabl
 
     public override Task<IEnumerable<IFeature>> GetFeaturesAsync(FetchInfo fetchInfo)
     {
-        _latestMessageData ??= new List<DroneTagMessage>();
-        return Task.FromResult<IEnumerable<IFeature>>(_latestMessageData.Select(m => m.ToPointFeature()));
+        var pointFeatures = _latestMessageData.Select(m =>
+        {
+            m.TryCreatePointFeature(out var pointFeature);
+            return pointFeature;
+        }).Where(f => f is not null);
+        return Task.FromResult<IEnumerable<IFeature>>(pointFeatures!);
     }
 
     public void Dispose()

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Timers;
+using MQTTnet;
 
 namespace SmasKunovice.Avalonia.Models;
 
@@ -15,7 +16,7 @@ public class FakeDroneTagClient : IDroneTagClient
     private int _yMax = -1188872;
     private Timer _timer;
     private int _maxMessages = 10;
-    private List<DroneTagMessage> _currentMessages = new();
+    private readonly List<ScoutData> _currentMessages = new();
 
     public FakeDroneTagClient()
     {
@@ -58,47 +59,50 @@ public class FakeDroneTagClient : IDroneTagClient
         for (var i = 0; i < _currentMessages.Count; i++)
         {
             var oldMessage = _currentMessages[i];
-            _currentMessages[i] = GenerateRandomMessageWithId(oldMessage.Id);
+            _currentMessages[i] = GenerateRandomMessageWithId(oldMessage.Odid.BasicId[0].UasId);
         }
 
         // Trigger the event if we have messages and subscribers
         if (_currentMessages.Count <= 0 || MessageReceived == null)
             return;
 
-        var args = new DroneTagMessageReceivedEventArgs
+        var args = new ScoutDataReceivedEventArgs
         {
-            Messages = new List<DroneTagMessage>(_currentMessages)
+            Messages = new List<ScoutData>(_currentMessages)
         };
 
         MessageReceived.Invoke(this, args);
     }
 
-    private DroneTagMessage GenerateRandomMessage()
+    private ScoutData GenerateRandomMessage()
     {
         _counter++;
         var id = _counter;
         return GenerateRandomMessageWithId(id.ToString());
     }
 
-    private DroneTagMessage GenerateRandomMessageWithId(string id)
+    private ScoutData GenerateRandomMessageWithId(string id)
     {
         // Generate random latitude and longitude within the specified range
         var latitude = _random.NextDouble() * (_xMax - _xMin) + _xMin;
         var longitude = _random.NextDouble() * (_yMax - _yMin) + _yMin;
 
         // Generate other random properties
-        var altitude = _random.NextDouble() * 1000; // Altitude between 0 and 1000
         var speed = _random.NextDouble() * 200; // Speed between 0 and 200
         var heading = _random.NextDouble() * 360; // Heading between 0 and 360
 
-        return new DroneTagMessage(
-            id,
-            latitude,
-            longitude,
-            altitude,
-            speed,
-            heading
-        );
+        return new ScoutData
+        {
+            Odid = new OdidData
+            {
+                BasicId = [new BasicIdData { UasId = id }],
+                Location = new LocationData
+                {
+                    Latitude = (float)latitude, Longitude = (float)longitude, Direction = (int)heading,
+                    SpeedHorizontal = (float)speed
+                }
+            }
+        };
     }
 
     public void Dispose()

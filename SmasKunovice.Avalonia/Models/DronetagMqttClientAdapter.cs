@@ -7,8 +7,25 @@ using MQTTnet;
 
 namespace SmasKunovice.Avalonia.Models;
 
-public class DronetagMqttConsumer
+public class DronetagMqttClientAdapter : IDroneTagClient
 {
+    private readonly IMqttClient _client;
+    private readonly MqttClientOptions _connectOptions;
+    public event IDroneTagClient.DronetagDataReceivedEventHandler? MessageReceived;
+
+    public DronetagMqttClientAdapter(string host, int port, string username, string password)
+    {
+        _client = new MqttClientFactory().CreateMqttClient();
+        _connectOptions = new MqttClientOptionsBuilder()
+                .WithTcpServer("broker.hivemq.com", 1883) // Use a public broker for testing
+                .WithCleanSession() // Start with a clean session
+                .Build();
+    }
+
+    public async Task ConnectAsync()
+    {
+        await _client.ConnectAsync(_connectOptions);
+    }
     public static async Task RunAsync()
     {
         // Create a new MQTT client
@@ -55,7 +72,7 @@ public class DronetagMqttConsumer
                     Console.WriteLine(message);
 
                     // Deserialize the JSON payload into the ScoutData object
-                    ScoutData? scoutData = JsonSerializer.Deserialize<ScoutData>(message);
+                    ScoutData? scoutData = JsonSerializer.Deserialize<ScoutData>(message, ScoutData.SerializerOptions);
 
                     if (scoutData != null)
                     {
@@ -133,4 +150,9 @@ public class DronetagMqttConsumer
     // {
     //     RunAsync().Wait();
     // }
+    public void Dispose()
+    {
+        
+    }
+
 }

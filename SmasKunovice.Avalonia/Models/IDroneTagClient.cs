@@ -5,12 +5,12 @@ namespace SmasKunovice.Avalonia.Models;
 
 public interface IDroneTagClient : IDisposable
 {
-    public delegate void DronetagDataReceivedEventHandler(object sender, DroneTagMessageReceivedEventArgs e);
+    public delegate void DronetagDataReceivedEventHandler(object sender, ScoutDataReceivedEventArgs e);
 
     public event DronetagDataReceivedEventHandler? MessageReceived;
 }
 
-public class DroneTagMessageReceivedEventArgs : EventArgs
+public class ScoutDataReceivedEventArgs : EventArgs
 {
-    public required IEnumerable<DroneTagMessage> Messages { get; init; }
+    public required List<ScoutData> Messages { get; init; }
 }

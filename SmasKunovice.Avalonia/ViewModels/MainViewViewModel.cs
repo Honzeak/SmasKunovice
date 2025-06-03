@@ -59,13 +59,13 @@ public partial class MainViewViewModel : ViewModelBase
                 SymbolScale = .03f,
                 SymbolRotation = feature["Message"] switch
                 {
-                    DroneTagMessage message => message.Heading,
+                    ScoutData { Odid.Location.Direction: not null } message => (double)message.Odid.Location.Direction,
                     _ => 0
                 }
             };
         });
 
-        return new AnimatedPointLayer(new DynamicPlanePositionProvider(new FakeDroneTagClient())){ Style = themeStyle };
+        return new AnimatedPointLayer(new DynamicScoutDataProvider(new FakeDroneTagClient())){ Style = themeStyle };
     }
 
     private ILayer[] CreateAirportElementsLayers()

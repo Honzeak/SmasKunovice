@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace SmasKunovice.Avalonia.Models;
+namespace SmasKunovice.Avalonia.Models.JsonConverters;
 
 public class StringOrStringArrayConverter : JsonConverter<string[]>
 {

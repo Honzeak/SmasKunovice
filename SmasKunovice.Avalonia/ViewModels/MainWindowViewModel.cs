@@ -1,6 +1,8 @@
-﻿namespace SmasKunovice.Avalonia.ViewModels;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
-public partial class MainWindowViewModel : ViewModelBase
+namespace SmasKunovice.Avalonia.ViewModels;
+
+public partial class MainWindowViewModel(MainViewViewModel mainViewViewModel) : ViewModelBase
 {
-    public string Greeting { get; } = "Welcome to Avalonia!";
+    [ObservableProperty] private MainViewViewModel _mainViewViewModel = mainViewViewModel;
 }

@@ -43,9 +43,9 @@ public class SvgStyleProvider
 
         foreach (var element in GetAllElements(svgDocument.Children))
         {
-            if (element.Fill is not null && fillColor is { })
+            if (element.Fill is not null && fillColor is not null)
                 element.Fill = new SvgColourServer(fillColor.Value);
-            if (element.Stroke is not null && strokeColor is { })
+            if (element.Stroke is not null && strokeColor is not null)
                 element.Stroke = new SvgColourServer(strokeColor.Value);
         }
 

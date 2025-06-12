@@ -9,12 +9,12 @@ namespace SmasKunovice.Avalonia.Tests
     [TestFixture]
     public class DynamicScoutDataProviderTests
     {
-        private Mock<IDroneTagClient> _mockClient;
+        private Mock<IDronetagClient> _mockClient;
 
         [SetUp]
         public void Setup()
         {
-            _mockClient = new Mock<IDroneTagClient>();
+            _mockClient = new Mock<IDronetagClient>();
         }
 
         [Test]
@@ -25,7 +25,7 @@ namespace SmasKunovice.Avalonia.Tests
 
             // Assert
             _mockClient.VerifyAdd(
-                c => c.MessageReceived += It.IsAny<IDroneTagClient.DronetagDataReceivedEventHandler>());
+                c => c.MessageReceived += It.IsAny<IDronetagClient.DronetagDataReceivedEventHandler>());
         }
 
         [Test]

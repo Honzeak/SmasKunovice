@@ -1,158 +1,140 @@
 using System;
+using System.Security.Authentication;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Logging;
+using Microsoft.Extensions.Options;
 using MQTTnet;
 
 namespace SmasKunovice.Avalonia.Models;
 
-public class DronetagMqttClientAdapter : IDroneTagClient
+public class DronetagMqttClientAdapter : IDronetagClient
 {
     private readonly IMqttClient _client;
     private readonly MqttClientOptions _connectOptions;
-    public event IDroneTagClient.DronetagDataReceivedEventHandler? MessageReceived;
+    public event IDronetagClient.DronetagDataReceivedEventHandler? MessageReceived;
+    public event EventHandler<string>? HeartbeatReceived;
 
-    public DronetagMqttClientAdapter(string host, int port, string username, string password)
+    public DronetagMqttClientAdapter(IOptions<ClientAdapterOptions> options)
     {
+        var adapterOptions = options.Value;
         _client = new MqttClientFactory().CreateMqttClient();
-        _connectOptions = new MqttClientOptionsBuilder()
-                .WithTcpServer("broker.hivemq.com", 1883) // Use a public broker for testing
-                .WithCleanSession() // Start with a clean session
-                .Build();
+        var connectionBuilder = new MqttClientOptionsBuilder()
+            .WithTcpServer(adapterOptions.Host, adapterOptions.Port)
+            .WithTlsOptions(builder =>
+                builder.UseTls()
+                    .WithAllowUntrustedCertificates()
+                    .WithCertificateValidationHandler(_ => true)
+                    .WithSslProtocols(SslProtocols.None)
+                )
+            .WithCleanSession();
+        if (adapterOptions.HasCredentials)
+            connectionBuilder.WithCredentials(adapterOptions.Username, adapterOptions.Password);
+
+        _connectOptions = connectionBuilder.Build();
+
+        SetupConnectionEvents(adapterOptions);
+        Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, this, "Dronetag MQTT client adapter initialized.");
+    }
+
+    private void SetupConnectionEvents(ClientAdapterOptions adapterOptions)
+    {
+        _client.ConnectedAsync += async e =>
+        {
+            Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, this, "Connected to MQTT broker.");
+            await _client.SubscribeAsync(adapterOptions.HeartbeatTopic);
+            Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, this, "Subscribed to heartbeat topic: {0}",
+                adapterOptions.HeartbeatTopic);
+            await _client.SubscribeAsync(adapterOptions.OdidTopic);
+            Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, this, "Subscribed to ODID topic: {0}",
+                adapterOptions.OdidTopic);
+        };
+
+        _client.DisconnectedAsync += e =>
+        {
+            Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, this, "Disconnected from MQTT broker.");
+            return Task.CompletedTask;
+        };
+
+        _client.ApplicationMessageReceivedAsync += e =>
+        {
+            if (e.ApplicationMessage.Topic.Equals(adapterOptions.HeartbeatTopic))
+            {
+                Logger.Sink?.Log(LogEventLevel.Debug, LogArea.Control, this, "Received message on Heartbeat topic.");
+                ProcessHeartbeatMessage(e);
+            }
+            else if (e.ApplicationMessage.Topic.Equals(adapterOptions.OdidTopic))
+            {
+                Logger.Sink?.Log(LogEventLevel.Debug, LogArea.Control, this, "Received message on ODID topic.");
+                ProcessOdidMessage(e);
+            }
+            else
+            {
+                Logger.Sink?.Log(LogEventLevel.Warning, LogArea.Control, this, "Received message on unknown topic.");
+            }
+
+            return Task.CompletedTask;
+        };
+    }
+
+    private void ProcessHeartbeatMessage(
+        MqttApplicationMessageReceivedEventArgs mqttApplicationMessageReceivedEventArgs)
+    {
+        // TODO implement heartbeat processing
+        HeartbeatReceived?.Invoke(this, Encoding.UTF8.GetString(mqttApplicationMessageReceivedEventArgs.ApplicationMessage.Payload));
+        Logger.Sink?.Log(LogEventLevel.Debug, LogArea.Control, this, "Received Heartbeat message: {0}",
+            mqttApplicationMessageReceivedEventArgs.ApplicationMessage.Payload);
+    }
+
+    private void ProcessOdidMessage(MqttApplicationMessageReceivedEventArgs eventArgs)
+    {
+        try
+        {
+            // TODO is it encoded?
+            var message = Encoding.UTF8.GetString(eventArgs.ApplicationMessage.Payload);
+            Logger.Sink?.Log(LogEventLevel.Debug, LogArea.Control, this, "Received ODID message");
+
+            // Deserialize the JSON payload into the ScoutData object
+            var scoutData = JsonSerializer.Deserialize<ScoutData>(message, ScoutData.SerializerOptions);
+
+            if (scoutData != null)
+            {
+                MessageReceived?.Invoke(this, new ScoutDataReceivedEventArgs { Messages = [scoutData] });
+            }
+            else
+            {
+                Logger.Sink?.Log(LogEventLevel.Error, LogArea.Control, this, "Failed to deserialize scout data.");
+                eventArgs.ProcessingFailed = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Sink?.Log(LogEventLevel.Error, LogArea.Control, this, "Processing of ODID message has failed: {0}",
+                ex.Message);
+        }
     }
 
     public async Task ConnectAsync()
     {
-        await _client.ConnectAsync(_connectOptions);
-    }
-    public static async Task RunAsync()
-    {
-        // Create a new MQTT client
-        var factory = new MqttClientFactory();
-        using (var client = factory.CreateMqttClient())
+        MqttClientConnectResult result;
+        try
         {
-            // Configure MQTT client options (replace with your broker details)
-            var options = new MqttClientOptionsBuilder()
-                .WithTcpServer("broker.hivemq.com", 1883) // Use a public broker for testing
-                .WithCleanSession() // Start with a clean session
-                .Build();
-
-            // Set up event handlers for connected and message received
-            client.ConnectedAsync += async e =>
-            {
-                Console.WriteLine("Connected to MQTT broker.");
-                // Subscribe to the topic (replace with your Dronetag topic)
-                await client.SubscribeAsync("#"); //changed from "dronetag/scout" to "#" to receive all the data
-                Console.WriteLine("Subscribed to topic '#'.");
-            };
-
-            client.DisconnectedAsync += async e =>
-            {
-                Console.WriteLine("Disconnected from MQTT broker.  Attempting to reconnect in 5 seconds.");
-                await Task.Delay(5000); //wait 5 seconds before reconnecting
-                try
-                {
-                    await client.ConnectAsync(options, CancellationToken.None); //attempt to reconnect
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error on reconnect: {ex.Message}");
-                }
-
-            };
-
-            client.ApplicationMessageReceivedAsync += e =>
-            {
-                try
-                {
-                    // Handle received MQTT messages
-                    Console.WriteLine("Received message:");
-                    string message = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
-                    Console.WriteLine(message);
-
-                    // Deserialize the JSON payload into the ScoutData object
-                    ScoutData? scoutData = JsonSerializer.Deserialize<ScoutData>(message, ScoutData.SerializerOptions);
-
-                    if (scoutData != null)
-                    {
-                        // Process the received data
-                        ProcessScoutData(scoutData);
-                    }
-                    else
-                    {
-                        Console.WriteLine("Failed to deserialize MQTT message.");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error processing message: {ex.Message}");
-                }
-                return Task.CompletedTask;
-            };
-
-            // Attempt to connect to the MQTT broker
-            try
-            {
-                await client.ConnectAsync(options, CancellationToken.None);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Error connecting to MQTT broker: {e.Message}");
-                return; // Exit if connection fails
-            }
-
-            // Keep the application running to receive messages
-            Console.WriteLine("Listening for MQTT messages. Press Enter to exit.");
-            Console.ReadLine();
-
-            // Disconnect from the broker
-            try
-            {
-                await client.DisconnectAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error disconnecting: {ex.Message}");
-            }
+            result = await _client.ConnectAsync(_connectOptions);
         }
+        catch (Exception e)
+        {
+            Logger.Sink?.Log(LogEventLevel.Error, LogArea.Control, this, "MQTT client connection failed: {0}",
+                e.ToString());
+            throw;
+        }
+
+        Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, this, "MQTT client connection result: {0}",
+            result);
     }
 
-    static void ProcessScoutData(ScoutData data)
-    {
-        // Example: Print some of the received data
-        Console.WriteLine("------------------------------------------");
-        Console.WriteLine($"RSSI: {data.Rssi}");
-        Console.WriteLine($"Technology: {string.Join(", ", data.Tech ?? Array.Empty<string>())}"); // null check
-        Console.WriteLine($"Module ID: {data.ModuleId}");
-        Console.WriteLine($"Message Type: {data.MsgType}");
-
-        if (data.Odid?.Location != null)
-        {
-            Console.WriteLine($"  Latitude: {data.Odid.Location.Latitude}");
-            Console.WriteLine($"  Longitude: {data.Odid.Location.Longitude}");
-            Console.WriteLine($"  Altitude (Baro): {data.Odid.Location.AltitudeBaro}");
-            Console.WriteLine($"  Timestamp: {data.Odid.Location.Timestamp}");
-        }
-        if (data.Odid?.BasicId != null)
-        {
-            foreach (var basicId in data.Odid.BasicId)
-            {
-                Console.WriteLine($"  UAS ID: {basicId.UasId}");
-                Console.WriteLine($"    UA Type: {basicId.UaType}");
-                Console.WriteLine($"    ID Type: {basicId.IdType}");
-            }
-        }
-        // Add more data processing here as needed
-    }
-
-    // public static void Main(string[] args)
-    // {
-    //     RunAsync().Wait();
-    // }
     public void Dispose()
     {
-        
+        _client.Dispose();
     }
-
 }

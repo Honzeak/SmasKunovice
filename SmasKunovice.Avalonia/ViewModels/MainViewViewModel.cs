@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Avalonia.Logging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Mapsui;
 using Mapsui.Extensions.Provider;
@@ -11,6 +12,7 @@ using Mapsui.Nts.Providers;
 using Mapsui.Styles;
 using Mapsui.Styles.Thematics;
 using Mapsui.Tiling.Layers;
+using NetTopologySuite.Geometries;
 using SmasKunovice.Avalonia.Models;
 
 namespace SmasKunovice.Avalonia.ViewModels;
@@ -21,13 +23,17 @@ public partial class MainViewViewModel : ViewModelBase
 
     [ObservableProperty] private Map _map = new();
     private string _svgBasePath = @"C:\Users\honza\codes\SmasKunovice\SmasKunovice.Avalonia\Assets\Svg\";
+    private readonly IDronetagClient? _dronetagClient;
+    public bool HasClient => _dronetagClient is not null;
+    
+    public MainViewViewModel() {}
 
-    public MainViewViewModel()
+    public MainViewViewModel(IDronetagClient dronetagClient)
     {
-        Map = CreateMap();
+        _dronetagClient = dronetagClient;
     }
 
-    private Map CreateMap()
+    public Map CreateMap()
     {
         var map = new Map();
         try
@@ -35,7 +41,11 @@ public partial class MainViewViewModel : ViewModelBase
             map.CRS = "EPSG:5514";
             map.Layers.Add(ZtmDynamicLayerFactory.CreateDynamicLayer(ZtmDatasets.ZTM100));
             map.Layers.Add(CreateAirportElementsLayers());
-            map.Layers.Add(CreatePlanesAnimatedPointLayer());
+            if (HasClient)
+                map.Layers.Add(CreatePlanesAnimatedPointLayer(_dronetagClient!));
+            else 
+                Logger.Sink?.Log(LogEventLevel.Error, LogArea.Control, "{0} not provided. Creating map without SMAS data.", nameof(IDronetagClient));
+            
             map.Navigator.CenterOnAndZoomTo(new MPoint(-539192.3d, -1184647.4d), 900);
         }
         catch (Exception e)
@@ -47,7 +57,7 @@ public partial class MainViewViewModel : ViewModelBase
         return map;
     }
 
-    private ILayer CreatePlanesAnimatedPointLayer()
+    private ILayer CreatePlanesAnimatedPointLayer(IDronetagClient dronetagClient)
     {
         var svgStyleProvider = new SvgStyleProvider(_svgBasePath);
         var airplaneId = svgStyleProvider.RegisterSvg("airplane.svg");
@@ -57,7 +67,7 @@ public partial class MainViewViewModel : ViewModelBase
             {
                 BitmapId = airplaneId,
                 SymbolScale = .03f,
-                SymbolRotation = feature["Message"] switch
+                SymbolRotation = feature["ScoutData"] switch
                 {
                     ScoutData { Odid.Location.Direction: not null } message => (double)message.Odid.Location.Direction,
                     _ => 0
@@ -65,7 +75,7 @@ public partial class MainViewViewModel : ViewModelBase
             };
         });
 
-        return new AnimatedPointLayer(new DynamicScoutDataProvider(new FakeDroneTagClient())){ Style = themeStyle };
+        return new AnimatedPointLayer(new DynamicScoutDataProvider(dronetagClient)){ Style = themeStyle };
     }
 
     private ILayer[] CreateAirportElementsLayers()
@@ -107,7 +117,7 @@ public partial class MainViewViewModel : ViewModelBase
 
     private VectorStyle CreateVectorStyle(IFeature feature) => feature switch
     {
-        GeometryFeature { Geometry: NetTopologySuite.Geometries.Point } => new SymbolStyle()
+        GeometryFeature { Geometry: Point } => new SymbolStyle()
         {
             Fill = new Brush(new Color(245, 245, 242)),
             SymbolScale = 0.3f

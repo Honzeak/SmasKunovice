@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Logging;
 using Mapsui;
 using Mapsui.Fetcher;
 using Mapsui.Layers;
@@ -12,14 +14,15 @@ namespace SmasKunovice.Avalonia.Models;
 public class DynamicScoutDataProvider: MemoryProvider, IDynamic,  IDisposable
 {
     public event DataChangedEventHandler? DataChanged;
-    private readonly IDroneTagClient _client;
+    private readonly IDronetagClient _client;
     private List<ScoutData> _latestMessageData;
 
-    public DynamicScoutDataProvider(IDroneTagClient client)
+    public DynamicScoutDataProvider(IDronetagClient client)
     {
         _client = client;
         _latestMessageData = [];
-        client.MessageReceived += ClientOnMessageReceived;
+        _client.MessageReceived += ClientOnMessageReceived;
+        _client.ConnectAsync().Wait();
     }
 
     private void ClientOnMessageReceived(object sender, ScoutDataReceivedEventArgs e)
@@ -39,7 +42,8 @@ public class DynamicScoutDataProvider: MemoryProvider, IDynamic,  IDisposable
         {
             m.TryCreatePointFeature(out var pointFeature);
             return pointFeature;
-        }).Where(f => f is not null);
+        }).Where(f => f is not null).ToList();
+        Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, this, "Received {Count} features from dronetag", pointFeatures.Count);
         return Task.FromResult<IEnumerable<IFeature>>(pointFeatures!);
     }
 

@@ -1,32 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Timers;
-using MQTTnet;
 
-namespace SmasKunovice.Avalonia.Models;
+namespace SmasKunovice.Avalonia.Models.FakeClient;
 
-public class FakeDroneTagClient : IDroneTagClient
+public class RandomMessageDronetagClient() : FakeDronetagClient(_interval)
 {
-    public event IDroneTagClient.DronetagDataReceivedEventHandler? MessageReceived;
+    private static int _interval = 3000; // 5 seconds
     private readonly Random _random = new();
     private int _counter = 0;
     private int _xMin = -541518;
     private int _xMax = -535341;
     private int _yMin = -1182974;
     private int _yMax = -1188872;
-    private Timer _timer;
     private int _maxMessages = 10;
     private readonly List<ScoutData> _currentMessages = new();
 
-    public FakeDroneTagClient()
-    {
-        _timer = new Timer(2000); // 2 seconds
-        _timer.Elapsed += OnTimerElapsed;
-        _timer.AutoReset = true;
-        _timer.Enabled = true;
-    }
-
-    private void OnTimerElapsed(object? sender, ElapsedEventArgs e)
+    protected override void OnTimerElapsed(object? sender, ElapsedEventArgs e)
     {
         // Decide whether to increase, decrease, or keep the same number of messages
         // 60% chance to increase, 30% chance to stay the same, 10% chance to decrease
@@ -63,7 +53,7 @@ public class FakeDroneTagClient : IDroneTagClient
         }
 
         // Trigger the event if we have messages and subscribers
-        if (_currentMessages.Count <= 0 || MessageReceived == null)
+        if (_currentMessages.Count <= 0)
             return;
 
         var args = new ScoutDataReceivedEventArgs
@@ -71,7 +61,7 @@ public class FakeDroneTagClient : IDroneTagClient
             Messages = new List<ScoutData>(_currentMessages)
         };
 
-        MessageReceived.Invoke(this, args);
+        SendMessageReceived(args);
     }
 
     private ScoutData GenerateRandomMessage()
@@ -103,13 +93,5 @@ public class FakeDroneTagClient : IDroneTagClient
                 }
             }
         };
-    }
-
-    public void Dispose()
-    {
-        _timer?.Stop();
-        _timer?.Dispose();
-        MessageReceived = null;
-        GC.SuppressFinalize(this);
     }
 }

@@ -27,20 +27,20 @@ public static class ZtmDynamicLayerFactory
         {
             if (sender is ArcGISDynamicCapabilities capabilities)
             {
-                Logger.Sink!.Log(LogEventLevel.Information, LogArea.Control, null, "Got capabilities");
+                Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, null, "Got capabilities");
                 capabilitiesTask.TrySetResult(capabilities);
             }
             else
                 capabilitiesTask.TrySetException(new InvalidOperationException("Failed to get valid capabilities"));
         };
         
-        Logger.Sink!.Log(LogEventLevel.Information, LogArea.Control, null, url);
+        Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, null, url);
         capabilitiesHelper.GetCapabilities(url, CapabilitiesType.DynamicServiceCapabilities);
         
         var completedTask = Task.WhenAny(capabilitiesTask.Task, Task.Delay(TimeSpan.FromSeconds(10))).Result;
         if (capabilitiesTask.Task.IsCompleted == false)
         {
-            Logger.Sink!.Log(LogEventLevel.Fatal, LogArea.Control, null, "Timeout while getting capabilities");
+            Logger.Sink?.Log(LogEventLevel.Fatal, LogArea.Control, null, "Timeout while getting capabilities");
             throw new TimeoutException("Timeout while getting capabilities");
         }
         

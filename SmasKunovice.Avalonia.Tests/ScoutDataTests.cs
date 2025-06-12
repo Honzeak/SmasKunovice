@@ -10,10 +10,11 @@ public class ScoutDataTests
     [SetUp]
     public void Setup()
     {
-        _testFiles = Directory
-            .EnumerateFiles(Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData"), "*.json")
-            .ToDictionary(path => Path.GetFileNameWithoutExtension(path).Replace(nameof(ScoutDataTests), string.Empty),
-                path => path);
+        _testFiles = Utilities.GetTestFiles(nameof(ScoutDataTests));
+        // _testFiles = Directory
+        //     .EnumerateFiles(Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData"), $"{nameof(ScoutDataTests)}*.json")
+        //     .ToDictionary(path => Path.GetFileNameWithoutExtension(path).Replace(nameof(ScoutDataTests), string.Empty),
+        //         path => path);
     }
 
     [Test]

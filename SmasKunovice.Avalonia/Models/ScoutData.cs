@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Mapsui.Layers;
+using SmasKunovice.Avalonia.Models.JsonConverters;
 
 namespace SmasKunovice.Avalonia.Models;
 
@@ -21,11 +22,11 @@ public record ScoutData : IScoutData
         return true;
     }
 
-    public static JsonSerializerOptions SerializerOptions { get; } = new()
+    public static JsonSerializerOptions? SerializerOptions { get; } = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
-        Converters = { new StringOrStringArrayConverter() }
+        Converters = { new StringOrStringArrayConverter(), new OdidInt32Converter() }
     };
 
     /// <summary>
@@ -190,7 +191,8 @@ public record LocationData
     /// <summary>
     /// date-time in ISO 8601 format; UTC, maximal resolution 1/10 of second
     /// </summary>
-    public string? Timestamp { get; init; }
+    public double? Timestamp { get; init; }
+    // TODO string or double?
 }
 
 public record SelfIdData

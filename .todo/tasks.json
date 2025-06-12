@@ -34,7 +34,7 @@
       "MQTT"
     ],
     "description": "Add MQTT client code",
-    "status": "TODO"
+    "status": "DONE"
   },
   {
     "id": "TASK_5",

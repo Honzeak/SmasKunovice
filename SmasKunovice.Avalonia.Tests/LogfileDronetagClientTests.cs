@@ -6,6 +6,8 @@ public class LogfileDronetagClientTests
 {
     
 [Test]
+[Ignore("Obsolete log with incorrect format")]
+// TODO get valid data to enable this test
 public void Constructor_WithValidJsonLogFile_InitializesSuccessfully()
 {
     // Arrange

@@ -1,6 +1,7 @@
 {
 "type": "FeatureCollection",
 "name": "ApronGuidanceLines",
+"color": "yellow",
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5514" } },
 "features": [
 { "type": "Feature", "properties": { "gml_id": "uuid.e2c121c3-73ac-4071-aeaf-5cc8124dc577", "identifier": "e2c121c3-73ac-4071-aeaf-5cc8124dc577", "beginPosition": "2022-02-22T12:03:52.000Z", "interpretation": "BASELINE", "sequenceNumber": 1, "correctionNumber": 0, "timeSlice|GuidanceLineMarkingTimeSlice|featureLifetime|TimePeriod|beginPosition": "2022-02-22T12:03:52.000Z", "markingICAOStandard": "YES", "condition": "GOOD", "colour": "YELLOW", "style": "SOLID", "purpose": null, "note": null, "markedGuidanceLine_href": "urn:uuid:ebe2e172-3da7-437f-9ffe-508ae7da72b4", "elevation": 176.63, "elevation_uom": "M", "geoidUndulation": 42.87, "geoidUndulation_uom": "M", "verticalDatum": "OTHER:EPSG_5705", "verticalAccuracy": 0.5, "verticalAccuracy_uom": "M" }, "geometry": { "type": "LineString", "coordinates": [ [ -539294.758871541707776, -1184072.684355366043746 ], [ -539294.713223614613526, -1184073.130081793526188 ], [ -539294.266419013147242, -1184077.520492112962529 ] ] } },

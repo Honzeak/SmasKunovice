@@ -1,6 +1,8 @@
 {
 "type": "FeatureCollection",
 "name": "RunwayThreshold",
+"color": "lightBlue",
+"opacity": "0.3",
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5514" } },
 "features": [
 { "type": "Feature", "properties": { "gml_id": "uuid.597EF382-0852-4285-9E00-37934A342187", "identifier": "597EF382-0852-4285-9E00-37934A342187", "beginPosition": "2021-11-02T08:09:30.000Z", "interpretation": "BASELINE", "sequenceNumber": 1, "correctionNumber": 0, "width": 120, "width_uom": "M", "length": 140.0, "length_uom": "M", "lighting": "NO", "obstacleFree": "NO", "type": "RESA", "status": "NORMAL" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ -540127.17715145542752, -1186218.649415310937911 ], [ -540199.137350092292763, -1186338.739970517344773 ], [ -540302.073642719187774, -1186277.059945528162643 ], [ -540230.112890155403875, -1186156.96837838855572 ], [ -540127.17715145542752, -1186218.649415310937911 ] ] ] } },

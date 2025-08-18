@@ -9,7 +9,7 @@ public class SerilogSink : ILogSink
 {
     private const int RetainedFileCountLimit = 15;
     private readonly Serilog.Core.Logger _logger;
-    public SerilogSink(string? logFilePath = null)
+    public SerilogSink(Serilog.Events.LogEventLevel minLevel = Serilog.Events.LogEventLevel.Information, string? logFilePath = null)
     {
         var logsDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -21,6 +21,7 @@ public class SerilogSink : ILogSink
 
         // Configure and create Serilog logger
         _logger = new LoggerConfiguration()
+            .MinimumLevel.Is(minLevel)
             .WriteTo.Console()
             .WriteTo.File(
                 path: logFilePath,

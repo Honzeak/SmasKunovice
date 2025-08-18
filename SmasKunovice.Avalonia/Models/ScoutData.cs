@@ -8,6 +8,7 @@ public interface IScoutData
 {
     public bool TryCreatePointFeature(out PointFeature? pointFeature);
 }
+
 public record ScoutData : IScoutData
 {
     public bool TryCreatePointFeature(out PointFeature? pointFeature)
@@ -15,7 +16,7 @@ public record ScoutData : IScoutData
         pointFeature = null;
         if (Odid.Location?.Longitude is null || Odid.Location.Latitude is null)
             return false;
-        
+
         pointFeature = new PointFeature((double)Odid.Location.Latitude, (double)Odid.Location.Longitude);
         pointFeature["ID"] = Odid.BasicId[0].UasId;
         pointFeature["ScoutData"] = this;
@@ -54,6 +55,7 @@ public record ScoutData : IScoutData
     /// SYSTEM (4), OPERATOR_ID (5), PACKED (15), INVALID (255); we don't forward AUTH messages
     /// </summary>
     public int MsgType { get; init; }
+
     public required OdidData Odid { get; init; }
 }
 
@@ -191,8 +193,7 @@ public record LocationData
     /// <summary>
     /// date-time in ISO 8601 format; UTC, maximal resolution 1/10 of second
     /// </summary>
-    public double? Timestamp { get; init; }
-    // TODO string or double?
+    public string? Timestamp { get; init; }
 }
 
 public record SelfIdData
@@ -201,6 +202,7 @@ public record SelfIdData
     /// TEXT = 0, EMERGENCY = 1, EXTENDED STATUS = 2
     /// </summary>
     public int DescType { get; init; }
+
     public string? Desc { get; init; }
 }
 
@@ -273,5 +275,6 @@ public record OperatorIdData
     /// OPERATOR ID=0
     /// </summary>
     public int OperatorIdType { get; init; }
+
     public string? OperatorId { get; init; }
 }

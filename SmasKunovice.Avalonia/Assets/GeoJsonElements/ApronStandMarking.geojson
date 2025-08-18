@@ -1,6 +1,7 @@
 {
 "type": "FeatureCollection",
 "name": "ApronStandMarking",
+"color": "yellow",
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5514" } },
 "features": [
 { "type": "Feature", "properties": { "gml_id": "uuid.67E635C5-4B30-41B6-AC53-3C524DF4E6A5", "identifier": "67E635C5-4B30-41B6-AC53-3C524DF4E6A5", "beginPosition": "2021-01-21T12:59:17.000Z", "interpretation": "BASELINE", "sequenceNumber": 1, "correctionNumber": 0, "markingICAOStandard": "NO", "condition": "GOOD", "colour": "YELLOW", "style": "SOLID", "elevation": 176.27, "elevation_uom": "M", "verticalDatum": "OTHER:EPSG_5705", "markedStand_href": "urn:uuid:95942386-5B57-406D-A92E-6D13DED57D23" }, "geometry": { "type": "LineString", "coordinates": [ [ -539327.967582499375567, -1183920.088778818957508 ], [ -539327.13512041978538, -1183918.26801356067881 ] ] } },

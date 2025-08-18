@@ -30,6 +30,9 @@
         <None Update="TestData\**">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Update="TestData\MapLayerFactoryTests\ApronGuidanceLineMarking.geojson">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>

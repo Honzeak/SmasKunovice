@@ -7,7 +7,7 @@ using Svg;
 using Svg.Model;
 using Svg.Skia;
 
-namespace SmasKunovice.Avalonia.Models;
+namespace SmasKunovice.Avalonia.Models.Mapsui;
 
 public class SvgStyleProvider
 {

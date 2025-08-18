@@ -2,6 +2,7 @@
 using System;
 using Avalonia.Logging;
 using SmasKunovice.Avalonia.Views;
+using LogEventLevel = Serilog.Events.LogEventLevel;
 
 namespace SmasKunovice.Avalonia;
 
@@ -19,5 +20,13 @@ sealed class Program
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
-            .AfterSetup(_ =>  Logger.Sink = new SerilogSink() );
+            .LogToTrace()
+            .AfterSetup(_ =>
+            {
+#if DEBUG
+                var level = LogEventLevel.Debug;
+#endif
+                Logger.Sink = new SerilogSink(level);
+                
+            });
 }

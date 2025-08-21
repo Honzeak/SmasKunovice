@@ -1,0 +1,30 @@
+{
+    "type": "FeatureCollection",
+    "name": "FenceObstacle1_krovak",
+    "color": "yellow",
+    "crs": {
+        "type": "name",
+        "properties": {
+            "name": "urn:ogc:def:crs:EPSG::5514"
+        }
+    },
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [
+                        -539900.090131045784801,
+                        -1186010.782020491082221
+                    ],
+                    [
+                        -539121.645439615822397,
+                        -1184710.9944891796913
+                    ]
+                ]
+            }
+        }
+    ]
+}

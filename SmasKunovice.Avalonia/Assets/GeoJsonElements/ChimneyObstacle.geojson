@@ -1,5 +1,6 @@
 {
     "type": "FeatureCollection",
+    "name": "ChimneyObstacle_Krovak",
     "color": "yellow",
     "crs": {
         "type": "name",
@@ -12,11 +13,11 @@
             "type": "Feature",
             "properties": {},
             "geometry": {
+                "type": "Point",
                 "coordinates": [
-                    -537833.876588288,
-                    -1193250.5313613298
-                ],
-                "type": "Point"
+                    -537595.235760397277772,
+                    -1185688.133370508439839
+                ]
             }
         }
     ]

@@ -19,7 +19,7 @@ public class GeoJsonStyleProvider(string geoJsonBasePath)
         geoJsonBasePath ?? throw new ArgumentNullException(nameof(geoJsonBasePath));
 
     private readonly Dictionary<string, Color> _colorMap = new();
-    private readonly Color _defaultColor = new (255, 200, 200);
+    private readonly Color _defaultColor = Color.Grey;
 
     /// <summary>
     /// Initializes the style provider by reading all GeoJSON files

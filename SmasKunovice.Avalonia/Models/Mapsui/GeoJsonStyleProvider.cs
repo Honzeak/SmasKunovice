@@ -33,7 +33,7 @@ public class GeoJsonStyleProvider(string geoJsonBasePath)
         {
             if (!Directory.Exists(_geoJsonBasePath))
             {
-                Logger.Sink?.Log(LogEventLevel.Error, LogArea.Control,
+                Logger.Sink?.Log(LogEventLevel.Error, LogArea.Control, this,
                     "GeoJSON directory not found: {Path}", _geoJsonBasePath);
                 throw new DirectoryNotFoundException($"GeoJSON directory not found: {_geoJsonBasePath}");
             }
@@ -107,7 +107,7 @@ public class GeoJsonStyleProvider(string geoJsonBasePath)
 
             if (string.IsNullOrWhiteSpace(jsonContent))
             {
-                Logger.Sink?.Log(LogEventLevel.Warning, LogArea.Control,
+                Logger.Sink?.Log(LogEventLevel.Warning, LogArea.Control, this,
                     "Empty or whitespace-only content in file: {FileName}", fileName);
                 return;
             }
@@ -126,7 +126,7 @@ public class GeoJsonStyleProvider(string geoJsonBasePath)
                 }
                 catch (ArgumentException e)
                 {
-                    Logger.Sink?.Log(LogEventLevel.Debug, LogArea.Control,
+                    Logger.Sink?.Log(LogEventLevel.Debug, LogArea.Control, this,
                         "Failed to parse color '{ColorValue}' from file: {FileName}", colorValue, fileName);
                 }
 
@@ -138,23 +138,23 @@ public class GeoJsonStyleProvider(string geoJsonBasePath)
                     _colorMap[fileName] = color;
                 }
 
-                Logger.Sink?.Log(LogEventLevel.Debug, LogArea.Control,
+                Logger.Sink?.Log(LogEventLevel.Debug, LogArea.Control, this,
                     "Extracted color '{Color}' from file: {FileName}", colorValue, fileName);
             }
             else
             {
-                Logger.Sink?.Log(LogEventLevel.Debug, LogArea.Control,
+                Logger.Sink?.Log(LogEventLevel.Debug, LogArea.Control, this,
                     "No color property found in file: {FileName}", fileName);
             }
         }
         catch (JsonException ex)
         {
-            Logger.Sink?.Log(LogEventLevel.Warning, LogArea.Control,
+            Logger.Sink?.Log(LogEventLevel.Warning, LogArea.Control, this,
                 "Invalid JSON in file {FileName}: {Error}", Path.GetFileName(filePath), ex.Message);
         }
         catch (Exception ex)
         {
-            Logger.Sink?.Log(LogEventLevel.Error, LogArea.Control,
+            Logger.Sink?.Log(LogEventLevel.Error, LogArea.Control, this,
                 "Error processing file {FileName}: {Error}", Path.GetFileName(filePath), ex.Message);
         }
     }

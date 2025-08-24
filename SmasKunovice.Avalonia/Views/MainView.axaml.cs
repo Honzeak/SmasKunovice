@@ -16,6 +16,6 @@ public partial class MainView : UserControl
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-        if (DataContext is MainViewViewModel { HasClient: true } vm) MapControl.Map = vm.CreateMap();
+        if (DataContext is MainViewViewModel vm) MapControl.Map = vm.CreateMap();
     }
 }

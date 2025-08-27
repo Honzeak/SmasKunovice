@@ -2,6 +2,7 @@ using System;
 using Avalonia.Logging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Mapsui;
+using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models;
 using SmasKunovice.Avalonia.Models.Mapsui;
 
@@ -35,8 +36,7 @@ public partial class MainViewViewModel() : ViewModelBase
             if (HasClient)
                 map.Layers.Add(_mapLayerFactory.CreatePlanesAnimatedPointLayer(_dronetagClient!));
             else
-                Logger.Sink?.Log(LogEventLevel.Error, LogArea.Control,
-                    "{0} not provided. Creating map without SMAS data.", nameof(IDronetagClient));
+                LogExtensions.LogError("{0} not provided. Creating map without SMAS data.", this, nameof(IDronetagClient));
 
             map.Navigator.CenterOnAndZoomTo(new MPoint(-539192.3d, -1184647.4d), 900);
         }

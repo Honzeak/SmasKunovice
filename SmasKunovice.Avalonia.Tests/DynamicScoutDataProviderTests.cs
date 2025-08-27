@@ -7,7 +7,7 @@ using SmasKunovice.Avalonia.Models;
 namespace SmasKunovice.Avalonia.Tests
 {
     [TestFixture]
-    public class DynamicScoutDataProviderTests
+    public class DynamicScoutDataProviderTests : TestBase
     {
         private Mock<IDronetagClient> _mockClient;
 

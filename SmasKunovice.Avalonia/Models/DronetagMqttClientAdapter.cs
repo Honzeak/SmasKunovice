@@ -3,9 +3,9 @@ using System.Security.Authentication;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Avalonia.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
+using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models;
 
@@ -35,25 +35,23 @@ public class DronetagMqttClientAdapter : IDronetagClient
         _connectOptions = connectionBuilder.Build();
 
         SetupConnectionEvents(adapterOptions);
-        Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, this, "Dronetag MQTT client adapter initialized.");
+        LogExtensions.LogInfo("Dronetag MQTT client adapter initialized.", this);
     }
 
     private void SetupConnectionEvents(ClientAdapterOptions adapterOptions)
     {
         _client.ConnectedAsync += async e =>
         {
-            Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, this, "Connected to MQTT broker.");
+            LogExtensions.LogInfo("Connected to MQTT broker.", this);
             await _client.SubscribeAsync(adapterOptions.HeartbeatTopic);
-            Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, this, "Subscribed to heartbeat topic: {0}",
-                adapterOptions.HeartbeatTopic);
+            LogExtensions.LogInfo("Subscribed to heartbeat topic: {0}", this, adapterOptions.HeartbeatTopic);
             await _client.SubscribeAsync(adapterOptions.OdidTopic);
-            Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, this, "Subscribed to ODID topic: {0}",
-                adapterOptions.OdidTopic);
+            LogExtensions.LogInfo("Subscribed to ODID topic: {0}", this, adapterOptions.OdidTopic);
         };
 
         _client.DisconnectedAsync += e =>
         {
-            Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, this, "Disconnected from MQTT broker.");
+            LogExtensions.LogInfo("Disconnected from MQTT broker.", this);
             return Task.CompletedTask;
         };
 
@@ -61,17 +59,17 @@ public class DronetagMqttClientAdapter : IDronetagClient
         {
             if (e.ApplicationMessage.Topic.Equals(adapterOptions.HeartbeatTopic))
             {
-                Logger.Sink?.Log(LogEventLevel.Debug, LogArea.Control, this, "Received message on Heartbeat topic.");
+                LogExtensions.LogDebug("Received message on Heartbeat topic.", this);
                 ProcessHeartbeatMessage(e);
             }
             else if (e.ApplicationMessage.Topic.Equals(adapterOptions.OdidTopic))
             {
-                Logger.Sink?.Log(LogEventLevel.Debug, LogArea.Control, this, "Received message on ODID topic.");
+                LogExtensions.LogDebug("Received message on ODID topic.", this);
                 ProcessOdidMessage(e);
             }
             else
             {
-                Logger.Sink?.Log(LogEventLevel.Warning, LogArea.Control, this, "Received message on unknown topic.");
+                LogExtensions.LogWarning("Received message on unknown topic.", this);
             }
 
             return Task.CompletedTask;
@@ -83,8 +81,7 @@ public class DronetagMqttClientAdapter : IDronetagClient
     {
         // TODO implement heartbeat processing
         HeartbeatReceived?.Invoke(this, Encoding.UTF8.GetString(mqttApplicationMessageReceivedEventArgs.ApplicationMessage.Payload));
-        Logger.Sink?.Log(LogEventLevel.Debug, LogArea.Control, this, "Received Heartbeat message: {0}",
-            mqttApplicationMessageReceivedEventArgs.ApplicationMessage.Payload);
+        LogExtensions.LogDebug("Received Heartbeat message: {0}", this, mqttApplicationMessageReceivedEventArgs.ApplicationMessage.Payload);
     }
 
     private void ProcessOdidMessage(MqttApplicationMessageReceivedEventArgs eventArgs)
@@ -93,7 +90,7 @@ public class DronetagMqttClientAdapter : IDronetagClient
         {
             // TODO is it encoded?
             var message = Encoding.UTF8.GetString(eventArgs.ApplicationMessage.Payload);
-            Logger.Sink?.Log(LogEventLevel.Debug, LogArea.Control, this, "Received ODID message");
+            LogExtensions.LogDebug("Received ODID message", this);
 
             // Deserialize the JSON payload into the ScoutData object
             var scoutData = JsonSerializer.Deserialize<ScoutData>(message, ScoutData.SerializerOptions);
@@ -104,14 +101,13 @@ public class DronetagMqttClientAdapter : IDronetagClient
             }
             else
             {
-                Logger.Sink?.Log(LogEventLevel.Error, LogArea.Control, this, "Failed to deserialize scout data.");
+                LogExtensions.LogError("Failed to deserialize scout data.", this);
                 eventArgs.ProcessingFailed = true;
             }
         }
         catch (Exception ex)
         {
-            Logger.Sink?.Log(LogEventLevel.Error, LogArea.Control, this, "Processing of ODID message has failed: {0}",
-                ex.Message);
+            LogExtensions.LogError(ex,"Processing of ODID message has failed", this);
         }
     }
 
@@ -124,13 +120,11 @@ public class DronetagMqttClientAdapter : IDronetagClient
         }
         catch (Exception e)
         {
-            Logger.Sink?.Log(LogEventLevel.Error, LogArea.Control, this, "MQTT client connection failed: {0}",
-                e.ToString());
+            LogExtensions.LogError(e, "MQTT client connection failed", this);
             throw;
         }
 
-        Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, this, "MQTT client connection result: {0}",
-            result);
+        LogExtensions.LogInfo("MQTT client connection result: {0}", this, result);
     }
 
     public void Dispose()

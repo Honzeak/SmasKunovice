@@ -1,16 +1,17 @@
 using System.Text.Json;
 using SmasKunovice.Avalonia.Models;
+using SmasKunovice.Avalonia.Tests.TestUtils;
 
 namespace SmasKunovice.Avalonia.Tests;
 
-public class ScoutDataTests
+public class ScoutDataTests : TestBase
 {
     private Dictionary<string, string> _testFiles;
 
     [SetUp]
     public void Setup()
     {
-        _testFiles = Utilities.GetTestFiles(nameof(ScoutDataTests));
+        _testFiles = FileUtilities.GetTestFiles(nameof(ScoutDataTests));
         // _testFiles = Directory
         //     .EnumerateFiles(Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData"), $"{nameof(ScoutDataTests)}*.json")
         //     .ToDictionary(path => Path.GetFileNameWithoutExtension(path).Replace(nameof(ScoutDataTests), string.Empty),

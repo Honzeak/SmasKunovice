@@ -1,8 +1,9 @@
 using SmasKunovice.Avalonia.Models.FakeClient;
+using SmasKunovice.Avalonia.Tests.TestUtils;
 
 namespace SmasKunovice.Avalonia.Tests;
 
-public class LogfileDronetagClientTests
+public class LogfileDronetagClientTests : TestBase
 {
     
 [Test]
@@ -11,7 +12,7 @@ public class LogfileDronetagClientTests
 public void Constructor_WithValidJsonLogFile_InitializesSuccessfully()
 {
     // Arrange
-    var jsonLogFile = Utilities.GetTestFile(nameof(LogfileDronetagClientTests), "_log");
+    var jsonLogFile = FileUtilities.GetTestFile(nameof(LogfileDronetagClientTests), "_log");
 
     // Act
     var client = new LogfileDronetagClient(jsonLogFile, 1000);

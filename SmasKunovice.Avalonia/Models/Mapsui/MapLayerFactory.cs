@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Logging;
 using Mapsui.ArcGIS;
@@ -14,6 +15,7 @@ using Mapsui.Nts.Providers;
 using Mapsui.Styles;
 using Mapsui.Styles.Thematics;
 using Mapsui.Tiling.Layers;
+using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
@@ -33,21 +35,22 @@ public class MapLayerFactory(string svgBasePath, string geoJsonsBasePath)
         {
             if (sender is ArcGISDynamicCapabilities capabilities)
             {
-                Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, this, "Got capabilities");
+                LogExtensions.LogInfo("Got capabilities", this);
                 capabilitiesTask.TrySetResult(capabilities);
             }
             else
                 capabilitiesTask.TrySetException(new InvalidOperationException("Failed to get valid capabilities"));
         };
 
-        Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, this, url);
+        LogExtensions.LogInfo(url, this);
         capabilitiesHelper.GetCapabilities(url, CapabilitiesType.DynamicServiceCapabilities);
 
         _ = Task.WhenAny(capabilitiesTask.Task, Task.Delay(TimeSpan.FromSeconds(10))).Result;
         if (capabilitiesTask.Task.IsCompleted == false)
         {
-            Logger.Sink?.Log(LogEventLevel.Fatal, LogArea.Control, this, "Timeout while getting capabilities");
-            throw new TimeoutException("Timeout while getting capabilities");
+            var ex = new TimeoutException("Timeout while getting capabilities");
+            LogExtensions.LogFatal(ex, "Timeout while getting capabilities", this);
+            throw ex;
         }
 
         // _urlDatasetCache[ztmDataset] = defaultCache!;

@@ -8,6 +8,7 @@ using Mapsui;
 using Mapsui.Fetcher;
 using Mapsui.Layers;
 using Mapsui.Providers;
+using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models;
 
@@ -43,7 +44,7 @@ public class DynamicScoutDataProvider: MemoryProvider, IDynamic,  IDisposable
             m.TryCreatePointFeature(out var pointFeature);
             return pointFeature;
         }).Where(f => f is not null).ToList();
-        Logger.Sink?.Log(LogEventLevel.Information, LogArea.Control, this, "Received {Count} features from dronetag", pointFeatures.Count);
+        LogExtensions.LogInfo("Received {0} features from dronetag",this, pointFeatures.Count);
         return Task.FromResult<IEnumerable<IFeature>>(pointFeatures!);
     }
 

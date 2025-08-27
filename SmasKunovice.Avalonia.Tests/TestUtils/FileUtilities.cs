@@ -1,6 +1,6 @@
-namespace SmasKunovice.Avalonia.Tests;
+namespace SmasKunovice.Avalonia.Tests.TestUtils;
 
-public static class Utilities
+public static class FileUtilities
 {
     public static Dictionary<string, string> GetTestFiles(string testClassName)
     {

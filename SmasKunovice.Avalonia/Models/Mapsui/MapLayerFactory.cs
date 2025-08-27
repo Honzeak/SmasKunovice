@@ -22,7 +22,7 @@ namespace SmasKunovice.Avalonia.Models.Mapsui;
 public class MapLayerFactory(string svgBasePath, string geoJsonsBasePath)
 {
     private const string ZtmBaseRestUrl = "https://ags.cuzk.gov.cz/arcgis1/rest/services/ZTM/{{ZTM_DATASET}}/MapServer";
-    private GeoJsonStyleProvider _styleProvider = new (geoJsonsBasePath);
+    private GeoJsonLayerStyleProvider _layerStyleProvider = new (geoJsonsBasePath);
 
     public ImageLayer CreateZtmDynamicLayer(ZtmDatasets ztmDataset)
     {
@@ -84,36 +84,39 @@ public class MapLayerFactory(string svgBasePath, string geoJsonsBasePath)
 
     public ILayer[] CreateAirportElementsLayers()
     {
-        if (!_styleProvider.IsInitialized)
-            _styleProvider.Initialize();
+        if (!_layerStyleProvider.IsInitialized)
+            _layerStyleProvider.Initialize();
         
-        List<ILayer> layers = [];
-        ILayer? runwayMarkingsLayer = null;
+        var layersWithOrder = new List<(ILayer layer, int order)>();
+        
         foreach (var path in Directory.GetFiles(geoJsonsBasePath, "*.geojson"))
         {
-            var isRunwayMarkings = path.Contains("RunwayMarkings");
             var geoJsonProvider = new GeoJsonProvider(path);
-
-            var layer = new Layer()
+            var fileName = Path.GetFileNameWithoutExtension(path);
+            if (!_layerStyleProvider.LayerProperties.TryGetValue(fileName, out var props))
             {
-                DataSource = geoJsonProvider,
-                Style = _styleProvider.GetStyle(Path.GetFileNameWithoutExtension(path))
-            };
-            if (isRunwayMarkings)
-            {
-                runwayMarkingsLayer = layer;
+                LogExtensions.LogError("Could not find properties for geoJson file {0}, skipping layer", fileName);
                 continue;
             }
-
-            // TODO sort layers in a different way
-            layers.Add(layer);
+                
+            var layer = new Layer
+            {
+                DataSource = geoJsonProvider,
+                Style = GeoJsonLayerStyleProvider.GetStyle(props.Color),
+                Opacity = props.Opacity,
+                Name = props.Name
+            };
+            
+            layersWithOrder.Add((layer, props.Order));
         }
 
-        // Last layer to add is the top layer
-        if (runwayMarkingsLayer != null)
-            layers.Add(runwayMarkingsLayer);
+        // Sort layers by Order value
+        var sortedLayers = layersWithOrder
+            .OrderByDescending(x => x.order)
+            .Select(x => x.layer)
+            .ToArray();
 
-        return layers.ToArray();
+        return sortedLayers;
     }
 
     [Obsolete("Agreed to use ARCGis dynamic tiling")]

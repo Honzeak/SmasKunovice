@@ -1,0 +1,191 @@
+{
+    "type": "FeatureCollection",
+    "name": "Ctr3",
+    "color": "yellow",
+    "opacity": 0.4,
+    "order": 2,
+    "crs": {
+        "type": "name",
+        "properties": {
+            "name": "urn:ogc:def:crs:EPSG::5514"
+        }
+    },
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "id": null,
+                "Name": "11.11 km (6.90 miles) radius circle, centered at 49.02944 latitude, 17.43972 longitude",
+                "description": null,
+                "timestamp": null,
+                "begin": null,
+                "end": null,
+                "altitudeMode": "clampToGround",
+                "tessellate": 1,
+                "extrude": 0,
+                "visibility": -1,
+                "drawOrder": null,
+                "icon": null
+            },
+            "geometry": {
+                "type": "MultiPolygon",
+                "coordinates": [
+                    [
+                        [
+                            [
+                                -538964.335100071271881,
+                                -1174291.363059077644721,
+                                0.0
+                            ],
+                            [
+                                -538900.85302420926746,
+                                -1174184.421611309517175,
+                                0.0
+                            ],
+                            [
+                                -538763.096089495578781,
+                                -1174194.145584458718076,
+                                0.0
+                            ]
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": null,
+                "Name": "11.11 km (6.90 miles) radius circle, centered at 49.02944 latitude, 17.43972 longitude",
+                "description": null,
+                "timestamp": null,
+                "begin": null,
+                "end": null,
+                "altitudeMode": "clampToGround",
+                "tessellate": 1,
+                "extrude": 0,
+                "visibility": -1,
+                "drawOrder": null,
+                "icon": null
+            },
+            "geometry": {
+                "type": "MultiPolygon",
+                "coordinates": [
+                    [
+                        [
+                            [
+                                -549045.495659084408544,
+                                -1191235.620873048435897,
+                                0.0
+                            ],
+                            [
+                                -549031.853340405505151,
+                                -1191256.596661128569394,
+                                0.0
+                            ],
+                            [
+                                -549045.495659084408544,
+                                -1191235.620873048435897,
+                                0.0
+                            ]
+                        ]
+                    ],
+                    [
+                        [
+                            [
+                                -528759.798882518080063,
+                                -1182878.649183788103983,
+                                0.0
+                            ],
+                            [
+                                -528891.36964079469908,
+                                -1182900.541081187780946,
+                                0.0
+                            ],
+                            [
+                                -528792.700622598524205,
+                                -1182736.056129152886569,
+                                0.0
+                            ],
+                            [
+                                -528759.798882518080063,
+                                -1182878.649183788103983,
+                                0.0
+                            ]
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": null,
+                "Name": null,
+                "description": null,
+                "timestamp": null,
+                "begin": null,
+                "end": null,
+                "altitudeMode": null,
+                "tessellate": null,
+                "extrude": null,
+                "visibility": null,
+                "drawOrder": null,
+                "icon": null
+            },
+            "geometry": {
+                "type": "MultiPolygon",
+                "coordinates": [
+                    [
+                        [
+                            [
+                                -537309.388127256883308,
+                                -1171503.451308408984914,
+                                0.0
+                            ],
+                            [
+                                -538763.096089495578781,
+                                -1174194.145584458718076,
+                                0.0
+                            ],
+                            [
+                                -538900.85302420926746,
+                                -1174184.421611309517175,
+                                0.0
+                            ],
+                            [
+                                -537309.388127256883308,
+                                -1171503.451308408984914,
+                                0.0
+                            ]
+                        ]
+                    ],
+                    [
+                        [
+                            [
+                                -541786.054059610818513,
+                                -1198720.308231478556991,
+                                0.0
+                            ],
+                            [
+                                -540521.928441249299794,
+                                -1196352.438195087946951,
+                                0.0
+                            ],
+                            [
+                                -540383.136038007563911,
+                                -1196362.220115383155644,
+                                0.0
+                            ],
+                            [
+                                -541786.054059610818513,
+                                -1198720.308231478556991,
+                                0.0
+                            ]
+                        ]
+                    ]
+                ]
+            }
+        }
+    ]
+}

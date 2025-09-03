@@ -19,10 +19,10 @@ using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
-public class MapLayerFactory(string svgBasePath, string geoJsonsBasePath)
+public class MapLayerFactory(string geoJsonsBasePath)
 {
     private const string ZtmBaseRestUrl = "https://ags.cuzk.gov.cz/arcgis1/rest/services/ZTM/{{ZTM_DATASET}}/MapServer";
-    private GeoJsonLayerStyleProvider _layerStyleProvider = new (geoJsonsBasePath);
+    private readonly GeoJsonLayerStyleProvider _layerStyleProvider = new (geoJsonsBasePath);
 
     public ImageLayer CreateZtmDynamicLayer(ZtmDatasets ztmDataset)
     {
@@ -60,26 +60,20 @@ public class MapLayerFactory(string svgBasePath, string geoJsonsBasePath)
         return new ImageLayer(ztmDataset.ToString()) { DataSource = provider };
     }
 
-    public ILayer CreatePlanesAnimatedPointLayer(IDronetagClient dronetagClient)
+    public ILayer CreatePlanesPointLayer(IDronetagClient dronetagClient)
     {
-        var svgStyleProvider = new SvgStyleProvider(svgBasePath);
-        var airplaneId = svgStyleProvider.RegisterSvg("airplane.svg");
-        var themeStyle = new ThemeStyle(feature =>
+        var style = new SymbolStyle
         {
-            return new SymbolStyle
-            {
-                BitmapId = airplaneId,
-                SymbolScale = .03f,
-                SymbolRotation = feature["ScoutData"] switch
-                {
-                    ScoutData { Odid.Location.Direction: not null } message => (double)message.Odid.Location
-                        .Direction,
-                    _ => 0
-                }
-            };
-        });
+            Fill = new Brush(Color.Red),
+            Outline = new Pen(Color.Black, 2),
+            SymbolScale = 0.2f,
+            SymbolType = SymbolType.Rectangle
+        };
 
-        return new AnimatedPointLayer(new DynamicScoutDataProvider(dronetagClient)) { Style = themeStyle };
+        return new UpdatingPointLayer(new DynamicScoutDataProvider(dronetagClient))
+        {
+            Style = style
+        };
     }
 
     public ILayer[] CreateAirportElementsLayers()

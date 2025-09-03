@@ -13,7 +13,7 @@ public class MapLayerFactoryTests
     public void TestCreateAirportElementsLayers()
     {
         // Should load file ApronGuidanceLineMarking.geojson
-        var factory = new MapLayerFactory(string.Empty, $"TestData\\{nameof(MapLayerFactoryTests)}");
+        var factory = new MapLayerFactory($"TestData\\{nameof(MapLayerFactoryTests)}");
 
         var layer = factory.CreateAirportElementsLayers().Single();
         var featureMock = new Mock<IFeature>();

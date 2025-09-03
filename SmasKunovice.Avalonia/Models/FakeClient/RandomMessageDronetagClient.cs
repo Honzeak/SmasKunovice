@@ -4,17 +4,26 @@ using System.Timers;
 
 namespace SmasKunovice.Avalonia.Models.FakeClient;
 
-public class RandomMessageDronetagClient() : FakeDronetagClient(_interval)
+public class RandomMessageDronetagClient : FakeDronetagClient
 {
-    private static int _interval = 3000; // 5 seconds
+    private static int _interval = 3000; // ms
     private readonly Random _random = new();
     private int _counter = 0;
     private int _xMin = -541518;
     private int _xMax = -535341;
     private int _yMin = -1182974;
     private int _yMax = -1188872;
-    private int _maxMessages = 10;
+    private int _maxYShift;
+    private int _maxXShift;
+    private int _maxMessages = 5;
     private readonly List<ScoutData> _currentMessages = new();
+
+    public RandomMessageDronetagClient() : base(_interval)
+    {
+        // Each object should move only one tenth of the extent at max
+        _maxYShift = (Math.Abs(_yMax) - Math.Abs(_yMin)) / 10;
+        _maxXShift = (Math.Abs(_xMax) - Math.Abs(_xMin)) / 10;
+    }
 
     protected override void OnTimerElapsed(object? sender, ElapsedEventArgs e)
     {
@@ -49,7 +58,10 @@ public class RandomMessageDronetagClient() : FakeDronetagClient(_interval)
         for (var i = 0; i < _currentMessages.Count; i++)
         {
             var oldMessage = _currentMessages[i];
-            _currentMessages[i] = GenerateRandomMessageWithId(oldMessage.Odid.BasicId[0].UasId);
+            _currentMessages[i] = GenerateRandomMessageWithId(
+                oldMessage.Odid.BasicId[0].UasId,
+                oldMessage.Odid.Location!.Latitude!.Value,
+                oldMessage.Odid.Location.Longitude!.Value);
         }
 
         // Trigger the event if we have messages and subscribers
@@ -68,14 +80,16 @@ public class RandomMessageDronetagClient() : FakeDronetagClient(_interval)
     {
         _counter++;
         var id = _counter;
-        return GenerateRandomMessageWithId(id.ToString());
-    }
-
-    private ScoutData GenerateRandomMessageWithId(string id)
-    {
-        // Generate random latitude and longitude within the specified range
         var latitude = _random.NextDouble() * (_xMax - _xMin) + _xMin;
         var longitude = _random.NextDouble() * (_yMax - _yMin) + _yMin;
+        return GenerateRandomMessageWithId(id.ToString(), (float)latitude, (float)longitude);
+    }
+
+    private ScoutData GenerateRandomMessageWithId(string id, float prevLatitude, float prevLongitude)
+    {
+        // Generate shift (positive or negative) based on max shift
+        var latitude = prevLatitude + (_random.Next(2) == 0 ? -1 : 1) * _random.NextDouble() * _maxXShift;
+        var longitude = prevLongitude + (_random.Next(2) == 0 ? -1 : 1) * _random.NextDouble() * _maxYShift;
 
         // Generate other random properties
         var speed = _random.NextDouble() * 200; // Speed between 0 and 200

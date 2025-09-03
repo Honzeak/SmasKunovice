@@ -1,16 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using Avalonia.Logging;
 using Mapsui;
 using Mapsui.Fetcher;
 using Mapsui.Layers;
 using Mapsui.Providers;
 using SmasKunovice.Avalonia.Extensions;
 
-namespace SmasKunovice.Avalonia.Models;
+namespace SmasKunovice.Avalonia.Models.Mapsui;
 
 public class DynamicScoutDataProvider: MemoryProvider, IDynamic,  IDisposable
 {

@@ -13,11 +13,10 @@ public partial class MainViewViewModel() : ViewModelBase
     [ObservableProperty] private string _greeting = "Welcome to Avalonia!";
 
     [ObservableProperty] private Map _map = new();
-    private const string SvgBasePath = @"C:\Users\honza\codes\SmasKunovice\SmasKunovice.Avalonia\Assets\Svg\";
     private const string GeoJsonsBasePath = @"C:\Users\honza\codes\SmasKunovice\SmasKunovice.Avalonia\Assets\GeoJsonElements\";
 
     private readonly IDronetagClient? _dronetagClient;
-    private readonly MapLayerFactory _mapLayerFactory = new(SvgBasePath, GeoJsonsBasePath);
+    private readonly MapLayerFactory _mapLayerFactory = new(GeoJsonsBasePath);
     public bool HasClient => _dronetagClient is not null;
 
     public MainViewViewModel(IDronetagClient dronetagClient) : this()
@@ -34,7 +33,7 @@ public partial class MainViewViewModel() : ViewModelBase
             map.Layers.Add(_mapLayerFactory.CreateZtmDynamicLayer(ZtmDatasets.ZTM5));
             map.Layers.Add(_mapLayerFactory.CreateAirportElementsLayers());
             if (HasClient)
-                map.Layers.Add(_mapLayerFactory.CreatePlanesAnimatedPointLayer(_dronetagClient!));
+                map.Layers.Add(_mapLayerFactory.CreatePlanesPointLayer(_dronetagClient!));
             else
                 LogExtensions.LogError("{0} not provided. Creating map without SMAS data.", this, nameof(IDronetagClient));
 

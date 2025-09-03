@@ -3,6 +3,7 @@ using Mapsui.Fetcher;
 using Mapsui.Layers;
 using Moq;
 using SmasKunovice.Avalonia.Models;
+using SmasKunovice.Avalonia.Models.Mapsui;
 
 namespace SmasKunovice.Avalonia.Tests
 {

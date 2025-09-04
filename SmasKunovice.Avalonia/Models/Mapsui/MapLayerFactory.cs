@@ -4,16 +4,13 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Avalonia.Logging;
 using Mapsui.ArcGIS;
 using Mapsui.ArcGIS.DynamicProvider;
 using Mapsui.Cache;
 using Mapsui.Extensions.Provider;
 using Mapsui.Layers;
-using Mapsui.Layers.AnimatedLayers;
 using Mapsui.Nts.Providers;
 using Mapsui.Styles;
-using Mapsui.Styles.Thematics;
 using Mapsui.Tiling.Layers;
 using SmasKunovice.Avalonia.Extensions;
 
@@ -22,7 +19,7 @@ namespace SmasKunovice.Avalonia.Models.Mapsui;
 public class MapLayerFactory(string geoJsonsBasePath)
 {
     private const string ZtmBaseRestUrl = "https://ags.cuzk.gov.cz/arcgis1/rest/services/ZTM/{{ZTM_DATASET}}/MapServer";
-    private readonly GeoJsonLayerStyleProvider _layerStyleProvider = new (geoJsonsBasePath);
+    private readonly GeoJsonLayerStyleProvider _layerStyleProvider = new(geoJsonsBasePath);
 
     public ImageLayer CreateZtmDynamicLayer(ZtmDatasets ztmDataset)
     {
@@ -70,7 +67,7 @@ public class MapLayerFactory(string geoJsonsBasePath)
             SymbolType = SymbolType.Rectangle
         };
 
-        return new UpdatingPointLayer(new DynamicScoutDataProvider(dronetagClient))
+        return new UpdatingPositionLayer(new DynamicScoutDataProvider(dronetagClient))
         {
             Style = style
         };
@@ -80,9 +77,9 @@ public class MapLayerFactory(string geoJsonsBasePath)
     {
         if (!_layerStyleProvider.IsInitialized)
             _layerStyleProvider.Initialize();
-        
+
         var layersWithOrder = new List<(ILayer layer, int order)>();
-        
+
         foreach (var path in Directory.GetFiles(geoJsonsBasePath, "*.geojson"))
         {
             var geoJsonProvider = new GeoJsonProvider(path);
@@ -92,7 +89,7 @@ public class MapLayerFactory(string geoJsonsBasePath)
                 LogExtensions.LogError("Could not find properties for geoJson file {0}, skipping layer", fileName);
                 continue;
             }
-                
+
             var layer = new Layer
             {
                 DataSource = geoJsonProvider,
@@ -100,7 +97,7 @@ public class MapLayerFactory(string geoJsonsBasePath)
                 Opacity = props.Opacity,
                 Name = props.Name
             };
-            
+
             layersWithOrder.Add((layer, props.Order));
         }
 

@@ -5,7 +5,7 @@ using Moq;
 using SmasKunovice.Avalonia.Models;
 using SmasKunovice.Avalonia.Models.Mapsui;
 
-namespace SmasKunovice.Avalonia.Tests
+namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
 {
     [TestFixture]
     public class DynamicScoutDataProviderTests : TestBase

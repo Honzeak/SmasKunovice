@@ -1,29 +1,53 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using Mapsui;
 using Mapsui.Layers;
 using Mapsui.Providers;
+using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
-public class UpdatingTrajectoryLayer(IProvider dataSource)
-    : UpdatingLayer<Dictionary<string, Queue<PointFeature>>, Queue<PointFeature>>(dataSource)
+public class UpdatingTrajectoryLayer(IProvider dataSource) : UpdatingLayer<Dictionary<string, LinkedList<PointFeature>>, LinkedList<PointFeature>>(dataSource)
 {
-    protected override Dictionary<string, Queue<PointFeature>> Features { get; } = new();
+    protected override Dictionary<string, LinkedList<PointFeature>> Features { get; } = new();
+    private const int QueueCapacity = 10;
 
-    protected override void UpdateFeaturePositions(IEnumerable<PointFeature> updatedFeatures)
+    public int ObservableQueueSize
     {
-        throw new NotImplementedException();
+        get => _observableQueueSize;
+        set => _observableQueueSize = Math.Clamp(value, 0, QueueCapacity);
     }
 
-    protected override IEnumerable<IFeature> ConvertToFeaturesOnInterface(
-        Dictionary<string, Queue<PointFeature>> featuresImpl)
+    private int _observableQueueSize = 5;
+
+    protected override void UpdateFeaturePositions(IEnumerable<PointFeature> updateFeatures)
     {
-        throw new NotImplementedException();
+        foreach (var updateFeature in updateFeatures)
+        {
+            var featureId = updateFeature.GetFeatureId();
+            if (featureId is null)
+                continue;
+            
+            var foundLog = FindExistingFeature(featureId);
+            if (foundLog is null)
+            {
+                var trajectoryLog = new LinkedList<PointFeature>();
+                trajectoryLog.AddFirst(updateFeature);
+                Features.Add(featureId, trajectoryLog);
+            }
+            else
+            {
+                if (foundLog.Count >= QueueCapacity)
+                    foundLog.RemoveLast();
+                foundLog.AddFirst(updateFeature);
+            }
+        }
     }
 
-    public override void ClearCache()
+    protected override IEnumerable<IFeature> GetInterfaceFeatures()
     {
-        throw new NotImplementedException();
+        return Features.Values.SelectMany(log => log.Take(_observableQueueSize)).ToList();
     }
 }

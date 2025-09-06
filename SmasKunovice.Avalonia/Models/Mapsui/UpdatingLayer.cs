@@ -8,6 +8,7 @@ using Mapsui.Extensions;
 using Mapsui.Fetcher;
 using Mapsui.Layers;
 using Mapsui.Providers;
+using Mapsui.Styles;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
@@ -37,8 +38,10 @@ public abstract class UpdatingLayer<TFeatures, TFeature> : BaseLayer, IAsyncData
     }
 
     protected abstract TFeatures Features { get; }
-
     public override MRect? Extent => _dataSource.GetExtent();
+    
+    protected abstract void UpdateFeaturePositions(IEnumerable<PointFeature> updateFeatures);
+    protected abstract IEnumerable<IFeature> GetInterfaceFeatures();
 
     public void RefreshData(FetchInfo fetchInfo)
     {
@@ -49,7 +52,10 @@ public abstract class UpdatingLayer<TFeatures, TFeature> : BaseLayer, IAsyncData
     {
     }
 
-    public abstract void ClearCache();
+    public void ClearCache()
+    {
+        Features.Clear();
+    }
 
     public IProvider? DataSource => _dataSource;
 
@@ -66,11 +72,6 @@ public abstract class UpdatingLayer<TFeatures, TFeature> : BaseLayer, IAsyncData
         OnDataChanged(new DataChangedEventArgs(Name));
     }
 
-    /// <summary>
-    /// Updates feature positions immediately without animation.
-    /// </summary>
-    /// <param name="updatedFeatures">The features with new positions</param>
-    protected abstract void UpdateFeaturePositions(IEnumerable<PointFeature> updatedFeatures);
 
     /// <summary>
     /// Copies all fields from source feature to target feature.
@@ -84,25 +85,26 @@ public abstract class UpdatingLayer<TFeatures, TFeature> : BaseLayer, IAsyncData
     /// <summary>
     /// Finds an existing feature by comparing the ID field.
     /// </summary>
-    protected static TFeature? FindExistingFeature(TFeatures features, string id)
+    protected TFeature? FindExistingFeature(string id)
     {
-        features.TryGetValue(id, out var existingFeature);
+        Features.TryGetValue(id, out var existingFeature);
         return existingFeature;
     }
 
-    public override IEnumerable<IFeature> GetFeatures(MRect extent, double resolution)
+    public override IEnumerable<IFeature> GetFeatures(MRect? extent, double resolution)
     {
-        return ConvertToFeaturesOnInterface(Features);
-    }
+        var featureCollection = GetInterfaceFeatures();
+        if (extent is null) { return new List<IFeature>(); }
 
-    protected abstract IEnumerable<IFeature> ConvertToFeaturesOnInterface(TFeatures featuresImpl);
+        var biggerRect = extent.Grow(
+                SymbolStyle.DefaultWidth * 2 * resolution,
+                SymbolStyle.DefaultHeight * 2 * resolution);
 
-    /// <summary>
-    /// This layer doesn't use animations, so always returns false.
-    /// </summary>
-    public override bool UpdateAnimations()
-    {
-        return false; // No animations to update
+        return featureCollection.Where(f =>
+        {
+            var result = f.Extent?.Intersects(biggerRect) == true;
+            return result;
+        });
     }
 
     // public bool RemoveFeature(object featureId)

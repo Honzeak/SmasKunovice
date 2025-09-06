@@ -12,15 +12,15 @@ public class UpdatingPositionLayer(IProvider dataSource)
 {
     protected override Dictionary<string, PointFeature> Features { get; } = [];
 
-    protected override void UpdateFeaturePositions(IEnumerable<PointFeature> updatedFeatures)
+    protected override void UpdateFeaturePositions(IEnumerable<PointFeature> updateFeatures)
     {
-        foreach (var updatedFeature in updatedFeatures)
+        foreach (var updatedFeature in updateFeatures)
         {
             var id = updatedFeature.GetFeatureId();
             if (id is null)
                 continue;
 
-            var existingFeature = FindExistingFeature(Features, id);
+            var existingFeature = FindExistingFeature(id);
             if (existingFeature is null)
             {
                 // Create new feature if it doesn't exist
@@ -38,13 +38,8 @@ public class UpdatingPositionLayer(IProvider dataSource)
         }
     }
 
-    protected override IEnumerable<IFeature> ConvertToFeaturesOnInterface(Dictionary<string, PointFeature> featuresImpl)
+    protected override IEnumerable<IFeature> GetInterfaceFeatures()
     {
-        return Features.Select(f => f.Value);
-    }
-
-    public override void ClearCache()
-    {
-        Features.Clear();
+        return Features.Values;
     }
 }

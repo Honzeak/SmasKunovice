@@ -1,10 +1,11 @@
-using System;
-using System.Collections.Generic;
 using System.Timers;
+using Mapsui;
+using SmasKunovice.Avalonia.Models;
+using SmasKunovice.Avalonia.Models.FakeClient;
 
-namespace SmasKunovice.Avalonia.Models.FakeClient;
+namespace SmasKunovice.Avalonia.Tests.Models.Mapsui;
 
-public class RandomMessageDronetagClient : FakeDronetagClient
+public class TestDroneTagClient : FakeDronetagClient
 {
     private readonly Random _random = new();
     private int _counter = 0;
@@ -15,44 +16,32 @@ public class RandomMessageDronetagClient : FakeDronetagClient
     private int _maxYShift;
     private int _maxXShift;
     private int _maxMessages = 5;
-    private readonly List<ScoutData> _currentMessages = new();
+    private readonly List<ScoutData> _currentMessages;
 
-    public RandomMessageDronetagClient(int? intervalMs = null) : base(intervalMs)
+    public TestDroneTagClient(int? intervalMs = null) : base(intervalMs)
     {
         // Each object should move only one tenth of the extent at max
         _maxYShift = (Math.Abs(_yMax) - Math.Abs(_yMin)) / 10;
         _maxXShift = (Math.Abs(_xMax) - Math.Abs(_xMin)) / 10;
+        _currentMessages = [GenerateRandomMessage(), GenerateRandomMessage()];
+    }
+
+    public MRect GetExtent()
+    {
+        return new MRect(_xMin, _yMin, _xMax, _yMax).Grow(1000);
     }
 
     protected override void OnTimerElapsed(object? sender, ElapsedEventArgs e)
     {
-        // Decide whether to increase, decrease, or keep the same number of messages
-        // 60% chance to increase, 30% chance to stay the same, 10% chance to decrease
-        var changeType = _random.Next(10);
-        var currentCount = _currentMessages.Count;
+        // Timer is no longer used for message generation
+        // This method can be left empty or removed if the base class allows it
+    }
 
-        var targetCount = changeType switch
-        {
-            // 60% chance to increase
-            < 6 => Math.Min(currentCount + 1, _maxMessages),
-            // 30% chance to stay the same
-            < 9 => currentCount,
-            _ => Math.Max(currentCount - 1, 0)
-        };
-
-        // Adjust the message list to match the target count
-        if (targetCount > currentCount)
-        {
-            // Add new messages
-            _currentMessages.Add(GenerateRandomMessage());
-        }
-        else if (targetCount < currentCount)
-        {
-            // Remove random messages
-            var indexToRemove = _random.Next(_currentMessages.Count);
-            _currentMessages.RemoveAt(indexToRemove);
-        }
-
+    /// <summary>
+    /// Sends two messages for two defined features and returns them
+    /// </summary>
+    public void SendTwoMessages()
+    {
         // Update existing messages with new positions
         for (var i = 0; i < _currentMessages.Count; i++)
         {
@@ -63,10 +52,6 @@ public class RandomMessageDronetagClient : FakeDronetagClient
                 oldMessage.Odid.Location.Longitude!.Value);
         }
 
-        // Trigger the event if we have messages and subscribers
-        if (_currentMessages.Count <= 0)
-            return;
-
         var args = new ScoutDataReceivedEventArgs
         {
             Messages = new List<ScoutData>(_currentMessages)
@@ -74,6 +59,19 @@ public class RandomMessageDronetagClient : FakeDronetagClient
 
         SendMessageReceived(args);
     }
+
+    /// <summary>
+    /// Gets the current messages without generating new ones
+    /// </summary>
+    public List<ScoutData> GetCurrentMessages()
+    {
+        return _currentMessages.ToList();
+    }
+
+    /// <summary>
+    /// Gets the current number of active messages
+    /// </summary>
+    public int CurrentMessageCount => _currentMessages.Count;
 
     private ScoutData GenerateRandomMessage()
     {

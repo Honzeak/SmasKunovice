@@ -10,11 +10,12 @@ namespace SmasKunovice.Avalonia.Models.FakeClient;
 /// </summary>
 public abstract class FakeDronetagClient : IDronetagClient
 {
-    private Timer _timer;
+    private readonly Timer _timer;
+    private const int DefaultIntervalMs = 3000; // ms
 
-    protected FakeDronetagClient(int intervalMs)
+    protected FakeDronetagClient(int? intervalMs = null)
     {
-        _timer = new Timer(intervalMs); // 2 seconds
+        _timer = new Timer(intervalMs ?? DefaultIntervalMs);
         _timer.Elapsed += OnTimerElapsed;
         _timer.AutoReset = true;
     }

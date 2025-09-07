@@ -16,12 +16,11 @@ using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
-public class MapLayerFactory(string geoJsonsBasePath)
+public static class MapLayerFactory
 {
     private const string ZtmBaseRestUrl = "https://ags.cuzk.gov.cz/arcgis1/rest/services/ZTM/{{ZTM_DATASET}}/MapServer";
-    private readonly GeoJsonLayerStyleProvider _layerStyleProvider = new(geoJsonsBasePath);
 
-    public ImageLayer CreateZtmDynamicLayer(ZtmDatasets ztmDataset)
+    public static ImageLayer CreateZtmDynamicLayer(ZtmDatasets ztmDataset)
     {
         var url = ZtmBaseRestUrl.Replace("{{ZTM_DATASET}}", ztmDataset.ToString());
         IUrlPersistentCache? defaultCache = null;
@@ -32,21 +31,21 @@ public class MapLayerFactory(string geoJsonsBasePath)
         {
             if (sender is ArcGISDynamicCapabilities capabilities)
             {
-                LogExtensions.LogInfo("Got capabilities", this);
+                LogExtensions.LogInfo("Got capabilities", null);
                 capabilitiesTask.TrySetResult(capabilities);
             }
             else
                 capabilitiesTask.TrySetException(new InvalidOperationException("Failed to get valid capabilities"));
         };
 
-        LogExtensions.LogInfo(url, this);
+        LogExtensions.LogInfo(url, null);
         capabilitiesHelper.GetCapabilities(url, CapabilitiesType.DynamicServiceCapabilities);
 
         _ = Task.WhenAny(capabilitiesTask.Task, Task.Delay(TimeSpan.FromSeconds(10))).Result;
         if (capabilitiesTask.Task.IsCompleted == false)
         {
             var ex = new TimeoutException("Timeout while getting capabilities");
-            LogExtensions.LogFatal(ex, "Timeout while getting capabilities", this);
+            LogExtensions.LogFatal(ex, "Timeout while getting capabilities", null);
             throw ex;
         }
 
@@ -57,7 +56,7 @@ public class MapLayerFactory(string geoJsonsBasePath)
         return new ImageLayer(ztmDataset.ToString()) { DataSource = provider };
     }
 
-    public ILayer CreatePlanesPointLayer(IDronetagClient dronetagClient)
+    public static ILayer CreatePlanesPointLayer(IDronetagClient dronetagClient)
     {
         var style = new SymbolStyle
         {
@@ -73,41 +72,31 @@ public class MapLayerFactory(string geoJsonsBasePath)
         };
     }
 
-    public ILayer[] CreateAirportElementsLayers()
+    public static ILayer CreateTrajectoryLayer(IDronetagClient dronetagClient)
     {
-        if (!_layerStyleProvider.IsInitialized)
-            _layerStyleProvider.Initialize();
-
-        var layersWithOrder = new List<(ILayer layer, int order)>();
-
-        foreach (var path in Directory.GetFiles(geoJsonsBasePath, "*.geojson"))
+        var style = new SymbolStyle
         {
-            var geoJsonProvider = new GeoJsonProvider(path);
-            var fileName = Path.GetFileNameWithoutExtension(path);
-            if (!_layerStyleProvider.LayerProperties.TryGetValue(fileName, out var props))
-            {
-                LogExtensions.LogError("Could not find properties for geoJson file {0}, skipping layer", fileName);
-                continue;
-            }
+            Fill = new Brush(Color.Pink),
+            Outline = new Pen(Color.Black, 2),
+            SymbolScale = 0.15f,
+            SymbolType = SymbolType.Ellipse
+        };
 
-            var layer = new Layer
-            {
-                DataSource = geoJsonProvider,
-                Style = GeoJsonLayerStyleProvider.GetStyle(props.Color),
-                Opacity = props.Opacity,
-                Name = props.Name
-            };
+        return new UpdatingTrajectoryLayer(new DynamicScoutDataProvider(dronetagClient))
+        {
+            Style = style
+        };
+    }
 
-            layersWithOrder.Add((layer, props.Order));
-        }
-
-        // Sort layers by Order value
-        var sortedLayers = layersWithOrder
-            .OrderByDescending(x => x.order)
-            .Select(x => x.layer)
-            .ToArray();
-
-        return sortedLayers;
+    public static IEnumerable<ILayer> CreateAirportElementsLayers(GeoJsonLayerStyleProvider layerStyleProvider)
+    {
+        return layerStyleProvider.GeoJsonLayerProperties.OrderByDescending(layerConfig => layerConfig.Order).Select(layerConfig => new Layer
+        {
+            DataSource = layerConfig.Provider,
+            Style = layerConfig.Style,
+            Opacity = layerConfig.Opacity,
+            Name = layerConfig.Name
+        });
     }
 
     [Obsolete("Agreed to use ARCGis dynamic tiling")]

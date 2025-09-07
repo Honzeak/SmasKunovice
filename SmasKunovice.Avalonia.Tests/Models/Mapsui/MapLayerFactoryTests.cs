@@ -13,12 +13,13 @@ public class MapLayerFactoryTests
     public void TestCreateAirportElementsLayers()
     {
         // Should load file ApronGuidanceLineMarking.geojson
-        var factory = new MapLayerFactory($"TestData\\{nameof(MapLayerFactoryTests)}");
-
-        var layer = factory.CreateAirportElementsLayers().Single();
+        var layer = MapLayerFactory
+            .CreateAirportElementsLayers(new GeoJsonLayerStyleProvider($"TestData\\{nameof(MapLayerFactoryTests)}"))
+            .Single();
         var featureMock = new Mock<IFeature>();
         Assert.That(layer.Style, Is.Not.Null.And.TypeOf<ThemeStyle>());
-        var actualStyle = ((ThemeStyle)layer.Style).GetStyle(featureMock.Object) as VectorStyle ?? throw new Exception("Style is not a VectorStyle");
-        Assert.That(actualStyle.Fill?.Color, Is.EqualTo(Color.FromString("yellow")));
+        var actualStyle = ((ThemeStyle)layer.Style).GetStyle(featureMock.Object) as VectorStyle ??
+                          throw new Exception("Style is not a VectorStyle");
+        Assert.That(actualStyle.Fill?.Color, Is.EqualTo(Color.Yellow));
     }
 }

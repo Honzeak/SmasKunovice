@@ -15,6 +15,8 @@ namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
             layer.ObservableQueueSize = 3;
             Assert.That(layer.GetFeatures(fakeClient.GetExtent(), 1), Is.Empty);
             fakeClient.SendTwoMessages();
+            Assert.That(layer.GetFeatures(fakeClient.GetExtent(), 1), Is.Empty);
+            fakeClient.SendTwoMessages();
             Assert.That(layer.GetFeatures(fakeClient.GetExtent(), 1), Is.Not.Empty);
         }
 
@@ -22,10 +24,9 @@ namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
         public void Layer_ReturnsCorrectNumberOfFeatures_And_CorrectOrder()
         {
             var (fakeClient, layer) = InitLayer();
-            layer.ObservableQueueSize = 2;
             var sentCount = 0;
             List<PointFeature> firstMessages = [];
-            while (sentCount != 3)
+            while (sentCount != 4)
             {
                 sentCount++;
                 fakeClient.SendTwoMessages();
@@ -39,13 +40,20 @@ namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
                 Assert.That(firstMessages, Has.Count.EqualTo(2));
             }
 
+            layer.ObservableQueueSize = 2;
             var features = layer.GetFeatures(fakeClient.GetExtent(), 1).Cast<PointFeature>().ToList();
-            Assert.That(features, Has.Count.EqualTo(4));
-            Assert.That(CheckExistenceOfFirstMessages(features, firstMessages), Is.False);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(features, Has.Count.EqualTo(4));
+                Assert.That(CheckExistenceOfFirstMessages(features, firstMessages), Is.False);
+            }
             layer.ObservableQueueSize = 3;
             features = layer.GetFeatures(fakeClient.GetExtent(), 1).Cast<PointFeature>().ToList();
-            Assert.That(features, Has.Count.EqualTo(6));
-            Assert.That(CheckExistenceOfFirstMessages(features, firstMessages), Is.True);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(features, Has.Count.EqualTo(6));
+                Assert.That(CheckExistenceOfFirstMessages(features, firstMessages), Is.True);
+            }
         }
 
         private static bool CheckExistenceOfFirstMessages(List<PointFeature> features, List<PointFeature> firstMessages)

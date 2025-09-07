@@ -48,6 +48,6 @@ public class UpdatingTrajectoryLayer(IProvider dataSource) : UpdatingLayer<Dicti
 
     protected override IEnumerable<IFeature> GetInterfaceFeatures()
     {
-        return Features.Values.SelectMany(log => log.Take(_observableQueueSize)).ToList();
+        return Features.Values.SelectMany(log => log.Skip(1).Take(_observableQueueSize)).ToList();
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Avalonia.Logging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Mapsui;
@@ -16,7 +17,7 @@ public partial class MainViewViewModel() : ViewModelBase
     private const string GeoJsonsBasePath = @"C:\Users\honza\codes\SmasKunovice\SmasKunovice.Avalonia\Assets\GeoJsonElements\";
 
     private readonly IDronetagClient? _dronetagClient;
-    private readonly MapLayerFactory _mapLayerFactory = new(GeoJsonsBasePath);
+    private readonly GeoJsonLayerStyleProvider _layerStyleProvider = new(GeoJsonsBasePath);
     public bool HasClient => _dronetagClient is not null;
 
     public MainViewViewModel(IDronetagClient dronetagClient) : this()
@@ -30,10 +31,13 @@ public partial class MainViewViewModel() : ViewModelBase
         try
         {
             map.CRS = "EPSG:5514";
-            map.Layers.Add(_mapLayerFactory.CreateZtmDynamicLayer(ZtmDatasets.ZTM5));
-            map.Layers.Add(_mapLayerFactory.CreateAirportElementsLayers());
+            map.Layers.Add(MapLayerFactory.CreateZtmDynamicLayer(ZtmDatasets.ZTM5));
+            map.Layers.Add(MapLayerFactory.CreateAirportElementsLayers(_layerStyleProvider).ToArray());
             if (HasClient)
-                map.Layers.Add(_mapLayerFactory.CreatePlanesPointLayer(_dronetagClient!));
+            {
+                map.Layers.Add(MapLayerFactory.CreatePlanesPointLayer(_dronetagClient!));
+                map.Layers.Add(MapLayerFactory.CreateTrajectoryLayer(_dronetagClient!));
+            }
             else
                 LogExtensions.LogError("{0} not provided. Creating map without SMAS data.", this, nameof(IDronetagClient));
 

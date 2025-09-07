@@ -1,12 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
-using Avalonia.Logging;
-using Mapsui.Extensions;
 using Mapsui.Nts;
+using Mapsui.Nts.Providers;
 using Mapsui.Styles;
 using Mapsui.Styles.Thematics;
 using NetTopologySuite.Geometries;
@@ -17,22 +14,29 @@ namespace SmasKunovice.Avalonia.Models.Mapsui;
 /// <summary>
 /// Provides style information for GeoJSON files by extracting color properties
 /// </summary>
-public class GeoJsonLayerStyleProvider(string geoJsonBasePath)
+public class GeoJsonLayerStyleProvider
 {
     private const string ColorPropertyName = "color";
     private const string OpacityPropertyName = "opacity";
     private const string OrderPropertyName = "order";
 
-    private readonly string _geoJsonBasePath =
-        geoJsonBasePath ?? throw new ArgumentNullException(nameof(geoJsonBasePath));
+    private readonly string _geoJsonBasePath;
 
-    private readonly Dictionary<string, LayerProperty> _layerProperties = new();
-    public IReadOnlyDictionary<string, LayerProperty> LayerProperties => _layerProperties;
+    private readonly List<LayerProperty> _geoJsonLayerProperties = [];
+    public IEnumerable<LayerProperty> GeoJsonLayerProperties => _geoJsonLayerProperties;
     private readonly Color _defaultColor = Color.Grey;
+
+    /// <summary>
+    /// Provides style information for GeoJSON files by extracting color properties
+    /// </summary>
+    public GeoJsonLayerStyleProvider(string geoJsonBasePath)
+    {
+        _geoJsonBasePath = geoJsonBasePath ?? throw new ArgumentNullException(nameof(geoJsonBasePath));
+        Initialize();
+    }
+
     private const float DefaultOpacity = 1.0f;
     private const int DefaultOrder = 0;
-
-    public bool IsInitialized { get; private set; }
 
     /// <summary>
     /// Initializes the style provider by reading all GeoJSON files
@@ -40,7 +44,7 @@ public class GeoJsonLayerStyleProvider(string geoJsonBasePath)
     /// </summary>
     /// <returns>A task representing the asynchronous operation</returns>
     /// <exception cref="DirectoryNotFoundException">Thrown when the GeoJSON base path doesn't exist</exception>
-    public void Initialize()
+    private void Initialize()
     {
         try
         {
@@ -65,7 +69,7 @@ public class GeoJsonLayerStyleProvider(string geoJsonBasePath)
                 Color color;
                 float opacity;
                 int order;
-                
+
                 try
                 {
                     color = GetColorFromGeoJson(document!);
@@ -78,19 +82,19 @@ public class GeoJsonLayerStyleProvider(string geoJsonBasePath)
                     throw;
                 }
 
-                _layerProperties[fileName] = new LayerProperty
+                _geoJsonLayerProperties.Add(new LayerProperty
                 {
                     Name = fileName,
-                    Color = color,
+                    Style = GetStyle(color),
                     Opacity = opacity,
-                    Order = order
-                };
+                    Order = order,
+                    Provider = new GeoJsonProvider(geoJsonFile)
+                });
 
                 document?.Dispose();
             }
 
             LogExtensions.LogInfo("Successfully initialized GeoJsonStyleProvider", this);
-            IsInitialized = true;
         }
         catch (Exception ex)
         {
@@ -133,9 +137,10 @@ public class GeoJsonLayerStyleProvider(string geoJsonBasePath)
     /// Retrieves a style for the specified file name, using the associated color from the color map or default color
     /// </summary>
     /// <param name="fileName">The name of the file to get the style for</param>
+    /// <param name="color"></param>
     /// <returns>A ThemeStyle that applies different styling based on geometry type (Point vs other geometries)</returns>
     /// <exception cref="InvalidOperationException">Thrown when the provider is not initialized</exception>
-    public static IStyle GetStyle(Color color)
+    private static IStyle GetStyle(Color color)
     {
         return new ThemeStyle(feature =>
         {
@@ -236,14 +241,15 @@ public class GeoJsonLayerStyleProvider(string geoJsonBasePath)
 public record LayerProperty
 {
     public required string Name { get; init; }
-    public required Color Color { get; init; }
+    public required IStyle Style { get; init; }
     public required int Order { get; init; }
+    public required GeoJsonProvider Provider { get; init; }
 
     private readonly float _opacity;
 
     public required float Opacity
     {
         get => Math.Clamp(_opacity, 0, 1);
-        init { _opacity = value; }
+        init => _opacity = value;
     }
 }

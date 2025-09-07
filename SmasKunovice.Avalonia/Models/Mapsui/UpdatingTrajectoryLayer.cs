@@ -39,7 +39,8 @@ public class UpdatingTrajectoryLayer(IProvider dataSource) : UpdatingLayer<Linke
             }
             else
             {
-                if (foundLog.Count >= QueueCapacity)
+                // In return method, we skip the first point, so we need to track capacity + 1 points
+                if (foundLog.Count >= QueueCapacity + 1) 
                     foundLog.RemoveLast();
                 foundLog.AddFirst(updateFeature);
             }

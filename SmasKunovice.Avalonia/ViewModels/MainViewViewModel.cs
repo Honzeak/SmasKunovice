@@ -37,6 +37,7 @@ public partial class MainViewViewModel() : ViewModelBase
             {
                 map.Layers.Add(MapLayerFactory.CreatePlanesPointLayer(_dronetagClient!));
                 map.Layers.Add(MapLayerFactory.CreateTrajectoryLayer(_dronetagClient!));
+                map.Layers.Add(MapLayerFactory.CreateSpeedVectorLayer(_dronetagClient!));
             }
             else
                 LogExtensions.LogError("{0} not provided. Creating map without SMAS data.", this, nameof(IDronetagClient));

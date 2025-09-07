@@ -19,6 +19,10 @@ public static class FeatureExtensions
 
     public static ScoutData? GetScoutData(this IFeature feature)
     {
+        if (feature[ScoutData.FeatureScoutDataField] is ScoutData scoutData)
+            return scoutData;
         
+        LogExtensions.LogWarning("Feature '{0}' does not contain ScoutData field.", null, feature.ToString() ?? "UNKNOWN");
+        return null;
     }
 }

@@ -89,10 +89,8 @@ public class RandomMessageDronetagClient : FakeDronetagClient
         // Generate shift (positive or negative) based on max shift
         var latitude = Math.Clamp(prevLatitude + (_random.Next(2) == 0 ? -1 : 1) * _random.NextDouble() * _maxXShift, _xMin, _xMax);
         var longitude = Math.Clamp(prevLongitude + (_random.Next(2) == 0 ? -1 : 1) * _random.NextDouble() * _maxYShift, _yMin, _yMax);
-
-        // Generate other random properties
-        var speed = _random.NextDouble() * 200; // Speed between 0 and 200
-        var heading = _random.NextDouble() * 360; // Heading between 0 and 360
+        var speed = _random.NextDouble() * 50;
+        var heading = _random.NextDouble() * 360;
 
         return new ScoutData
         {
@@ -101,7 +99,9 @@ public class RandomMessageDronetagClient : FakeDronetagClient
                 BasicId = [new BasicIdData { UasId = id }],
                 Location = new LocationData
                 {
-                    Latitude = (float)latitude, Longitude = (float)longitude, Direction = (int)heading,
+                    Latitude = (float)latitude,
+                    Longitude = (float)longitude,
+                    Direction = (int)heading,
                     SpeedHorizontal = (float)speed
                 }
             }

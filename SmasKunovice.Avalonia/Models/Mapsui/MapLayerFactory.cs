@@ -88,6 +88,20 @@ public static class MapLayerFactory
         };
     }
 
+    public static ILayer CreateSpeedVectorLayer(IDronetagClient dronetagClient)
+    {
+        var style = new VectorStyle
+        {
+            Outline = new Pen(Color.Black, 2),
+            Line = new Pen(Color.White, 2),
+        };
+
+        return new UpdatingSpeedVectorLayer(new DynamicScoutDataProvider(dronetagClient))
+        {
+            Style = style
+        };
+    }
+
     public static IEnumerable<ILayer> CreateAirportElementsLayers(GeoJsonLayerStyleProvider layerStyleProvider)
     {
         return layerStyleProvider.GeoJsonLayerProperties.OrderByDescending(layerConfig => layerConfig.Order).Select(layerConfig => new Layer

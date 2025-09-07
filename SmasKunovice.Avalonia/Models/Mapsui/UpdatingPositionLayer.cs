@@ -20,21 +20,7 @@ public class UpdatingPositionLayer(IProvider dataSource)
             if (id is null)
                 continue;
 
-            var existingFeature = FindExistingFeature(id);
-            if (existingFeature is null)
-            {
-                // Create new feature if it doesn't exist
-                var newFeature = new PointFeature(updatedFeature.Point.X, updatedFeature.Point.Y);
-                CopyFeatureFields(updatedFeature, newFeature);
-                Features.Add(id, newFeature);
-            }
-            else
-            {
-                // Update existing feature position immediately
-                existingFeature.Point.X = updatedFeature.Point.X;
-                existingFeature.Point.Y = updatedFeature.Point.Y;
-                CopyFeatureFields(updatedFeature, existingFeature);
-            }
+            Features[id] = updatedFeature;
         }
     }
 

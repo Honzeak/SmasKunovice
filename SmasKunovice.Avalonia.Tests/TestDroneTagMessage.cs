@@ -15,8 +15,8 @@ public record TestDroneTagMessage(
     public bool TryCreatePointFeature(out PointFeature? pointFeature)
     {
         pointFeature = new PointFeature(Latitude, Longitude);
-        pointFeature["ID"] = Id;
-        pointFeature["ScoutData"] = this;
+        pointFeature[ScoutData.FeatureUasIdField] = Id;
+        pointFeature[ScoutData.FeatureScoutDataField] = this;
         return true;
     }
 }

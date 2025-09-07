@@ -9,6 +9,7 @@ using Mapsui.Fetcher;
 using Mapsui.Layers;
 using Mapsui.Providers;
 using Mapsui.Styles;
+using NetTopologySuite.Geometries;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
@@ -16,8 +17,8 @@ namespace SmasKunovice.Avalonia.Models.Mapsui;
 /// A layer that updates feature locations immediately without animations.
 /// Based on AnimatedPointLayer but removes all animation functionality.
 /// </summary>
-public abstract class UpdatingLayer<TFeatures, TFeature> : BaseLayer, IAsyncDataFetcher, ILayerDataSource<IProvider>,
-    IModifyFeatureLayer where TFeatures : Dictionary<string, TFeature>
+public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, ILayerDataSource<IProvider>,
+    IModifyFeatureLayer
 {
     private readonly IProvider _dataSource;
     private FetchInfo? _fetchInfo;
@@ -37,7 +38,7 @@ public abstract class UpdatingLayer<TFeatures, TFeature> : BaseLayer, IAsyncData
             };
     }
 
-    protected abstract TFeatures Features { get; }
+    protected Dictionary<string, TFeature> Features { get; } = new();
     public override MRect? Extent => _dataSource.GetExtent();
     
     protected abstract void UpdateFeaturePositions(IEnumerable<PointFeature> updateFeatures);
@@ -59,10 +60,6 @@ public abstract class UpdatingLayer<TFeatures, TFeature> : BaseLayer, IAsyncData
 
     public IProvider? DataSource => _dataSource;
 
-    /// <summary>
-    /// The field name used to identify features when updating their positions.
-    /// Default is "ID".
-    /// </summary>
     private async Task UpdateDataAsync()
     {
         if (_fetchInfo is null) return;

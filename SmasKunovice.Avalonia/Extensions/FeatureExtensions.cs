@@ -1,19 +1,24 @@
+using System;
 using Mapsui;
+using SmasKunovice.Avalonia.Models;
 
 namespace SmasKunovice.Avalonia.Extensions;
 
 public static class FeatureExtensions
 {
-    public const string IdField = "ID";
-
-    public static string? GetFeatureId(this IFeature feature)
+    public static string? GetFeatureId(this IFeature feature, string idField)
     {
-        if (feature[IdField]?.ToString() is not null)
-            return feature[IdField]!.ToString();
+        if (feature[idField]?.ToString() is not null)
+            return feature[idField]!.ToString();
 
-        LogExtensions.LogError("Could not find ID field in new incoming feature '{0}'. Unable to register position.",
+        LogExtensions.LogError("Could not find ID field in feature '{0}'.",
             null,
             feature.ToString() ?? "UNKNOWN");
         return null;
+    }
+
+    public static ScoutData? GetScoutData(this IFeature feature)
+    {
+        
     }
 }

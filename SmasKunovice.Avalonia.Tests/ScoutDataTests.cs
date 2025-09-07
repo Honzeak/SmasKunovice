@@ -84,8 +84,8 @@ public class ScoutDataTests : TestBase
         Assert.That(pointFeature, Is.Not.Null);
         Assert.That(pointFeature.Point.X, Is.EqualTo(latitude));
         Assert.That(pointFeature.Point.Y, Is.EqualTo(longitude));
-        Assert.That(pointFeature["ID"], Is.EqualTo(id));
-        Assert.That(pointFeature["ScoutData"], Is.EqualTo(scoutData));
+        Assert.That(pointFeature[ScoutData.FeatureUasIdField], Is.EqualTo(id));
+        Assert.That(pointFeature[ScoutData.FeatureScoutDataField], Is.EqualTo(scoutData));
         
     }
 }

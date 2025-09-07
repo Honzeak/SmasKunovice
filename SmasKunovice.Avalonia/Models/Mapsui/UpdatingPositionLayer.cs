@@ -8,15 +8,15 @@ using SmasKunovice.Avalonia.Extensions;
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
 public class UpdatingPositionLayer(IProvider dataSource)
-    : UpdatingLayer<Dictionary<string, PointFeature>, PointFeature>(dataSource)
+    : UpdatingLayer<PointFeature>(dataSource)
 {
-    protected override Dictionary<string, PointFeature> Features { get; } = [];
+    // protected override Dictionary<string, PointFeature> Features { get; } = [];
 
     protected override void UpdateFeaturePositions(IEnumerable<PointFeature> updateFeatures)
     {
         foreach (var updatedFeature in updateFeatures)
         {
-            var id = updatedFeature.GetFeatureId();
+            var id = updatedFeature.GetFeatureId(ScoutData.FeatureUasIdField);
             if (id is null)
                 continue;
 

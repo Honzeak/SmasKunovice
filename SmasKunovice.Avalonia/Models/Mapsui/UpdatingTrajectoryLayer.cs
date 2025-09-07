@@ -9,9 +9,9 @@ using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
-public class UpdatingTrajectoryLayer(IProvider dataSource) : UpdatingLayer<Dictionary<string, LinkedList<PointFeature>>, LinkedList<PointFeature>>(dataSource)
+public class UpdatingTrajectoryLayer(IProvider dataSource) : UpdatingLayer<LinkedList<PointFeature>>(dataSource)
 {
-    protected override Dictionary<string, LinkedList<PointFeature>> Features { get; } = new();
+    // protected override Dictionary<string, LinkedList<PointFeature>> Features { get; } = new();
     private const int QueueCapacity = 10;
 
     public int ObservableQueueSize
@@ -26,7 +26,7 @@ public class UpdatingTrajectoryLayer(IProvider dataSource) : UpdatingLayer<Dicti
     {
         foreach (var updateFeature in updateFeatures)
         {
-            var featureId = updateFeature.GetFeatureId();
+            var featureId = updateFeature.GetFeatureId(ScoutData.FeatureUasIdField);
             if (featureId is null)
                 continue;
             

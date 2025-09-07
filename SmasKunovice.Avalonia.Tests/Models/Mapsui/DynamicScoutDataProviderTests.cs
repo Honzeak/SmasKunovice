@@ -81,12 +81,12 @@ namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
             var drone2Feature = (PointFeature)featuresList[1];
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(drone1Feature["ScoutData"], Is.Not.Null.And.InstanceOf<ScoutData>());
-                Assert.That(drone2Feature["ScoutData"], Is.Not.Null.And.InstanceOf<ScoutData>());
+                Assert.That(drone1Feature[ScoutData.FeatureScoutDataField], Is.Not.Null.And.InstanceOf<ScoutData>());
+                Assert.That(drone2Feature[ScoutData.FeatureScoutDataField], Is.Not.Null.And.InstanceOf<ScoutData>());
             }
 
-            var message1 = (ScoutData)drone1Feature["ScoutData"]!;
-            var message2 = (ScoutData)drone2Feature["ScoutData"]!;
+            var message1 = (ScoutData)drone1Feature[ScoutData.FeatureScoutDataField]!;
+            var message2 = (ScoutData)drone2Feature[ScoutData.FeatureScoutDataField]!;
             Assert.That(message1, Is.Not.Null);
             Assert.That(message2, Is.Not.Null);
             
@@ -210,11 +210,11 @@ namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
             Assert.That(firstFeatures, Has.All.InstanceOf<PointFeature>());
             Assert.That(secondFeatures, Has.All.InstanceOf<PointFeature>());
 
-            var droneTagMessage = firstFeatures[0]["ScoutData"] as ScoutData;
+            var droneTagMessage = firstFeatures[0][ScoutData.FeatureScoutDataField] as ScoutData;
             Assert.That(droneTagMessage, Is.Not.Null);
             Assert.That(droneTagMessage.Odid.BasicId[0].UasId, Is.EqualTo("Drone1"));
 
-            droneTagMessage = secondFeatures[0]["ScoutData"] as ScoutData;
+            droneTagMessage = secondFeatures[0][ScoutData.FeatureScoutDataField] as ScoutData;
             Assert.That(droneTagMessage, Is.Not.Null);
             Assert.That(droneTagMessage.Odid.Location, Is.Not.Null);
             Assert.That(droneTagMessage.Odid.Location.Latitude, Is.EqualTo(-538100));

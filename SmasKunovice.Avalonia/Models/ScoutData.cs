@@ -11,6 +11,9 @@ public interface IScoutData
 
 public record ScoutData : IScoutData
 {
+    public const string FeatureUasIdField = "ID";
+    public const string FeatureScoutDataField = "ScoutData";
+
     public bool TryCreatePointFeature(out PointFeature? pointFeature)
     {
         pointFeature = null;
@@ -18,8 +21,8 @@ public record ScoutData : IScoutData
             return false;
 
         pointFeature = new PointFeature((double)Odid.Location.Latitude, (double)Odid.Location.Longitude);
-        pointFeature["ID"] = Odid.BasicId[0].UasId;
-        pointFeature["ScoutData"] = this;
+        pointFeature[FeatureUasIdField] = Odid.BasicId[0].UasId;
+        pointFeature[FeatureScoutDataField] = this;
         return true;
     }
 

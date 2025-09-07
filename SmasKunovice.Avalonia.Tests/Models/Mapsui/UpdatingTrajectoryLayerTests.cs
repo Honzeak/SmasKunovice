@@ -1,5 +1,6 @@
 using Mapsui;
 using Mapsui.Layers;
+using SmasKunovice.Avalonia.Models;
 using SmasKunovice.Avalonia.Models.Mapsui;
 
 namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
@@ -63,7 +64,7 @@ namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
             return firstMessages.All(firstMessage =>
                 features.Any(feature =>
                     // Compare ID field
-                    Equals(feature["ID"], firstMessage["ID"]) &&
+                    Equals(feature[ScoutData.FeatureUasIdField], firstMessage[ScoutData.FeatureUasIdField]) &&
                     // Compare X coordinate (with tolerance for floating point comparison)
                     Math.Abs(feature.Point.X - firstMessage.Point.X) < 1e-10 &&
                     // Compare Y coordinate (with tolerance for floating point comparison)

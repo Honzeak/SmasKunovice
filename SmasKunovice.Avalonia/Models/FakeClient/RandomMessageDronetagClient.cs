@@ -33,11 +33,12 @@ public class RandomMessageDronetagClient : FakeDronetagClient
 
         var targetCount = changeType switch
         {
-            // 60% chance to increase
-            < 6 => Math.Min(currentCount + 1, _maxMessages),
-            // 30% chance to stay the same
-            < 9 => currentCount,
-            _ => Math.Max(currentCount - 1, 0)
+            // // 60% chance to increase
+            // < 6 => Math.Min(currentCount + 1, _maxMessages),
+            // // 30% chance to stay the same
+            // < 9 => currentCount,
+            // _ => Math.Max(currentCount - 1, 0)
+            _ => 1
         };
 
         // Adjust the message list to match the target count
@@ -89,7 +90,7 @@ public class RandomMessageDronetagClient : FakeDronetagClient
         // Generate shift (positive or negative) based on max shift
         var latitude = Math.Clamp(prevLatitude + (_random.Next(2) == 0 ? -1 : 1) * _random.NextDouble() * _maxXShift, _xMin, _xMax);
         var longitude = Math.Clamp(prevLongitude + (_random.Next(2) == 0 ? -1 : 1) * _random.NextDouble() * _maxYShift, _yMin, _yMax);
-        var speed = _random.NextDouble() * 50;
+        var speed = 20;
         var heading = _random.NextDouble() * 360;
 
         return new ScoutData

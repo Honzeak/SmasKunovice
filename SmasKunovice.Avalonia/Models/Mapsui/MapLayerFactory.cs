@@ -53,10 +53,14 @@ public static class MapLayerFactory
         var capabilities = capabilitiesTask.Task.Result;
         var provider = new ArcGISDynamicProvider(url, capabilities, null, defaultCache) { CRS = "EPSG:5514" };
 
-        return new ImageLayer(ztmDataset.ToString()) { DataSource = provider };
+        return new ImageLayer(ztmDataset.ToString())
+        {
+            Name = "ZTM layer",
+            DataSource = provider
+        };
     }
 
-    public static ILayer CreatePlanesPointLayer(IDronetagClient dronetagClient)
+    public static UpdatingPositionLayer CreatePlanesPointLayer(IDronetagClient dronetagClient)
     {
         var style = new SymbolStyle
         {
@@ -68,11 +72,12 @@ public static class MapLayerFactory
 
         return new UpdatingPositionLayer(new DynamicScoutDataProvider(dronetagClient))
         {
+            Name = "Position layer",
             Style = style
         };
     }
 
-    public static ILayer CreateTrajectoryLayer(IDronetagClient dronetagClient)
+    public static UpdatingTrajectoryLayer CreateTrajectoryLayer(IDronetagClient dronetagClient)
     {
         var style = new SymbolStyle
         {
@@ -84,11 +89,12 @@ public static class MapLayerFactory
 
         return new UpdatingTrajectoryLayer(new DynamicScoutDataProvider(dronetagClient))
         {
+            Name = "Trajectory layer",
             Style = style
         };
     }
 
-    public static ILayer CreateSpeedVectorLayer(IDronetagClient dronetagClient)
+    public static UpdatingSpeedVectorLayer CreateSpeedVectorLayer(IDronetagClient dronetagClient)
     {
         var style = new VectorStyle
         {
@@ -98,19 +104,21 @@ public static class MapLayerFactory
 
         return new UpdatingSpeedVectorLayer(new DynamicScoutDataProvider(dronetagClient))
         {
+            Name = "Speed vector layer",
             Style = style
         };
     }
 
     public static IEnumerable<ILayer> CreateAirportElementsLayers(GeoJsonLayerStyleProvider layerStyleProvider)
     {
-        return layerStyleProvider.GeoJsonLayerProperties.OrderByDescending(layerConfig => layerConfig.Order).Select(layerConfig => new Layer
-        {
-            DataSource = layerConfig.Provider,
-            Style = layerConfig.Style,
-            Opacity = layerConfig.Opacity,
-            Name = layerConfig.Name
-        });
+        return layerStyleProvider.GeoJsonLayerProperties.OrderByDescending(layerConfig => layerConfig.Order).Select(
+            layerConfig => new Layer
+            {
+                DataSource = layerConfig.Provider,
+                Style = layerConfig.Style,
+                Opacity = layerConfig.Opacity,
+                Name = layerConfig.Name
+            });
     }
 
     [Obsolete("Agreed to use ARCGis dynamic tiling")]

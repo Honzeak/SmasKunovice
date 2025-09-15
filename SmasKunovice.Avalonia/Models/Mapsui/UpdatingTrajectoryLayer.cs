@@ -51,4 +51,8 @@ public class UpdatingTrajectoryLayer(IProvider dataSource) : UpdatingLayer<Linke
     {
         return Features.Values.SelectMany(log => log.Skip(1).Take(_observableQueueSize)).ToList();
     }
+
+    protected override void ApplyFeaturesLabelStyle()
+    {
+    }
 }

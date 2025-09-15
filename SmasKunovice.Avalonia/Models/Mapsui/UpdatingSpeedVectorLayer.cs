@@ -72,4 +72,8 @@ public class UpdatingSpeedVectorLayer(IProvider provider, int observableMinuteIn
     {
         return Features.Values;
     }
+
+    protected override void ApplyFeaturesLabelStyle()
+    {
+    }
 }

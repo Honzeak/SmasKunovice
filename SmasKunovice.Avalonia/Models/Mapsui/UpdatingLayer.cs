@@ -66,8 +66,11 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
 
         var features = await _dataSource.GetFeaturesAsync(_fetchInfo);
         UpdateFeaturePositions(features.Cast<PointFeature>());
+        ApplyFeaturesLabelStyle();
         OnDataChanged(new DataChangedEventArgs(Name));
     }
+
+    protected abstract void ApplyFeaturesLabelStyle();
 
 
     /// <summary>
@@ -91,11 +94,14 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
     public override IEnumerable<IFeature> GetFeatures(MRect? extent, double resolution)
     {
         var featureCollection = GetInterfaceFeatures();
-        if (extent is null) { return new List<IFeature>(); }
+        if (extent is null)
+        {
+            return new List<IFeature>();
+        }
 
         var biggerRect = extent.Grow(
-                SymbolStyle.DefaultWidth * 2 * resolution,
-                SymbolStyle.DefaultHeight * 2 * resolution);
+            SymbolStyle.DefaultWidth * 2 * resolution,
+            SymbolStyle.DefaultHeight * 2 * resolution);
 
         return featureCollection.Where(f =>
         {

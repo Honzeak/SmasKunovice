@@ -64,7 +64,7 @@ public static class MapLayerFactory
     {
         var style = new SymbolStyle
         {
-            Fill = new Brush(Color.Red),
+            Fill = new Brush(Color.LightBlue),
             Outline = new Pen(Color.Black, 2),
             SymbolScale = 0.2f,
             SymbolType = SymbolType.Rectangle
@@ -81,7 +81,7 @@ public static class MapLayerFactory
     {
         var style = new SymbolStyle
         {
-            Fill = new Brush(Color.Pink),
+            Fill = new Brush(Color.CornflowerBlue),
             Outline = new Pen(Color.Black, 2),
             SymbolScale = 0.15f,
             SymbolType = SymbolType.Ellipse
@@ -99,7 +99,7 @@ public static class MapLayerFactory
         var style = new VectorStyle
         {
             Outline = new Pen(Color.Black, 2),
-            Line = new Pen(Color.White, 2),
+            Line = new Pen(Color.CornflowerBlue, 2),
         };
 
         return new UpdatingSpeedVectorLayer(new DynamicScoutDataProvider(dronetagClient))

@@ -51,7 +51,7 @@ public partial class App : Application
         services.AddSingleton<IDronetagClient>(sp => 
         {
             var filePath = @"C:\Users\honza\codes\SmasKunovice\SmasKunovice.Avalonia.Tests\TestData\LogFileDronetagClientTests\dronetag-odid-fix.json";
-            return new LogfileDronetagClient(filePath, 1000);
+            return new LogfileDronetagClient(filePath, 1000, new KrovakTransformator());
         });
         services.AddSingleton<MainViewViewModel>();
         return services;

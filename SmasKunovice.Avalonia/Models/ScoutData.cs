@@ -13,6 +13,7 @@ public record ScoutData : IScoutData
 {
     public const string FeatureUasIdField = "ID";
     public const string FeatureScoutDataField = "ScoutData";
+    public bool HasLocation => Odid.Location?.Latitude is not null && Odid.Location.Longitude is not null;
 
     public bool TryCreatePointFeature(out PointFeature? pointFeature)
     {
@@ -114,6 +115,11 @@ public record BasicIdData
 
 public record LocationData
 {
+    public void SetCoords(float longitude, float latitude)
+    {
+        _longitude = longitude;
+        _latitude = latitude;
+    }
     /// <summary>
     /// UNDECLARED = 0, GROUND = 1, AIRBORNE = 2, EMERGENCY = 3, REMOTE_ID_SYSTEM_FAILURE = 4
     /// </summary>
@@ -138,12 +144,16 @@ public record LocationData
     /// <summary>
     /// -180-+180; 7 decimal places
     /// </summary>
-    public float? Longitude { get; init; }
+    public float? Longitude { get => _longitude; init => _longitude = value; }
+
+    private float? _longitude;
 
     /// <summary>
     /// -90- +90; 7 decimal places
     /// </summary>
-    public float? Latitude { get; init; }
+    public float? Latitude { get => _latitude; init => _latitude = value; }
+
+    private float? _latitude;
 
     /// <summary>
     /// meter (Ref 29.92 inHg, 1013.24 mb)

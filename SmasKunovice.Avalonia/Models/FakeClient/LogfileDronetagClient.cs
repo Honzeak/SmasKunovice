@@ -12,9 +12,6 @@ public class LogfileDronetagClient : FakeDronetagClient
 
     public LogfileDronetagClient(string logFilePath, int intervalMs) : base(intervalMs)
     {
-        if (!Path.GetFileName(logFilePath).EndsWith(".json"))
-            throw new ArgumentException("Log file must be a JSON file.");
-
         if (!File.Exists(logFilePath))
             throw new FileNotFoundException($"Log file '{logFilePath}' not found.");
         

@@ -1,25 +1,35 @@
+using SmasKunovice.Avalonia.Models;
 using SmasKunovice.Avalonia.Models.FakeClient;
-using SmasKunovice.Avalonia.Tests.TestUtils;
 
 namespace SmasKunovice.Avalonia.Tests;
 
 public class LogfileDronetagClientTests : TestBase
 {
-    
-[Test]
-[Ignore("Obsolete log with incorrect format")]
-// TODO get valid data to enable this test
-public void Constructor_WithValidJsonLogFile_InitializesSuccessfully()
-{
-    // Arrange
-    var jsonLogFile = FileUtilities.GetTestFile(nameof(LogfileDronetagClientTests), "_log");
+    [Test]
+    public void Constructor_WithValidJsonLogFile_InitializesSuccessfully()
+    {
+        var jsonLogFilePath = Path.Combine("TestData", nameof(LogfileDronetagClientTests), "dronetag-odid-fix.json");
+        var messageReceivedEvent = new ManualResetEventSlim(false);
+        ScoutData? message = null;
 
-    // Act
-    var client = new LogfileDronetagClient(jsonLogFile, 1000);
 
-    // Assert
-    Assert.Pass();
+        var client = new LogfileDronetagClient(jsonLogFilePath, 500);
+        client.MessageReceived += (sender, args) =>
+        {
+            message = args.Messages.Single();
+            messageReceivedEvent.Set();
+        };
+        client.ConnectAsync().Wait();
+        var triggered = messageReceivedEvent.Wait(TimeSpan.FromSeconds(5));
 
-    // Note: No cleanup needed as we're using an existing file
-}
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(triggered, Is.True);
+            Assert.That(message, Is.Not.Null);
+        }
+
+        client.Dispose();
+
+        // Note: No cleanup needed as we're using an existing file
+    }
 }

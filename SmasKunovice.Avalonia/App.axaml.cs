@@ -47,13 +47,12 @@ public partial class App : Application
         var services = new ServiceCollection();
         services.AddOptions<ClientAdapterOptions>().Bind(configuration.GetSection(nameof(ClientAdapterOptions))).ValidateDataAnnotations();
         // services.AddSingleton<IDroneTagClient, DronetagMqttClientAdapter>();
-        services.AddSingleton<IDronetagClient, RandomMessageDronetagClient>();
-        // services.AddSingleton<IDronetagClient>(sp => 
-        // {
-        //     // TODO: get good data
-        //     var filePath = @"C:\Users\honza\codes\SmasKunovice\Scripts\scout_odid_log.json";
-        //     return new LogfileDronetagClient(filePath, 3000);
-        // });
+        // services.AddSingleton<IDronetagClient, RandomMessageDronetagClient>();
+        services.AddSingleton<IDronetagClient>(sp => 
+        {
+            var filePath = @"C:\Users\honza\codes\SmasKunovice\SmasKunovice.Avalonia.Tests\TestData\LogFileDronetagClientTests\dronetag-odid-fix.json";
+            return new LogfileDronetagClient(filePath, 1000);
+        });
         services.AddSingleton<MainViewViewModel>();
         return services;
     }

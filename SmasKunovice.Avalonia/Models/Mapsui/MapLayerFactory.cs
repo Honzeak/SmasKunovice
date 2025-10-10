@@ -20,7 +20,14 @@ public static class MapLayerFactory
 {
     private const string ZtmBaseRestUrl = "https://ags.cuzk.gov.cz/arcgis1/rest/services/ZTM/{{ZTM_DATASET}}/MapServer";
 
-    public static ImageLayer CreateZtmDynamicLayer(ZtmDatasets ztmDataset)
+    public static ImageLayer[] CreateZtmDynamicLayers(ZtmDatasets ztmDatasetFar, ZtmDatasets ztmDatasetNear)
+    {
+        var farLayer = CreateZtmLayer(ztmDatasetFar, minVisible: 8);
+        var nearLayer = CreateZtmLayer(ztmDatasetNear, maxVisible: 8);
+        return [farLayer, nearLayer];
+    }
+
+    private static ImageLayer CreateZtmLayer(ZtmDatasets ztmDataset, double minVisible = 0, double maxVisible = double.MaxValue)
     {
         var url = ZtmBaseRestUrl.Replace("{{ZTM_DATASET}}", ztmDataset.ToString());
         IUrlPersistentCache? defaultCache = null;
@@ -56,7 +63,9 @@ public static class MapLayerFactory
         return new ImageLayer(ztmDataset.ToString())
         {
             Name = "ZTM layer",
-            DataSource = provider
+            DataSource = provider,
+            MinVisible = minVisible,
+            MaxVisible = maxVisible
         };
     }
 

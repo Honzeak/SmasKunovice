@@ -13,13 +13,14 @@
 
     <Grid RowDefinitions="*,Auto" ColumnDefinitions="*,Auto">
         <mapsui:MapControl Grid.Row="0" Grid.Column="0" x:Name="MapControl" />
-        <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding Path=Greeting}"></TextBox>
+        <!-- <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding Path=Map.Navigator.Viewport.Resolution}"></TextBox> -->
 
         <StackPanel Grid.Row="0" Grid.Column="1" Margin="20">
             <TextBlock Margin="0 5">Number of trajectory points:</TextBlock>
             <NumericUpDown Value="{Binding TrajectoryPointsCount}" Minimum="0" FormatString="0"/>
             <TextBlock Margin="0 5">Speed vector minute interval:</TextBlock>
             <NumericUpDown Value="{Binding SpeedVectorMinuteInterval}" Minimum="0" FormatString="0"/>
+            <CheckBox IsChecked="{Binding DrawZtmMap}" Content="Enable geographical map"/>
         </StackPanel>
     </Grid>
 

@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Mapsui;
+using Mapsui.Layers;
+using Mapsui.Styles;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models;
 using SmasKunovice.Avalonia.Models.Mapsui;
@@ -15,6 +17,7 @@ public partial class MainViewViewModel() : ViewModelBase
     [ObservableProperty] private Map _map = new();
     [ObservableProperty] private int _trajectoryPointsCount;
     [ObservableProperty] private int _speedVectorMinuteInterval;
+    [ObservableProperty] private bool _drawZtmMap = true;
 
     private const string GeoJsonsBasePath =
         @"C:\Users\honza\codes\SmasKunovice\SmasKunovice.Avalonia\Assets\GeoJsonElements\";
@@ -28,6 +31,13 @@ public partial class MainViewViewModel() : ViewModelBase
         _dronetagClient = dronetagClient;
     }
 
+    partial void OnDrawZtmMapChanged(bool value)
+    {
+        foreach (var ztmLayer in Map.Layers.OfType<ImageLayer>())
+        {
+            ztmLayer.Enabled = value;
+        }
+    }
     partial void OnSpeedVectorMinuteIntervalChanged(int value)
     {
         var layer = Map.Layers.OfType<UpdatingSpeedVectorLayer>().SingleOrDefault();
@@ -55,7 +65,9 @@ public partial class MainViewViewModel() : ViewModelBase
         try
         {
             map.CRS = "EPSG:5514";
-            map.Layers.Add(MapLayerFactory.CreateZtmDynamicLayer(ZtmDatasets.ZTM5));
+            // Dark grey
+            map.BackColor = Color.FromString("#202020");
+            map.Layers.Add(MapLayerFactory.CreateZtmDynamicLayers(ZtmDatasets.ZTM100, ZtmDatasets.ZTM25));
             map.Layers.Add(MapLayerFactory.CreateAirportElementsLayers(_layerStyleProvider).ToArray());
             if (HasClient)
             {
@@ -71,7 +83,7 @@ public partial class MainViewViewModel() : ViewModelBase
                 LogExtensions.LogError("{0} not provided. Creating map without SMAS data.", this,
                     nameof(IDronetagClient));
 
-            map.Navigator.CenterOnAndZoomTo(new MPoint(-539192.3d, -1184647.4d), 900);
+            // map.Home = nav => nav.CenterOnAndZoomTo(new MPoint(-539192.3d, -1184647.4d), 8);
         }
         catch (Exception e)
         {

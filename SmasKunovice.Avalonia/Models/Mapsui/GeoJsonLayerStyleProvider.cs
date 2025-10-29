@@ -149,11 +149,12 @@ public class GeoJsonLayerStyleProvider
                 GeometryFeature { Geometry: Point } => new SymbolStyle()
                 {
                     Fill = new Brush(color),
-                    SymbolScale = 0.3f,
+                    SymbolScale = 0.2f,
                 },
                 _ => new VectorStyle
                 {
                     Fill = new Brush(color),
+                    Line = new Pen(color)
                 }
             };
         });

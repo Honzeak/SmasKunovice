@@ -39,14 +39,14 @@ public class UpdatingPositionLayer(IProvider dataSource)
                 displayText = "???";
             else
             {
-                displayText = $"Position: {scoutData.Odid?.Location?.Longitude.ToString() ?? "?"}, {scoutData?.Odid?.Location?.Latitude.ToString() ?? "?"} \n" +
-                              $"H. Speed: {scoutData?.Odid?.Location?.SpeedHorizontal?.ToString("N") ?? "?"} m/s\n" +
-                              $"V. Speed: {scoutData?.Odid?.Location?.SpeedVertical?.ToString("N") ?? "?"} m/s";
+                displayText =
+                    $" XXXXX \n" +
+                    $"{scoutData?.Odid?.Location?.SpeedHorizontal?.ToString("N") ?? "?"} m/s\n";
             }
             feature.Value.Styles.Add(new LabelStyle
             {
                 Text = displayText,
-                BackColor = new Brush(Color.Gray),
+                BackColor = new Brush(Color.WhiteSmoke),
                 VerticalAlignment = LabelStyle.VerticalAlignmentEnum.Center,
                 Offset = new RelativeOffset(0,.9),
                 Opacity = 0.3f, // doesn't seem to work

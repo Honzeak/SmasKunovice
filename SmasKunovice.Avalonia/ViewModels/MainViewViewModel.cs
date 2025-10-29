@@ -66,7 +66,7 @@ public partial class MainViewViewModel() : ViewModelBase
         {
             map.CRS = "EPSG:5514";
             // Dark grey
-            map.BackColor = Color.FromString("#202020");
+            map.BackColor = Color.FromString("#033052");
             map.Layers.Add(MapLayerFactory.CreateZtmDynamicLayers(ZtmDatasets.ZTM100, ZtmDatasets.ZTM25));
             map.Layers.Add(MapLayerFactory.CreateAirportElementsLayers(_layerStyleProvider).ToArray());
             if (HasClient)

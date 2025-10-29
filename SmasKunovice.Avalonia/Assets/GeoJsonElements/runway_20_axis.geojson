@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "runway_20_axis",
+"color": "white",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5514" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "layer": "20_rwy_axis", "path": "C:/Users/honza/OneDrive/Documents/20_rwy_axis.shp" }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -534360.102551050018519, -1176477.827147127594799 ], [ -529695.432765548350289, -1168693.686164833605289 ], [ -524840.368294924264774, -1160591.825142445974052 ] ] ] } },
+{ "type": "Feature", "properties": { "id": 1, "layer": "20_rwy_slash", "path": "C:/Users/honza/OneDrive/Documents/20_rwy_slash.shp" }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -530062.459045129478909, -1168168.09680017712526 ], [ -529335.630947162280791, -1169217.959608351811767 ] ] ] } }
+]
+}

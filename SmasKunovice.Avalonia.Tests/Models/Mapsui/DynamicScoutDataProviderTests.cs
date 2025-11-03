@@ -22,7 +22,7 @@ namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
         public void Constructor_RegistersForClientEvents()
         {
             // Act
-            var provider = new DynamicScoutDataProvider(_mockClient.Object);
+            using var provider = new DynamicScoutDataProvider(_mockClient.Object);
 
             // Assert
             _mockClient.VerifyAdd(
@@ -33,7 +33,7 @@ namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
         public async Task GetFeaturesAsync_WithNoMessages_ReturnsEmptyCollection()
         {
             // Arrange
-            var provider = new DynamicScoutDataProvider(_mockClient.Object);
+            using var provider = new DynamicScoutDataProvider(_mockClient.Object);
 
             // Act
             var features = await provider.GetFeaturesAsync(new FetchInfo(new MSection(new MPoint(1, 2).MRect, 1)));
@@ -48,7 +48,7 @@ namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
         public async Task GetFeaturesAsync_AfterMessageReceived_ReturnsFeatures()
         {
             // Arrange
-            var provider = new DynamicScoutDataProvider(_mockClient.Object);
+            using var provider = new DynamicScoutDataProvider(_mockClient.Object);
             var messages = new List<ScoutData>
             {
                 CreateScoutData("Drone1", -538000, -1185000, 45, 120),
@@ -105,7 +105,7 @@ namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
         public void DataHasChanged_TriggersDataChangedEvent()
         {
             // Arrange
-            var provider = new DynamicScoutDataProvider(_mockClient.Object);
+            using var provider = new DynamicScoutDataProvider(_mockClient.Object);
             var eventWasRaised = false;
             DataChangedEventArgs capturedArgs = null;
 
@@ -128,7 +128,7 @@ namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
         public void MessageReceived_TriggersDataChangedEvent()
         {
             // Arrange
-            var provider = new DynamicScoutDataProvider(_mockClient.Object);
+            using var provider = new DynamicScoutDataProvider(_mockClient.Object);
             var eventWasRaised = false;
 
             provider.DataChanged += (sender, args) => eventWasRaised = true;
@@ -154,7 +154,7 @@ namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
         public void Dispose_DisposesClient()
         {
             // Arrange
-            var provider = new DynamicScoutDataProvider(_mockClient.Object);
+            using var provider = new DynamicScoutDataProvider(_mockClient.Object);
 
             // Act
             provider.Dispose();
@@ -167,7 +167,7 @@ namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
         public async Task GetFeaturesAsync_UpdatesWithNewMessages()
         {
             // Arrange
-            var provider = new DynamicScoutDataProvider(_mockClient.Object);
+            using var provider = new DynamicScoutDataProvider(_mockClient.Object);
 
             var firstMessages = new List<ScoutData>
             {

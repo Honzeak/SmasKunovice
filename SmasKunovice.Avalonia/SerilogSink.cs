@@ -9,7 +9,9 @@ public class SerilogSink : ILogSink
 {
     private const int RetainedFileCountLimit = 15;
     private readonly Serilog.Core.Logger _logger;
-    public SerilogSink(Serilog.Events.LogEventLevel minLevel = Serilog.Events.LogEventLevel.Information, string? logFilePath = null)
+
+    public SerilogSink(Serilog.Events.LogEventLevel minLevel = Serilog.Events.LogEventLevel.Information,
+        string? logFilePath = null)
     {
         var logsDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -26,13 +28,15 @@ public class SerilogSink : ILogSink
             .WriteTo.File(
                 path: logFilePath,
                 rollingInterval: RollingInterval.Day,
-                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] [{Area}] {Message}{NewLine}{Exception}", retainedFileCountLimit:RetainedFileCountLimit)
+                outputTemplate:
+                "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] [{Area}] {Message}{NewLine}{Exception}",
+                retainedFileCountLimit: RetainedFileCountLimit)
             .CreateLogger();
-            
+
         // Log the initialization of the logger
         _logger.Information("Logging initialized. Logs will be written to: {LogFilePath}", logFilePath);
-
     }
+
     public bool IsEnabled(LogEventLevel level, string area)
     {
         return true;
@@ -41,8 +45,19 @@ public class SerilogSink : ILogSink
     public void Log(LogEventLevel level, string area, object? source, string messageTemplate)
     {
         var serilogLevel = MapToSeriLogLevel(level);
-        var template = $"[{area}] {messageTemplate}";
+        var formattedSource = GetFormattedSource(source);
+        var template = $"[{area}]{formattedSource} {messageTemplate}";
         _logger.Write(serilogLevel, template);
+    }
+
+    private static string GetFormattedSource(object? source)
+    {
+        var sourceToString = source?.ToString();
+        if (sourceToString is null)
+            return "";
+
+        var lastDotIndex = sourceToString.LastIndexOf('.');
+        return $"[{sourceToString[(lastDotIndex == -1 ? 0 : lastDotIndex + 1)..]}]";
     }
 
     private static Serilog.Events.LogEventLevel MapToSeriLogLevel(LogEventLevel avaloniaLevel)
@@ -59,11 +74,11 @@ public class SerilogSink : ILogSink
         };
     }
 
-    public void Log(LogEventLevel level, string area, object? source, string messageTemplate, params object?[] propertyValues)
+    public void Log(LogEventLevel level, string area, object? source, string messageTemplate,
+        params object?[] propertyValues)
     {
         var serilogLevel = MapToSeriLogLevel(level);
-        var template = $"[{area}] {messageTemplate}";
+        var template = $"[{area}]{GetFormattedSource(source)} {messageTemplate}";
         _logger.Write(serilogLevel, template, propertyValues);
-
     }
 }

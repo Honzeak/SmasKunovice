@@ -21,7 +21,7 @@ public class DynamicScoutDataProvider: MemoryProvider, IDynamic,  IDisposable
         _client = client;
         _latestMessageData = [];
         _client.MessageReceived += ClientOnMessageReceived;
-        _client.ConnectAsync().Wait();
+        Task.Run(() => _client.ConnectAsync()).GetAwaiter().GetResult();
     }
 
     private void ClientOnMessageReceived(object sender, ScoutDataReceivedEventArgs e)
@@ -42,7 +42,7 @@ public class DynamicScoutDataProvider: MemoryProvider, IDynamic,  IDisposable
             m.TryCreatePointFeature(out var pointFeature);
             return pointFeature;
         }).Where(f => f is not null).ToList();
-        LogExtensions.LogInfo("Received {0} features from dronetag",this, pointFeatures.Count);
+        LogExtensions.LogInfo("Received {0} features from client",this, pointFeatures.Count);
         return Task.FromResult<IEnumerable<IFeature>>(pointFeatures!);
     }
 

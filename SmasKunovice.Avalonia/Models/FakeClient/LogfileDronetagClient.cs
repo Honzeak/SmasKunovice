@@ -11,14 +11,14 @@ public class LogfileDronetagClient : FakeDronetagClient
 {
     private int _currentIndex = 0;
     private readonly List<ScoutData> _messages;
-    private readonly KrovakTransformator? _transformator;
+    private readonly IScoutDataCoordTransformation _transformation;
 
-    public LogfileDronetagClient(string logFilePath, int intervalMs, KrovakTransformator? transformator = null) : base(intervalMs)
+    public LogfileDronetagClient(string logFilePath, int intervalMs, IScoutDataCoordTransformation transformation) : base(intervalMs)
     {
         if (!File.Exists(logFilePath))
             throw new FileNotFoundException($"Log file '{logFilePath}' not found.");
 
-        _transformator = transformator;
+        _transformation = transformation;
         _messages = ParseJsonLog(logFilePath);
     }
 
@@ -27,7 +27,7 @@ public class LogfileDronetagClient : FakeDronetagClient
         List<ScoutData>? messages;
         try
         {
-            messages = JsonSerializer.Deserialize<List<ScoutData>>(File.ReadAllText(logFilePath), ScoutData.SerializerOptions)?.Select(scoutData => _transformator?.TransformScoutDataCoords(scoutData) ?? scoutData).ToList();
+            messages = JsonSerializer.Deserialize<List<ScoutData>>(File.ReadAllText(logFilePath), ScoutData.SerializerOptions)?.Select(scoutData => _transformation.TransformScoutDataCoords(scoutData) ?? scoutData).ToList();
         }
         catch (Exception e)
         {

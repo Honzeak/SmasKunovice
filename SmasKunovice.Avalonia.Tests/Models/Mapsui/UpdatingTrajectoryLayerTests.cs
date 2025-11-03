@@ -14,11 +14,11 @@ namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
             // Arrange
             var (fakeClient, layer) = InitLayer();
             layer.ObservableQueueSize = 3;
-            Assert.That(layer.GetFeatures(fakeClient.GetExtent(), 1), Is.Empty);
-            fakeClient.SendTwoMessages();
-            Assert.That(layer.GetFeatures(fakeClient.GetExtent(), 1), Is.Empty);
-            fakeClient.SendTwoMessages();
-            Assert.That(layer.GetFeatures(fakeClient.GetExtent(), 1), Is.Not.Empty);
+            Assert.That(layer.GetFeatures(TestDroneTagClient.GetExtent(), 1), Is.Empty);
+            fakeClient.SendNewMessage();
+            Assert.That(layer.GetFeatures(TestDroneTagClient.GetExtent(), 1), Is.Empty);
+            fakeClient.SendNewMessage();
+            Assert.That(layer.GetFeatures(TestDroneTagClient.GetExtent(), 1), Is.Not.Empty);
         }
 
         [Test]
@@ -30,29 +30,29 @@ namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
             while (sentCount != 4)
             {
                 sentCount++;
-                fakeClient.SendTwoMessages();
+                fakeClient.SendNewMessage();
                 if (sentCount != 1)
                     continue;
-                firstMessages = fakeClient.GetCurrentMessages().Select(m =>
+                firstMessages = fakeClient.GetCurrentMessage().Select(m =>
                 {
                     m.TryCreatePointFeature(out var pointFeature);
                     return pointFeature;
                 }).Where(f => f is not null).ToList()!;
-                Assert.That(firstMessages, Has.Count.EqualTo(2));
+                Assert.That(firstMessages, Has.Count.EqualTo(1));
             }
 
             layer.ObservableQueueSize = 2;
-            var features = layer.GetFeatures(fakeClient.GetExtent(), 1).Cast<PointFeature>().ToList();
+            var features = layer.GetFeatures(TestDroneTagClient.GetExtent(), 1).Cast<PointFeature>().ToList();
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(features, Has.Count.EqualTo(4));
+                Assert.That(features, Has.Count.EqualTo(2));
                 Assert.That(CheckExistenceOfFirstMessages(features, firstMessages), Is.False);
             }
             layer.ObservableQueueSize = 3;
-            features = layer.GetFeatures(fakeClient.GetExtent(), 1).Cast<PointFeature>().ToList();
+            features = layer.GetFeatures(TestDroneTagClient.GetExtent(), 1).Cast<PointFeature>().ToList();
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(features, Has.Count.EqualTo(6));
+                Assert.That(features, Has.Count.EqualTo(3));
                 Assert.That(CheckExistenceOfFirstMessages(features, firstMessages), Is.True);
             }
         }
@@ -78,7 +78,7 @@ namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
             var fakeClient = new TestDroneTagClient();
             var dataProvider = new DynamicScoutDataProvider(fakeClient);
             var layer = new UpdatingTrajectoryLayer(dataProvider);
-            layer.RefreshData(new FetchInfo(new MSection(fakeClient.GetExtent(), 1)));
+            layer.RefreshData(new FetchInfo(new MSection(TestDroneTagClient.GetExtent(), 1)));
             return (fakeClient, layer);
         }
     }

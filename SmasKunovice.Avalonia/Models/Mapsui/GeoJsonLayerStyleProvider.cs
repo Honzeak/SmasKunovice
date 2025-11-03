@@ -35,8 +35,8 @@ public class GeoJsonLayerStyleProvider
         Initialize();
     }
 
-    private const float DefaultOpacity = 1.0f;
-    private const int DefaultOrder = 5;
+    public const float DefaultOpacity = 1.0f;
+    public const int DefaultOrder = 5;
 
     /// <summary>
     /// Initializes the style provider by reading all GeoJSON files

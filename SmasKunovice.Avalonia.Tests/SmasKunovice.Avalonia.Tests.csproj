@@ -36,4 +36,11 @@
       <ProjectReference Include="..\SmasKunovice.Avalonia\SmasKunovice.Avalonia.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Include="..\SmasKunovice.Avalonia\appsettings.json">
+        <Link>TestData\appsettings.json</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
 </Project>

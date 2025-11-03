@@ -13,7 +13,7 @@ public class LogfileDronetagClientTests : TestBase
         ScoutData? message = null;
 
 
-        var client = new LogfileDronetagClient(jsonLogFilePath, 500);
+        var client = new LogfileDronetagClient(jsonLogFilePath, 500, new DummyTransformator());
         client.MessageReceived += (sender, args) =>
         {
             message = args.Messages.Single();

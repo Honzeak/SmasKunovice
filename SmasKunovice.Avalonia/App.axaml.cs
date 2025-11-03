@@ -46,13 +46,14 @@ public partial class App : Application
     {
         var services = new ServiceCollection();
         services.AddOptions<ClientAdapterOptions>().Bind(configuration.GetSection(nameof(ClientAdapterOptions))).ValidateDataAnnotations();
-        // services.AddSingleton<IDroneTagClient, DronetagMqttClientAdapter>();
+        services.AddSingleton<IScoutDataCoordTransformation, Wgs84ToKrovakTransformator>();
+        services.AddSingleton<IDronetagClient, ScoutDataMqttClientAdapter>();
         // services.AddSingleton<IDronetagClient, RandomMessageDronetagClient>();
-        services.AddSingleton<IDronetagClient>(sp => 
-        {
-            var filePath = @"C:\Users\honza\codes\SmasKunovice\SmasKunovice.Avalonia.Tests\TestData\LogFileDronetagClientTests\dronetag-odid-fix.json";
-            return new LogfileDronetagClient(filePath, 1000, new KrovakTransformator());
-        });
+        // services.AddSingleton<IDronetagClient>(sp => 
+        // {
+        //     var filePath = @"C:\Users\honza\codes\SmasKunovice\SmasKunovice.Avalonia.Tests\TestData\LogFileDronetagClientTests\dronetag-odid-fix.json";
+        //     return new LogfileDronetagClient(filePath, 1000, sp.GetRequiredService<IScoutDataCoordTransformation>());
+        // });
         services.AddSingleton<MainViewViewModel>();
         return services;
     }

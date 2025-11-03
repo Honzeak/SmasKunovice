@@ -36,8 +36,8 @@ public class GeoJsonLayerStyleProviderTests : TestBase
         Assert.That(layerProperty, Is.Not.Null);
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(layerProperty.Opacity, Is.EqualTo(1));
-            Assert.That(layerProperty.Order, Is.EqualTo(0));
+            Assert.That(layerProperty.Opacity, Is.EqualTo(GeoJsonLayerStyleProvider.DefaultOpacity));
+            Assert.That(layerProperty.Order, Is.EqualTo(GeoJsonLayerStyleProvider.DefaultOrder));
         }
     }
 

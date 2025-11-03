@@ -21,7 +21,7 @@ public record ScoutData : IScoutData
         if (Odid.Location?.Longitude is null || Odid.Location.Latitude is null)
             return false;
 
-        pointFeature = new PointFeature((double)Odid.Location.Latitude, (double)Odid.Location.Longitude);
+        pointFeature = new PointFeature((double)Odid.Location.Longitude, (double)Odid.Location.Latitude);
         pointFeature[FeatureUasIdField] = Odid.BasicId[0].UasId;
         pointFeature[FeatureScoutDataField] = this;
         return true;

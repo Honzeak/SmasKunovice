@@ -18,7 +18,10 @@ public class UpdatingPositionLayer(IProvider dataSource)
         {
             var id = updatedFeature.GetFeatureId(ScoutData.FeatureUasIdField);
             if (id is null)
+            {
+                LogExtensions.LogError("Failed to get feature ID. Cannot update position.", this);
                 continue;
+            }
 
             Features[id] = updatedFeature;
         }

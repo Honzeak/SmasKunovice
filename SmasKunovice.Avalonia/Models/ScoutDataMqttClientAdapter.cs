@@ -9,15 +9,17 @@ using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models;
 
-public class DronetagMqttClientAdapter : IDronetagClient
+public class ScoutDataMqttClientAdapter : IDronetagClient
 {
     private readonly IMqttClient _client;
     private readonly MqttClientOptions _connectOptions;
+    private readonly IScoutDataCoordTransformation _transformation;
     public event IDronetagClient.DronetagDataReceivedEventHandler? MessageReceived;
     public event EventHandler<string>? HeartbeatReceived;
 
-    public DronetagMqttClientAdapter(IOptions<ClientAdapterOptions> options)
+    public ScoutDataMqttClientAdapter(IScoutDataCoordTransformation transformation, IOptions<ClientAdapterOptions> options)
     {
+        _transformation = transformation;
         var adapterOptions = options.Value;
         _client = new MqttClientFactory().CreateMqttClient();
         var connectionBuilder = new MqttClientOptionsBuilder()
@@ -97,6 +99,14 @@ public class DronetagMqttClientAdapter : IDronetagClient
 
             if (scoutData != null)
             {
+                scoutData = _transformation.TransformScoutDataCoords(scoutData);
+                
+                if (scoutData.HasLocation)
+                    LogExtensions.LogDebug("ODID coords after transform: {0}, {1}", this, scoutData.Odid.Location!.Longitude!, scoutData.Odid.Location.Latitude!);
+                else
+                {
+                    LogExtensions.LogDebug("ODID message didn't have coordinates.", this);
+                }
                 MessageReceived?.Invoke(this, new ScoutDataReceivedEventArgs { Messages = [scoutData] });
             }
             else
@@ -113,6 +123,9 @@ public class DronetagMqttClientAdapter : IDronetagClient
 
     public async Task ConnectAsync()
     {
+        if (_client.IsConnected)
+            return;
+        
         MqttClientConnectResult result;
         try
         {
@@ -124,7 +137,7 @@ public class DronetagMqttClientAdapter : IDronetagClient
             throw;
         }
 
-        LogExtensions.LogInfo("MQTT client connection result: {0}", this, result);
+        LogExtensions.LogInfo("MQTT client connection result code: {0}", this, result.ResultCode);
     }
 
     public void Dispose()

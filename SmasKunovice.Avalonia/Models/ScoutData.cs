@@ -27,6 +27,11 @@ public record ScoutData : IScoutData
         return true;
     }
 
+    public string GetUasId()
+    {
+        return Odid.BasicId[0].UasId;
+    }
+
     public static JsonSerializerOptions? SerializerOptions { get; } = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,

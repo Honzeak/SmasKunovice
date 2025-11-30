@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace SmasKunovice.Avalonia.Models;
+namespace SmasKunovice.Avalonia.Models.Config;
 
 public class ClientAdapterOptions
 {

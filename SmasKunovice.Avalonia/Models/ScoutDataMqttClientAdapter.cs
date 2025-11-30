@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using SmasKunovice.Avalonia.Extensions;
+using SmasKunovice.Avalonia.Models.Config;
 
 namespace SmasKunovice.Avalonia.Models;
 

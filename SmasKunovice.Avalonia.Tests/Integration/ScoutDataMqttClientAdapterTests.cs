@@ -4,8 +4,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Moq;
 using SmasKunovice.Avalonia.Models;
+using SmasKunovice.Avalonia.Models.Config;
 using SmasKunovice.Avalonia.Models.Mapsui;
 using SmasKunovice.Avalonia.Tests.Models.Mapsui;
+using SmasKunovice.Avalonia.Tests.TestUtils;
 
 namespace SmasKunovice.Avalonia.Tests.Integration;
 
@@ -19,7 +21,7 @@ public class ScoutDataMqttClientAdapterTests
         var mockOptions = CreateClientAdapterOptions();
         using var scoutDataClient = new ScoutDataMqttClientAdapter(new Wgs84ToKrovakTransformator(), mockOptions);
         var provider = new DynamicScoutDataProvider(scoutDataClient);
-        var layer = new UpdatingPositionLayer(provider);
+        var layer = new UpdatingPositionLayer(provider, new DummyAircraftDatabase());
         layer.RefreshData(new FetchInfo(new MSection(TestDroneTagClient.GetExtent(), 1)));
         var messageReceivedEvent = new ManualResetEventSlim(false);
         layer.DataChanged += (sender, args) =>

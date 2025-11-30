@@ -69,7 +69,7 @@ public static class MapLayerFactory
         };
     }
 
-    public static UpdatingPositionLayer CreatePlanesPointLayer(IDronetagClient dronetagClient)
+    public static UpdatingPositionLayer CreatePlanesPointLayer(IDronetagClient dronetagClient, AircraftDatabase aircraftDb)
     {
         var style = new SymbolStyle
         {
@@ -79,7 +79,7 @@ public static class MapLayerFactory
             SymbolType = SymbolType.Rectangle
         };
 
-        return new UpdatingPositionLayer(new DynamicScoutDataProvider(dronetagClient))
+        return new UpdatingPositionLayer(new DynamicScoutDataProvider(dronetagClient), aircraftDb)
         {
             Name = "Position layer",
             Style = style

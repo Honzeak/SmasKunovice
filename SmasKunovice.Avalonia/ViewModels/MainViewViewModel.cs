@@ -4,8 +4,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Mapsui;
 using Mapsui.Layers;
 using Mapsui.Styles;
+using Microsoft.Extensions.Options;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models;
+using SmasKunovice.Avalonia.Models.Config;
 using SmasKunovice.Avalonia.Models.Mapsui;
 
 namespace SmasKunovice.Avalonia.ViewModels;
@@ -19,16 +21,17 @@ public partial class MainViewViewModel() : ViewModelBase
     [ObservableProperty] private int _speedVectorMinuteInterval;
     [ObservableProperty] private bool _drawZtmMap = true;
 
-    private const string GeoJsonsBasePath =
-        @"C:\Users\honza\codes\SmasKunovice\SmasKunovice.Avalonia\Assets\GeoJsonElements\";
-
     private readonly IDronetagClient? _dronetagClient;
-    private readonly GeoJsonLayerStyleProvider _layerStyleProvider = new(GeoJsonsBasePath);
+    private readonly GeoJsonLayerStyleProvider? _layerStyleProvider;
+    private readonly AircraftDatabase? _aircraftDatabase;
     private bool HasClient => _dronetagClient is not null;
 
-    public MainViewViewModel(IDronetagClient dronetagClient) : this()
+    public MainViewViewModel(IDronetagClient dronetagClient, IOptions<ApplicationSettings> options) : this()
     {
         _dronetagClient = dronetagClient;
+        var appSettings = options.Value;
+        _layerStyleProvider = new GeoJsonLayerStyleProvider(appSettings.GeoJsonsBasePath);
+        _aircraftDatabase = new AircraftDatabase(appSettings.AircraftDatabasePath);
     }
 
     partial void OnDrawZtmMapChanged(bool value)
@@ -71,7 +74,7 @@ public partial class MainViewViewModel() : ViewModelBase
             map.Layers.Add(MapLayerFactory.CreateAirportElementsLayers(_layerStyleProvider).ToArray());
             if (HasClient)
             {
-                map.Layers.Add(MapLayerFactory.CreatePlanesPointLayer(_dronetagClient!));
+                map.Layers.Add(MapLayerFactory.CreatePlanesPointLayer(_dronetagClient!, _aircraftDatabase!));
                 var trajectoryLayer = MapLayerFactory.CreateTrajectoryLayer(_dronetagClient!);
                 map.Layers.Add(trajectoryLayer);
                 TrajectoryPointsCount = trajectoryLayer.ObservableQueueSize;

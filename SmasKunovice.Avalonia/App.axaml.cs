@@ -6,6 +6,7 @@ using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SmasKunovice.Avalonia.Models;
+using SmasKunovice.Avalonia.Models.Config;
 using SmasKunovice.Avalonia.Models.FakeClient;
 using SmasKunovice.Avalonia.ViewModels;
 using SmasKunovice.Avalonia.Views;
@@ -46,6 +47,7 @@ public partial class App : Application
     {
         var services = new ServiceCollection();
         services.AddOptions<ClientAdapterOptions>().Bind(configuration.GetSection(nameof(ClientAdapterOptions))).ValidateDataAnnotations();
+        services.AddOptions<ApplicationSettings>().Bind(configuration.GetSection(nameof(ApplicationSettings))).ValidateDataAnnotations();
         services.AddSingleton<IScoutDataCoordTransformation, Wgs84ToKrovakTransformator>();
         services.AddSingleton<IDronetagClient, ScoutDataMqttClientAdapter>();
         // services.AddSingleton<IDronetagClient, RandomMessageDronetagClient>();

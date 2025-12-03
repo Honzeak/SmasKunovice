@@ -47,7 +47,7 @@ public record ScoutData : IScoutData
     /// <summary>
     /// Receiving technology: B4 (Bluetooth legacy), B5 (Bluetooth LE), WN (Wi-Fi Nan), WB (Wi-Fi Beacon)
     /// </summary>
-    public string[]? Tech { get; init; }
+    public string? Tech { get; init; }
 
     /// <summary>
     /// Module number that received the message. Corresponds to the antenna position on the box.

@@ -7,10 +7,13 @@ using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
-public class UpdatingPositionLayer(IProvider dataSource, IAircraftDatabase aircraftDatabase)
+public class UpdatingPositionLayer(
+    IProvider dataSource,
+    IAircraftDatabase aircraftDatabase,
+    IAircraftSymbolProvider aircraftSymbolProvider)
     : UpdatingLayer<PointFeature>(dataSource)
 {
-    protected override void UpdateFeaturePositions(IEnumerable<PointFeature> updateFeatures)
+    protected override void ProcessFeatures(IEnumerable<PointFeature> updateFeatures)
     {
         foreach (var updatedFeature in updateFeatures)
         {
@@ -20,7 +23,10 @@ public class UpdatingPositionLayer(IProvider dataSource, IAircraftDatabase aircr
                 LogExtensions.LogError("Failed to get feature ID. Cannot update position.", this);
                 continue;
             }
-
+            
+            var scoutData = updatedFeature.GetScoutData();
+            ApplyFeatureLabelStyle(scoutData, updatedFeature);
+            ApplyFeatureSymbolStyle(scoutData, updatedFeature);
             Features[id] = updatedFeature;
         }
     }
@@ -30,27 +36,33 @@ public class UpdatingPositionLayer(IProvider dataSource, IAircraftDatabase aircr
         return Features.Values;
     }
 
-    protected override void ApplyFeaturesLabelStyle()
+    private void ApplyFeatureSymbolStyle(ScoutData? scoutData, IFeature feature)
     {
-        // Debugger.Launch();
-        foreach (var feature in Features)
+        var style = scoutData?.Tech switch
         {
-            var scoutData = feature.Value.GetScoutData();
-            var displayText = scoutData is null ? "???" : GetDisplayText(scoutData);
-            feature.Value.Styles.Add(new LabelStyle
+            "B4" or "B5" or "WN" or "WB" => aircraftSymbolProvider.GetDroneStyle(),
+            _ => aircraftSymbolProvider.GetAirplaneStyle() // default to airplane
+        };
+        
+        feature.Styles.Add(style);
+    }
+
+    private void ApplyFeatureLabelStyle(ScoutData? scoutData, IFeature feature)
+    {
+        var displayText = scoutData is null ? "???" : GetDisplayText(scoutData);
+        feature.Styles.Add(new LabelStyle
+        {
+            Text = displayText,
+            BackColor = new Brush(Color.WhiteSmoke),
+            VerticalAlignment = LabelStyle.VerticalAlignmentEnum.Center,
+            Offset = new RelativeOffset(0, .9),
+            Opacity = 0.3f, // doesn't seem to work
+            Font = new Font()
             {
-                Text = displayText,
-                BackColor = new Brush(Color.WhiteSmoke),
-                VerticalAlignment = LabelStyle.VerticalAlignmentEnum.Center,
-                Offset = new RelativeOffset(0, .9),
-                Opacity = 0.3f, // doesn't seem to work
-                Font = new Font()
-                {
-                    Size = 9,
-                    FontFamily = "Arial",
-                }
-            });
-        }
+                Size = 9,
+                FontFamily = "Arial",
+            }
+        });
     }
 
     private string GetDisplayText(ScoutData scoutData)
@@ -65,7 +77,7 @@ public class UpdatingPositionLayer(IProvider dataSource, IAircraftDatabase aircr
         var displayText = $"{registration} \n" +
                           $"{heightString} " +
                           $"{speedString}";
-        
+
         return displayText;
     }
 

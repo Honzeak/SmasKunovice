@@ -19,7 +19,7 @@ public class UpdatingSpeedVectorLayer(IProvider provider, int observableMinuteIn
         set => _observableMinuteInterval = Math.Max(0, value);
     }
 
-    protected override void UpdateFeaturePositions(IEnumerable<PointFeature> updateFeatures)
+    protected override void ProcessFeatures(IEnumerable<PointFeature> updateFeatures)
     {
         foreach (var pointFeature in updateFeatures)
         {
@@ -71,9 +71,5 @@ public class UpdatingSpeedVectorLayer(IProvider provider, int observableMinuteIn
     protected override IEnumerable<IFeature> GetInterfaceFeatures()
     {
         return Features.Values;
-    }
-
-    protected override void ApplyFeaturesLabelStyle()
-    {
     }
 }

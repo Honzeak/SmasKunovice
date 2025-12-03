@@ -21,7 +21,7 @@ public class ScoutDataMqttClientAdapterTests
         var mockOptions = CreateClientAdapterOptions();
         using var scoutDataClient = new ScoutDataMqttClientAdapter(new Wgs84ToKrovakTransformator(), mockOptions);
         var provider = new DynamicScoutDataProvider(scoutDataClient);
-        var layer = new UpdatingPositionLayer(provider, new DummyAircraftDatabase());
+        var layer = new UpdatingPositionLayer(provider, new DummyAircraftDatabase(), new DummyAircraftSymbolProvider());
         layer.RefreshData(new FetchInfo(new MSection(TestDroneTagClient.GetExtent(), 1)));
         var messageReceivedEvent = new ManualResetEventSlim(false);
         layer.DataChanged += (sender, args) =>

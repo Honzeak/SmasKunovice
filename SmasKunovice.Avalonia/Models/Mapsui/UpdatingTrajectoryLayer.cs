@@ -22,7 +22,7 @@ public class UpdatingTrajectoryLayer(IProvider dataSource) : UpdatingLayer<Linke
 
     private int _observableQueueSize = 5;
 
-    protected override void UpdateFeaturePositions(IEnumerable<PointFeature> updateFeatures)
+    protected override void ProcessFeatures(IEnumerable<PointFeature> updateFeatures)
     {
         foreach (var updateFeature in updateFeatures)
         {
@@ -50,9 +50,5 @@ public class UpdatingTrajectoryLayer(IProvider dataSource) : UpdatingLayer<Linke
     protected override IEnumerable<IFeature> GetInterfaceFeatures()
     {
         return Features.Values.SelectMany(log => log.Skip(1).Take(_observableQueueSize)).ToList();
-    }
-
-    protected override void ApplyFeaturesLabelStyle()
-    {
     }
 }

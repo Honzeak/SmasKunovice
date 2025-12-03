@@ -24,6 +24,7 @@ public partial class MainViewViewModel() : ViewModelBase
     private readonly IDronetagClient? _dronetagClient;
     private readonly GeoJsonLayerStyleProvider? _layerStyleProvider;
     private readonly AircraftDatabase? _aircraftDatabase;
+    private readonly SvgStyleProvider _svgStyleProvider;
     private bool HasClient => _dronetagClient is not null;
 
     public MainViewViewModel(IDronetagClient dronetagClient, IOptions<ApplicationSettings> options) : this()
@@ -32,6 +33,7 @@ public partial class MainViewViewModel() : ViewModelBase
         var appSettings = options.Value;
         _layerStyleProvider = new GeoJsonLayerStyleProvider(appSettings.GeoJsonsBasePath);
         _aircraftDatabase = new AircraftDatabase(appSettings.AircraftDatabasePath);
+        _svgStyleProvider = new SvgStyleProvider(appSettings.SvgBasePath);
     }
 
     partial void OnDrawZtmMapChanged(bool value)
@@ -74,7 +76,7 @@ public partial class MainViewViewModel() : ViewModelBase
             map.Layers.Add(MapLayerFactory.CreateAirportElementsLayers(_layerStyleProvider).ToArray());
             if (HasClient)
             {
-                map.Layers.Add(MapLayerFactory.CreatePlanesPointLayer(_dronetagClient!, _aircraftDatabase!));
+                map.Layers.Add(MapLayerFactory.CreatePlanesPointLayer(_dronetagClient!, _aircraftDatabase!, _svgStyleProvider));
                 var trajectoryLayer = MapLayerFactory.CreateTrajectoryLayer(_dronetagClient!);
                 map.Layers.Add(trajectoryLayer);
                 TrajectoryPointsCount = trajectoryLayer.ObservableQueueSize;
@@ -91,6 +93,7 @@ public partial class MainViewViewModel() : ViewModelBase
         catch (Exception e)
         {
             Greeting = e.Message;
+            LogExtensions.LogError(e, "Failed to initialize map.", this);
             throw;
         }
 

@@ -28,7 +28,7 @@ public class SvgStyleProvider
         var svgFilePath = Path.Combine(_basePath, svgFileName);
 
         if (!File.Exists(svgFilePath))
-            throw new FileNotFoundException(svgFileName);
+            throw new FileNotFoundException(svgFilePath);
 
         using var stream = File.OpenRead(svgFilePath);
         var skPicture = ToSkPicture(stream, fillColor, strokeColor) ?? throw new FormatException("Failed to parse SVG");

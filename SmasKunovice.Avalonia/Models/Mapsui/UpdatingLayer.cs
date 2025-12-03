@@ -9,7 +9,7 @@ using Mapsui.Fetcher;
 using Mapsui.Layers;
 using Mapsui.Providers;
 using Mapsui.Styles;
-using NetTopologySuite.Geometries;
+using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
@@ -41,7 +41,7 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
     protected Dictionary<string, TFeature> Features { get; } = new();
     public override MRect? Extent => _dataSource.GetExtent();
     
-    protected abstract void UpdateFeaturePositions(IEnumerable<PointFeature> updateFeatures);
+    protected abstract void ProcessFeatures(IEnumerable<PointFeature> updateFeatures);
     protected abstract IEnumerable<IFeature> GetInterfaceFeatures();
 
     public void RefreshData(FetchInfo fetchInfo)
@@ -64,14 +64,21 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
     {
         if (_fetchInfo is null) return;
 
-        var features = await _dataSource.GetFeaturesAsync(_fetchInfo);
-        UpdateFeaturePositions(features.Cast<PointFeature>());
-        ApplyFeaturesLabelStyle();
+        var features = (await _dataSource.GetFeaturesAsync(_fetchInfo)).ToList();
+        ProcessFeatures(features.Cast<PointFeature>());
         OnDataChanged(new DataChangedEventArgs(Name));
     }
 
-    protected abstract void ApplyFeaturesLabelStyle();
-
+    private IEnumerable<IFeature> GetNewFeatures(List<IFeature> features)
+    {
+        var newFeatures = features.Where(f =>
+        {
+            var featureId = f.GetFeatureId(ScoutData.FeatureUasIdField);
+            if (featureId is null) return false;
+            return !Features.ContainsKey(featureId);
+        });
+        return newFeatures;
+    }
 
     /// <summary>
     /// Copies all fields from source feature to target feature.

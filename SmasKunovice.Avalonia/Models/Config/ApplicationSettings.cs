@@ -9,4 +9,6 @@ public class ApplicationSettings
     [Required] public string AircraftDatabasePath { get; set; } = string.Empty;
 
     [Required] public string GeoJsonsBasePath { get; set; } = string.Empty;
+    [Required] public string SvgBasePath { get; set; } = string.Empty;
+    
 }

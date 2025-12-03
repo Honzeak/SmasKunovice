@@ -1,7 +1,7 @@
 {
     "type": "FeatureCollection",
     "name": "ChimneyObstacle_Krovak",
-    "color": "yellow",
+    "color": "blue",
     "crs": {
         "type": "name",
         "properties": {

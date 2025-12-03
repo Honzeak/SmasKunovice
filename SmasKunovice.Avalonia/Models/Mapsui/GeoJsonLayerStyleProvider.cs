@@ -150,6 +150,7 @@ public class GeoJsonLayerStyleProvider
                 {
                     Fill = new Brush(color),
                     SymbolScale = 0.2f,
+                    SymbolType = SymbolType.Triangle
                 },
                 _ => new VectorStyle
                 {

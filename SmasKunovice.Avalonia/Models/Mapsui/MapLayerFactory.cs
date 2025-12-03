@@ -69,20 +69,14 @@ public static class MapLayerFactory
         };
     }
 
-    public static UpdatingPositionLayer CreatePlanesPointLayer(IDronetagClient dronetagClient, AircraftDatabase aircraftDb)
+    public static UpdatingPositionLayer CreatePlanesPointLayer(IDronetagClient dronetagClient, AircraftDatabase aircraftDb, SvgStyleProvider svgStyleProvider)
     {
-        var style = new SymbolStyle
-        {
-            Fill = new Brush(Color.FromString("#c3fc05")),
-            Outline = new Pen(Color.Black, 3),
-            SymbolScale = 0.2f,
-            SymbolType = SymbolType.Rectangle
-        };
 
-        return new UpdatingPositionLayer(new DynamicScoutDataProvider(dronetagClient), aircraftDb)
+        var aircraftSymbolProvider = new AircraftSymbolProvider(svgStyleProvider);
+        return new UpdatingPositionLayer(new DynamicScoutDataProvider(dronetagClient), aircraftDb, aircraftSymbolProvider)
         {
             Name = "Position layer",
-            Style = style
+            Style = new Style() // empty style
         };
     }
 

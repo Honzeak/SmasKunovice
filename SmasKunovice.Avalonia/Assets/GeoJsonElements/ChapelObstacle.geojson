@@ -1,6 +1,6 @@
 {
     "type": "FeatureCollection",
-    "color": "yellow",
+    "color": "blue",
     "crs": {
         "type": "name",
         "properties": {

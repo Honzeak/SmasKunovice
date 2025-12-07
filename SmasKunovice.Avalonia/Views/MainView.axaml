@@ -21,6 +21,8 @@
             <TextBlock Margin="0 5">Speed vector minute interval:</TextBlock>
             <NumericUpDown Value="{Binding SpeedVectorMinuteInterval}" Minimum="0" FormatString="0"/>
             <CheckBox IsChecked="{Binding DrawZtmMap}" Content="Enable geographical map"/>
+            <Separator Margin="0 10"/>
+            <CheckBox IsChecked="{Binding ShowSelectedFeatureLabel}" Content="Show selected feature label" IsEnabled="{Binding IsFeatureSelected}"/>
         </StackPanel>
     </Grid>
 

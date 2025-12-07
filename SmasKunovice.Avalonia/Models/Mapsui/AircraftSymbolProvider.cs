@@ -1,4 +1,5 @@
 using Mapsui.Styles;
+using Mapsui.Styles.Thematics;
 using MapsuiColor = Mapsui.Styles.Color;
 using SystemColor = System.Drawing.Color;
 
@@ -6,43 +7,49 @@ namespace SmasKunovice.Avalonia.Models.Mapsui;
 
 public interface IAircraftSymbolProvider
 {
-    SymbolStyle GetAirplaneStyle();
-    SymbolStyle GetVehicleStyle();
-    SymbolStyle GetDroneStyle();
+    IStyle GetAirplaneStyle(bool selected);
+    IStyle GetVehicleStyle(bool selected);
+    IStyle GetDroneStyle(bool selected);
 }
 public class AircraftSymbolProvider(SvgStyleProvider svgStyleProvider) : IAircraftSymbolProvider
 {
-    private readonly int _hexagonIdUnselected = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.Brown, SystemColor.Brown);
-    private readonly int _hexagonIdSelected = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.Green, SystemColor.Green);
+    private readonly int _hexagonIdUnselected = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.Blue, SystemColor.Blue);
+    private readonly int _hexagonIdSelected = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.Yellow, SystemColor.Yellow);
     private const string SvgSymbolFileName = "hexagon-full.svg";
 
     private static SymbolStyle GetBaseStyle() => new()
     {
-        SymbolScale = 0.2f,
-        Outline = new Pen(MapsuiColor.Black, 3),
+        SymbolScale = 0.25f,
+        // Outline = new Pen(MapsuiColor.Black, 3),
         Fill = new Brush(MapsuiColor.Green)
     };
 
-    public SymbolStyle GetAirplaneStyle()
+    private static SymbolStyle GetBaseStyleSelected() => new()
     {
-        var airplaneStyle = GetBaseStyle();
-        airplaneStyle.SymbolType = SymbolType.Rectangle;
-        return airplaneStyle;
+        SymbolScale = 0.4f,
+        Fill = new Brush(MapsuiColor.Yellow)
+    };
+
+    public IStyle GetAirplaneStyle(bool selected)
+    {
+        var style = selected ? GetBaseStyleSelected() : GetBaseStyle();
+        style.SymbolType = SymbolType.Rectangle;
+        return style;
     }
 
-    public SymbolStyle GetVehicleStyle()
+    public IStyle GetVehicleStyle(bool selected)
     {
-        var style = GetBaseStyle();
+        var style = selected ? GetBaseStyleSelected() : GetBaseStyle();
         style.SymbolType = SymbolType.Ellipse;
         return style;
     }
 
-    public SymbolStyle GetDroneStyle()
+    public IStyle GetDroneStyle(bool selected)
     {
-        var style = GetBaseStyle();
+        var style = selected ? GetBaseStyleSelected() : GetBaseStyle();
         style.SymbolType = SymbolType.Image;
-        style.BitmapId = _hexagonIdUnselected;
-        style.SymbolScale = 0.015f;
+        style.BitmapId = selected ? _hexagonIdSelected : _hexagonIdUnselected;
+        style.SymbolScale = selected ? 0.025f : 0.015f;
         return style;
     }
 }

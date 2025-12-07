@@ -20,11 +20,14 @@ public partial class MainViewViewModel() : ViewModelBase
     [ObservableProperty] private int _trajectoryPointsCount;
     [ObservableProperty] private int _speedVectorMinuteInterval;
     [ObservableProperty] private bool _drawZtmMap = true;
+    [ObservableProperty] private bool _isFeatureSelected;
+    [ObservableProperty] private bool _showSelectedFeatureLabel;
 
     private readonly IDronetagClient? _dronetagClient;
     private readonly GeoJsonLayerStyleProvider? _layerStyleProvider;
     private readonly AircraftDatabase? _aircraftDatabase;
     private readonly SvgStyleProvider _svgStyleProvider;
+    private UpdatingPositionLayer? _positionLayer;
     private bool HasClient => _dronetagClient is not null;
 
     public MainViewViewModel(IDronetagClient dronetagClient, IOptions<ApplicationSettings> options) : this()
@@ -64,6 +67,11 @@ public partial class MainViewViewModel() : ViewModelBase
                 this);
     }
 
+    partial void OnShowSelectedFeatureLabelChanged(bool value)
+    {
+        _positionLayer?.SetLabelVisibility(value);
+    }
+
     public Map CreateMap()
     {
         var map = new Map();
@@ -76,7 +84,13 @@ public partial class MainViewViewModel() : ViewModelBase
             map.Layers.Add(MapLayerFactory.CreateAirportElementsLayers(_layerStyleProvider).ToArray());
             if (HasClient)
             {
-                map.Layers.Add(MapLayerFactory.CreatePlanesPointLayer(_dronetagClient!, _aircraftDatabase!, _svgStyleProvider));
+                _positionLayer = MapLayerFactory.CreatePlanesPointLayer(_dronetagClient!, _aircraftDatabase!, _svgStyleProvider, map);
+                map.Layers.Add(_positionLayer);
+                _positionLayer.SelectedFeatureChanged += (sender, feature) =>
+                {
+                    IsFeatureSelected = feature is not null;
+                    ShowSelectedFeatureLabel = feature?.Styles.OfType<LabelStyle>().FirstOrDefault()?.Enabled ?? false;
+                };
                 var trajectoryLayer = MapLayerFactory.CreateTrajectoryLayer(_dronetagClient!);
                 map.Layers.Add(trajectoryLayer);
                 TrajectoryPointsCount = trajectoryLayer.ObservableQueueSize;

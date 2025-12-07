@@ -42,7 +42,7 @@ public class DynamicScoutDataProvider: MemoryProvider, IDynamic,  IDisposable
             m.TryCreatePointFeature(out var pointFeature);
             return pointFeature;
         }).Where(f => f is not null).ToList();
-        LogExtensions.LogInfo("Received {0} features from client",this, pointFeatures.Count);
+        // LogExtensions.LogInfo("Received {0} features from client",this, pointFeatures.Count);
         return Task.FromResult<IEnumerable<IFeature>>(pointFeatures!);
     }
 

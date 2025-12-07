@@ -1,4 +1,3 @@
-using System;
 using Mapsui;
 using SmasKunovice.Avalonia.Models;
 

@@ -12,9 +12,9 @@ public class DummyAircraftSymbolProvider : IAircraftSymbolProvider
         Fill = new Brush(Color.FromString("#c3fc05"))
     };
 
-    public SymbolStyle GetAirplaneStyle() => GetBaseStyle();
+    public IStyle GetAirplaneStyle(bool selected) => GetBaseStyle();
 
-    public SymbolStyle GetVehicleStyle() => GetBaseStyle();
+    public IStyle GetVehicleStyle(bool selected) => GetBaseStyle();
 
-    public SymbolStyle GetDroneStyle() => GetBaseStyle();
+    public IStyle GetDroneStyle(bool selected) => GetBaseStyle();
 }

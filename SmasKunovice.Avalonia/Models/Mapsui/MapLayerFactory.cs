@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Mapsui;
 using Mapsui.ArcGIS;
 using Mapsui.ArcGIS.DynamicProvider;
 using Mapsui.Cache;
@@ -69,14 +70,13 @@ public static class MapLayerFactory
         };
     }
 
-    public static UpdatingPositionLayer CreatePlanesPointLayer(IDronetagClient dronetagClient, AircraftDatabase aircraftDb, SvgStyleProvider svgStyleProvider)
+    public static UpdatingPositionLayer CreatePlanesPointLayer(IDronetagClient dronetagClient, AircraftDatabase aircraftDb, SvgStyleProvider svgStyleProvider, Map map)
     {
 
         var aircraftSymbolProvider = new AircraftSymbolProvider(svgStyleProvider);
-        return new UpdatingPositionLayer(new DynamicScoutDataProvider(dronetagClient), aircraftDb, aircraftSymbolProvider)
+        return new UpdatingPositionLayer(new DynamicScoutDataProvider(dronetagClient), aircraftDb, aircraftSymbolProvider, map)
         {
             Name = "Position layer",
-            Style = new Style() // empty style
         };
     }
 

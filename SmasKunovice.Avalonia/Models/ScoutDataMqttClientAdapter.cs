@@ -62,12 +62,12 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
         {
             if (e.ApplicationMessage.Topic.Equals(adapterOptions.HeartbeatTopic))
             {
-                LogExtensions.LogDebug("Received message on Heartbeat topic.", this);
+                // LogExtensions.LogDebug("Received message on Heartbeat topic.", this);
                 ProcessHeartbeatMessage(e);
             }
             else if (e.ApplicationMessage.Topic.Equals(adapterOptions.OdidTopic))
             {
-                LogExtensions.LogDebug("Received message on ODID topic.", this);
+                // LogExtensions.LogDebug("Received message on ODID topic.", this);
                 ProcessOdidMessage(e);
             }
             else
@@ -93,7 +93,7 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
         {
             // TODO is it encoded?
             var message = Encoding.UTF8.GetString(eventArgs.ApplicationMessage.Payload);
-            LogExtensions.LogDebug("Received ODID message", this);
+            // LogExtensions.LogDebug("Received ODID message", this);
 
             // Deserialize the JSON payload into the ScoutData object
             var scoutData = JsonSerializer.Deserialize<ScoutData>(message, ScoutData.SerializerOptions);
@@ -102,12 +102,12 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
             {
                 scoutData = _transformation.TransformScoutDataCoords(scoutData);
                 
-                if (scoutData.HasLocation)
-                    LogExtensions.LogDebug("ODID coords after transform: {0}, {1}", this, scoutData.Odid.Location!.Longitude!, scoutData.Odid.Location.Latitude!);
-                else
-                {
-                    LogExtensions.LogDebug("ODID message didn't have coordinates.", this);
-                }
+                // if (scoutData.HasLocation)
+                //     LogExtensions.LogDebug("ODID coords after transform: {0}, {1}", this, scoutData.Odid.Location!.Longitude!, scoutData.Odid.Location.Latitude!);
+                // else
+                // {
+                //     LogExtensions.LogDebug("ODID message didn't have coordinates.", this);
+                // }
                 MessageReceived?.Invoke(this, new ScoutDataReceivedEventArgs { Messages = [scoutData] });
             }
             else

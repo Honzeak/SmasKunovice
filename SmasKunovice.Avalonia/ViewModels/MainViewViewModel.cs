@@ -1,4 +1,5 @@
 using System;
+using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Mapsui;
@@ -22,11 +23,12 @@ public partial class MainViewViewModel() : ViewModelBase
     [ObservableProperty] private bool _drawZtmMap = true;
     [ObservableProperty] private bool _isFeatureSelected;
     [ObservableProperty] private bool _showSelectedFeatureLabel;
+    [ObservableProperty] private ObservableCollection<DataPropertyRow> _nonNullProperties = []; 
 
     private readonly IDronetagClient? _dronetagClient;
     private readonly GeoJsonLayerStyleProvider? _layerStyleProvider;
     private readonly AircraftDatabase? _aircraftDatabase;
-    private readonly SvgStyleProvider _svgStyleProvider;
+    private readonly SvgStyleProvider? _svgStyleProvider;
     private UpdatingPositionLayer? _positionLayer;
     private bool HasClient => _dronetagClient is not null;
 
@@ -38,7 +40,39 @@ public partial class MainViewViewModel() : ViewModelBase
         _aircraftDatabase = new AircraftDatabase(appSettings.AircraftDatabasePath);
         _svgStyleProvider = new SvgStyleProvider(appSettings.SvgBasePath);
     }
+    public class DataPropertyRow
+    {
+        public string PropertyName { get; set; } = string.Empty;
+        public object? Value { get; set; }
+    }
 
+    private ObservableCollection<DataPropertyRow> GetNonNullProperties(AircraftRecord? record)
+    {
+        var displayProps = new ObservableCollection<DataPropertyRow>();
+        if (record is null)
+        {
+            LogExtensions.LogWarning("Aircraft record is null. Nothing to display.", this);
+            return displayProps;
+        }
+
+        foreach (var prop in record.GetType().GetProperties())
+        {
+            var value = prop.GetValue(record);
+
+            if (value != null)
+            {
+                displayProps.Add(new DataPropertyRow
+                {
+                    // You could add logic here to split CamelCase string (e.g., "FirstName" -> "First Name")
+                    PropertyName = prop.Name, 
+                    Value = value
+                });
+            }
+        }
+
+        return displayProps;
+    }
+    
     partial void OnDrawZtmMapChanged(bool value)
     {
         foreach (var ztmLayer in Map.Layers.OfType<ImageLayer>())
@@ -84,19 +118,7 @@ public partial class MainViewViewModel() : ViewModelBase
             map.Layers.Add(MapLayerFactory.CreateAirportElementsLayers(_layerStyleProvider).ToArray());
             if (HasClient)
             {
-                _positionLayer = MapLayerFactory.CreatePlanesPointLayer(_dronetagClient!, _aircraftDatabase!, _svgStyleProvider, map);
-                map.Layers.Add(_positionLayer);
-                _positionLayer.SelectedFeatureChanged += (sender, feature) =>
-                {
-                    IsFeatureSelected = feature is not null;
-                    ShowSelectedFeatureLabel = feature?.Styles.OfType<LabelStyle>().FirstOrDefault()?.Enabled ?? false;
-                };
-                var trajectoryLayer = MapLayerFactory.CreateTrajectoryLayer(_dronetagClient!);
-                map.Layers.Add(trajectoryLayer);
-                TrajectoryPointsCount = trajectoryLayer.ObservableQueueSize;
-                var speedVectorLayer = MapLayerFactory.CreateSpeedVectorLayer(_dronetagClient!);
-                map.Layers.Add(speedVectorLayer);
-                SpeedVectorMinuteInterval = speedVectorLayer.ObservableMinuteInterval;
+                InitClientLayers(map);
             }
             else
                 LogExtensions.LogError("{0} not provided. Creating map without SMAS data.", this,
@@ -113,5 +135,42 @@ public partial class MainViewViewModel() : ViewModelBase
 
         Map = map;
         return Map;
+    }
+
+    private void InitClientLayers(Map map)
+    {
+        var trajectoryLayer = MapLayerFactory.CreateTrajectoryLayer(_dronetagClient!);
+        map.Layers.Add(trajectoryLayer);
+        TrajectoryPointsCount = trajectoryLayer.ObservableQueueSize;
+        
+        var speedVectorLayer = MapLayerFactory.CreateSpeedVectorLayer(_dronetagClient!);
+        map.Layers.Add(speedVectorLayer);
+        SpeedVectorMinuteInterval = speedVectorLayer.ObservableMinuteInterval;
+        
+        _positionLayer = MapLayerFactory.CreatePlanesPointLayer(_dronetagClient!, _aircraftDatabase!, _svgStyleProvider, map);
+        map.Layers.Add(_positionLayer);
+        _positionLayer.SelectedFeatureChanged += (sender, feature) =>
+        {
+            IsFeatureSelected = feature is not null;
+            ShowSelectedFeatureLabel = feature?.Styles.OfType<LabelStyle>().FirstOrDefault()?.Enabled ?? false;
+                    
+            if (feature is not null)
+            {
+                var scoutData = feature.GetScoutData();
+                if (scoutData is not null)
+                {
+                    var uasId = scoutData.GetUasId();
+                    NonNullProperties = GetNonNullProperties(_aircraftDatabase?.GetByIcao24(uasId));
+                }
+                else
+                {
+                    NonNullProperties.Clear();
+                }
+            }
+            else
+            {
+                NonNullProperties.Clear();
+            }
+        };
     }
 }

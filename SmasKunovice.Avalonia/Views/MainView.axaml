@@ -1,29 +1,108 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:mapsui="clr-namespace:Mapsui.UI.Avalonia;assembly=Mapsui.UI.Avalonia"
-             xmlns:viewmodels="clr-namespace:SmasKunovice.Avalonia.ViewModels"
-             x:DataType="viewmodels:MainViewViewModel"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="SmasKunovice.Avalonia.Views.MainView">
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:mapsui="clr-namespace:Mapsui.UI.Avalonia;assembly=Mapsui.UI.Avalonia"
+    xmlns:viewmodels="clr-namespace:SmasKunovice.Avalonia.ViewModels"
+    x:DataType="viewmodels:MainViewViewModel"
+    mc:Ignorable="d"
+    d:DesignWidth="800"
+    d:DesignHeight="450"
+    x:Class="SmasKunovice.Avalonia.Views.MainView">
     <Design.DataContext>
         <viewmodels:MainViewViewModel></viewmodels:MainViewViewModel>
     </Design.DataContext>
 
-    <Grid RowDefinitions="*,Auto" ColumnDefinitions="*,Auto">
-        <mapsui:MapControl Grid.Row="0" Grid.Column="0" x:Name="MapControl" />
+    <Grid
+        RowDefinitions="*,Auto"
+        ColumnDefinitions="*,Auto">
+        <mapsui:MapControl
+            Grid.Row="0"
+            Grid.Column="0"
+            x:Name="MapControl" />
         <!-- <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding Path=Map.Navigator.Viewport.Resolution}"></TextBox> -->
 
-        <StackPanel Grid.Row="0" Grid.Column="1" Margin="20">
-            <TextBlock Margin="0 5">Number of trajectory points:</TextBlock>
-            <NumericUpDown Value="{Binding TrajectoryPointsCount}" Minimum="0" FormatString="0"/>
-            <TextBlock Margin="0 5">Speed vector minute interval:</TextBlock>
-            <NumericUpDown Value="{Binding SpeedVectorMinuteInterval}" Minimum="0" FormatString="0"/>
-            <CheckBox IsChecked="{Binding DrawZtmMap}" Content="Enable geographical map"/>
-            <Separator Margin="0 10"/>
-            <CheckBox IsChecked="{Binding ShowSelectedFeatureLabel}" Content="Show selected feature label" IsEnabled="{Binding IsFeatureSelected}"/>
-        </StackPanel>
+        <Grid
+            Grid.Row="0"
+            Grid.Column="1"
+            Width="300"
+            Margin="20"
+            RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
+            <TextBlock
+                Grid.Row="0"
+                Margin="0 5">
+                Number of trajectory points:
+            </TextBlock>
+            <NumericUpDown
+                Grid.Row="1"
+                Value="{Binding TrajectoryPointsCount}"
+                Minimum="0"
+                FormatString="0" />
+            <TextBlock
+                Grid.Row="2"
+                Margin="0 5">
+                Speed vector minute interval:
+            </TextBlock>
+            <NumericUpDown
+                Grid.Row="3"
+                Value="{Binding SpeedVectorMinuteInterval}"
+                Minimum="0"
+                FormatString="0" />
+            <CheckBox
+                Grid.Row="4"
+                IsChecked="{Binding DrawZtmMap}"
+                Content="Enable geographical map" />
+            <Separator
+                Grid.Row="5"
+                Margin="0 10" />
+            <CheckBox
+                Grid.Row="6"
+                IsChecked="{Binding ShowSelectedFeatureLabel}"
+                Content="Show selected feature label"
+                IsEnabled="{Binding IsFeatureSelected}" />
+
+            <!-- Aircraft Record Table -->
+            <TextBlock
+                Grid.Row="7"
+                Margin="0 10 0 5"
+                IsVisible="{Binding IsFeatureSelected}">
+                Selected Aircraft:
+            </TextBlock>
+            <ScrollViewer
+                Grid.Row="8"
+                IsVisible="{Binding IsFeatureSelected}"
+                VerticalScrollBarVisibility="Auto"
+                HorizontalScrollBarVisibility="Auto">
+                <DataGrid
+                    ItemsSource="{Binding NonNullProperties}"
+                    AutoGenerateColumns="False"
+                    IsReadOnly="True"
+                    GridLinesVisibility="All"
+                    BorderThickness="1"
+                    BorderBrush="Gray"
+                    Width="280"
+                    Margin="10"
+                    FontSize="11">
+
+                    <DataGrid.Columns>
+                        <!-- Column 1: Displays the Name of the property -->
+                        <DataGridTextColumn
+                            Header="Property Name"
+                            Binding="{Binding PropertyName}"
+                            Width="*"
+                            FontSize="11" />
+
+                        <!-- Column 2: Displays the Value -->
+                        <DataGridTextColumn
+                            Header="Value"
+                            Binding="{Binding Value}"
+                            Width="*"
+                            FontSize="11" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </ScrollViewer>
+        </Grid>
     </Grid>
 
 </UserControl>

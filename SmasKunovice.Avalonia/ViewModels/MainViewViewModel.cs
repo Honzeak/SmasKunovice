@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -23,7 +24,9 @@ public partial class MainViewViewModel() : ViewModelBase
     [ObservableProperty] private bool _drawZtmMap = true;
     [ObservableProperty] private bool _isFeatureSelected;
     [ObservableProperty] private bool _showSelectedFeatureLabel;
-    [ObservableProperty] private ObservableCollection<DataPropertyRow> _nonNullProperties = []; 
+    [ObservableProperty] private ObservableCollection<DataPropertyRow> _nonNullProperties = [];
+    [ObservableProperty] private List<int> _trajectoryPointsViewValues = [1, 10, 100, 500];
+    [ObservableProperty] private List<int> _speedVectorMinuteIntervalViewValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 30];
 
     private readonly IDronetagClient? _dronetagClient;
     private readonly GeoJsonLayerStyleProvider? _layerStyleProvider;
@@ -40,6 +43,7 @@ public partial class MainViewViewModel() : ViewModelBase
         _aircraftDatabase = new AircraftDatabase(appSettings.AircraftDatabasePath);
         _svgStyleProvider = new SvgStyleProvider(appSettings.SvgBasePath);
     }
+
     public class DataPropertyRow
     {
         public string PropertyName { get; set; } = string.Empty;
@@ -64,7 +68,7 @@ public partial class MainViewViewModel() : ViewModelBase
                 displayProps.Add(new DataPropertyRow
                 {
                     // You could add logic here to split CamelCase string (e.g., "FirstName" -> "First Name")
-                    PropertyName = prop.Name, 
+                    PropertyName = prop.Name,
                     Value = value
                 });
             }
@@ -72,7 +76,7 @@ public partial class MainViewViewModel() : ViewModelBase
 
         return displayProps;
     }
-    
+
     partial void OnDrawZtmMapChanged(bool value)
     {
         foreach (var ztmLayer in Map.Layers.OfType<ImageLayer>())
@@ -80,6 +84,7 @@ public partial class MainViewViewModel() : ViewModelBase
             ztmLayer.Enabled = value;
         }
     }
+
     partial void OnSpeedVectorMinuteIntervalChanged(int value)
     {
         var layer = Map.Layers.OfType<UpdatingSpeedVectorLayer>().SingleOrDefault();
@@ -142,18 +147,18 @@ public partial class MainViewViewModel() : ViewModelBase
         var trajectoryLayer = MapLayerFactory.CreateTrajectoryLayer(_dronetagClient!);
         map.Layers.Add(trajectoryLayer);
         TrajectoryPointsCount = trajectoryLayer.ObservableQueueSize;
-        
+
         var speedVectorLayer = MapLayerFactory.CreateSpeedVectorLayer(_dronetagClient!);
         map.Layers.Add(speedVectorLayer);
         SpeedVectorMinuteInterval = speedVectorLayer.ObservableMinuteInterval;
-        
+
         _positionLayer = MapLayerFactory.CreatePlanesPointLayer(_dronetagClient!, _aircraftDatabase!, _svgStyleProvider, map);
         map.Layers.Add(_positionLayer);
         _positionLayer.SelectedFeatureChanged += (sender, feature) =>
         {
             IsFeatureSelected = feature is not null;
             ShowSelectedFeatureLabel = feature?.Styles.OfType<LabelStyle>().FirstOrDefault()?.Enabled ?? false;
-                    
+
             if (feature is not null)
             {
                 var scoutData = feature.GetScoutData();

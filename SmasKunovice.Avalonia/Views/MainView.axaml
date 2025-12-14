@@ -21,56 +21,68 @@
             Grid.Row="0"
             Grid.Column="0"
             x:Name="MapControl" />
-        <!-- <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding Path=Map.Navigator.Viewport.Resolution}"></TextBox> -->
 
         <Grid
             Grid.Row="0"
             Grid.Column="1"
             Width="300"
             Margin="20"
-            RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
-            <TextBlock
+            RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" >
+            <Grid
                 Grid.Row="0"
-                Margin="0 5">
-                Number of trajectory points:
-            </TextBlock>
-            <NumericUpDown
-                Grid.Row="1"
-                Value="{Binding TrajectoryPointsCount}"
-                Minimum="0"
-                FormatString="0" />
-            <TextBlock
-                Grid.Row="2"
-                Margin="0 5">
-                Speed vector minute interval:
-            </TextBlock>
-            <NumericUpDown
-                Grid.Row="3"
-                Value="{Binding SpeedVectorMinuteInterval}"
-                Minimum="0"
-                FormatString="0" />
+                Width="300"
+                RowDefinitions="Auto,Auto"
+                ColumnDefinitions="*,*">
+                <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    HorizontalAlignment="Left"
+                    Margin="0 5">
+                    Trajectory points:
+                </TextBlock>
+                <ComboBox
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    HorizontalAlignment="Left"
+                    ItemsSource="{Binding TrajectoryPointsViewValues}"
+                    SelectedItem="{Binding TrajectoryPointsCount}">
+                </ComboBox>
+                <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    HorizontalAlignment="Left"
+                    Margin="0 5">
+                    Speed vector:
+                </TextBlock>
+                <ComboBox
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    HorizontalAlignment="Left"
+                    ItemsSource="{Binding SpeedVectorMinuteIntervalViewValues}"
+                    SelectedItem="{Binding SpeedVectorMinuteInterval}" />
+            </Grid>
             <CheckBox
-                Grid.Row="4"
+                Grid.Row="1"
                 IsChecked="{Binding DrawZtmMap}"
                 Content="Enable geographical map" />
             <Separator
-                Grid.Row="5"
+                Grid.Row="2"
                 Margin="0 10" />
             <CheckBox
-                Grid.Row="6"
+                Grid.Row="3"
                 IsChecked="{Binding ShowSelectedFeatureLabel}"
                 Content="Show selected feature label"
                 IsEnabled="{Binding IsFeatureSelected}" />
 
             <!-- Aircraft Record Table -->
             <TextBlock
-                Grid.Row="7"
+                Grid.Row="4"
                 Margin="0 10 0 5"
                 IsVisible="{Binding IsFeatureSelected}">
                 Selected Aircraft:
             </TextBlock>
             <ScrollViewer
-                Grid.Row="8"
+                Grid.Row="5"
                 IsVisible="{Binding IsFeatureSelected}"
                 VerticalScrollBarVisibility="Auto"
                 HorizontalScrollBarVisibility="Auto">

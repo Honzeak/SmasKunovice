@@ -24,7 +24,7 @@ public class UpdatingTrajectoryLayer(IProvider dataSource) : UpdatingLayer<Linke
         }
     }
 
-    private int _observableQueueSize = 5;
+    private int _observableQueueSize = 1;
 
     protected override void ProcessFeatures(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
     {

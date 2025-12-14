@@ -16,10 +16,14 @@ public class UpdatingSpeedVectorLayer(IProvider provider, int observableMinuteIn
     public int ObservableMinuteInterval
     {
         get => _observableMinuteInterval;
-        set => _observableMinuteInterval = Math.Max(0, value);
+        set
+        {
+            _observableMinuteInterval = Math.Max(0, value);
+            UpdateDataAsync(false).GetAwaiter().GetResult();
+        }
     }
 
-    protected override void ProcessFeatures(IEnumerable<PointFeature> updateFeatures)
+    protected override void ProcessFeatures(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
     {
         foreach (var pointFeature in updateFeatures)
         {

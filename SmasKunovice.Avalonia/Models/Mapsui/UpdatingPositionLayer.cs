@@ -86,8 +86,11 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         };
     }
 
-    protected override void ProcessFeatures(IEnumerable<PointFeature> updateFeatures)
+    protected override void ProcessFeatures(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
     {
+        if (reprocessing) // We don't want to amend data when reprocessing
+            return;
+        
         foreach (var updatedFeature in updateFeatures)
         {
             var id = updatedFeature.GetFeatureId(ScoutData.FeatureUasIdField);
@@ -197,5 +200,6 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         if (_currentSelectedFeature is null) return;
         var style = _currentSelectedFeature.Styles.OfType<LabelStyle>().FirstOrDefault();
         if (style != null) style.Enabled = visible;
+        UpdateDataAsync(false).GetAwaiter().GetResult();
     }
 }

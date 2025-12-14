@@ -12,18 +12,25 @@ namespace SmasKunovice.Avalonia.Models.Mapsui;
 public class UpdatingTrajectoryLayer(IProvider dataSource) : UpdatingLayer<LinkedList<PointFeature>>(dataSource)
 {
     // protected override Dictionary<string, LinkedList<PointFeature>> Features { get; } = new();
-    private const int QueueCapacity = 10;
+    private const int QueueCapacity = 500;
 
     public int ObservableQueueSize
     {
         get => _observableQueueSize;
-        set => _observableQueueSize = Math.Clamp(value, 0, QueueCapacity);
+        set
+        {
+            _observableQueueSize = Math.Clamp(value, 0, QueueCapacity);
+            UpdateDataAsync(false).GetAwaiter().GetResult();
+        }
     }
 
     private int _observableQueueSize = 5;
 
-    protected override void ProcessFeatures(IEnumerable<PointFeature> updateFeatures)
+    protected override void ProcessFeatures(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
     {
+        if (reprocessing) // We don't want to amend data when reprocessing, just change number of returned points on the interface
+            return;
+        
         foreach (var updateFeature in updateFeatures)
         {
             var featureId = updateFeature.GetFeatureId(ScoutData.FeatureUasIdField);

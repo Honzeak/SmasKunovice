@@ -1,0 +1,13 @@
+{
+"type": "FeatureCollection",
+"name": "orientation_pointss",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5514" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "orient_id": "KNE_NDB" }, "geometry": { "type": "Point", "coordinates": [ -538555.91624699998647, -1183474.49521 ] } },
+{ "type": "Feature", "properties": { "id": 2, "orient_id": "KU20F" }, "geometry": { "type": "Point", "coordinates": [ -534309.398142099846154, -1176446.248443620279431 ] } },
+{ "type": "Feature", "properties": { "id": 3, "orient_id": "KU609" }, "geometry": { "type": "Point", "coordinates": [ -526527.098602219717577, -1181417.865976 ] } },
+{ "type": "Feature", "properties": { "id": 4, "orient_id": "KU610" }, "geometry": { "type": "Point", "coordinates": [ -521767.724833234446123, -1173475.227272408083081 ] } },
+{ "type": "Feature", "properties": { "id": 5, "orient_id": "KU881" }, "geometry": { "type": "Point", "coordinates": [ -541975.714190739323385, -1189185.920665736543015 ] } },
+{ "type": "Feature", "properties": { "id": 6, "orient_id": "NAPAG" }, "geometry": { "type": "Point", "coordinates": [ -529710.233021699474193, -1168716.370765014318749 ] } }
+]
+}

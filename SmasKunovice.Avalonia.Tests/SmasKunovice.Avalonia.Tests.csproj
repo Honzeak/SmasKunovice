@@ -41,6 +41,10 @@
         <Link>TestData\appsettings.json</Link>
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
+      <Content Include="..\SmasKunovice.Avalonia\Assets\GeoJsonElements\waypoints_1.geojson">
+        <Link>TestData\GeoJsonLayerStyleProviderTests\waypoints_1.geojson</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
     </ItemGroup>
 
 </Project>

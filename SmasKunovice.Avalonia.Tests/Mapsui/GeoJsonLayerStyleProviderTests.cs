@@ -4,18 +4,18 @@ using Mapsui.Styles.Thematics;
 using Moq;
 using SmasKunovice.Avalonia.Models.Mapsui;
 
-namespace SmasKunovice.Avalonia.Tests.Models.Mapsui;
+namespace SmasKunovice.Avalonia.Tests.Mapsui;
 
 [TestFixture]
 public class GeoJsonLayerStyleProviderTests : TestBase
 {
-    private const string GeoJsonDataPath = $"TestData/{nameof(GeoJsonLayerStyleProviderTests)}";
+    private readonly string _geoJsonDataPath = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData", nameof(GeoJsonLayerStyleProviderTests));
 
     [Test]
     public void ExtractLayerProperties_Exist()
     {
         var mockFeature = new Mock<IFeature>();
-        var provider = new GeoJsonLayerStyleProvider(GeoJsonDataPath);
+        var provider = new GeoJsonLayerStyleProvider(_geoJsonDataPath);
         var layerProperty = provider.GeoJsonLayerProperties.SingleOrDefault(p => p.Name.Equals("Ctr3"));
         Assert.That(layerProperty, Is.Not.Null);
         using (Assert.EnterMultipleScope())
@@ -31,7 +31,7 @@ public class GeoJsonLayerStyleProviderTests : TestBase
     [Test]
     public void ExtractLayerProperties_Default()
     {
-        var provider = new GeoJsonLayerStyleProvider(GeoJsonDataPath);
+        var provider = new GeoJsonLayerStyleProvider(_geoJsonDataPath);
         var layerProperty = provider.GeoJsonLayerProperties.SingleOrDefault(p => p.Name.Equals("Ctr3_noProps"));
         Assert.That(layerProperty, Is.Not.Null);
         using (Assert.EnterMultipleScope())
@@ -44,8 +44,18 @@ public class GeoJsonLayerStyleProviderTests : TestBase
     [Test]
     public void ExtractLayerProperties_NotExists()
     {
-        var provider = new GeoJsonLayerStyleProvider(GeoJsonDataPath);
+        var provider = new GeoJsonLayerStyleProvider(_geoJsonDataPath);
         var layerProperty = provider.GeoJsonLayerProperties.SingleOrDefault(p => p.Name.Equals("Ctr3_file_not_exists"));
         Assert.That(layerProperty, Is.Null);
+    }
+
+    [Test]
+    public void ExtractStylesWithLabelStyle()
+    {
+        var provider = new GeoJsonLayerStyleProvider(_geoJsonDataPath);
+        var layerProperty = provider.GeoJsonLayerProperties.SingleOrDefault(p => p.Name.Equals("waypoints_1"));
+        Assert.That(layerProperty, Is.Not.Null);
+        Assert.That(layerProperty.Style, Is.Not.Null);
+        Assert.That(layerProperty.Style, Is.TypeOf<StyleCollection>().With.Property("Styles").Count.EqualTo(2)); // label and point style
     }
 }

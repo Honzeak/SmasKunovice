@@ -19,12 +19,15 @@ public class GeoJsonLayerStyleProvider
     private const string ColorPropertyName = "color";
     private const string OpacityPropertyName = "opacity";
     private const string OrderPropertyName = "order";
+    private const string LabelsPropertyName = "drawLabels";
 
     private readonly string _geoJsonBasePath;
 
     private readonly List<LayerProperty> _geoJsonLayerProperties = [];
     public IEnumerable<LayerProperty> GeoJsonLayerProperties => _geoJsonLayerProperties;
     private readonly Color _defaultColor = Color.Grey;
+    public const float DefaultOpacity = 1.0f;
+    public const int DefaultOrder = 5;
 
     /// <summary>
     /// Provides style information for GeoJSON files by extracting color properties
@@ -35,8 +38,6 @@ public class GeoJsonLayerStyleProvider
         Initialize();
     }
 
-    public const float DefaultOpacity = 1.0f;
-    public const int DefaultOrder = 5;
 
     /// <summary>
     /// Initializes the style provider by reading all GeoJSON files
@@ -66,29 +67,18 @@ public class GeoJsonLayerStyleProvider
 
                 var fileName = Path.GetFileNameWithoutExtension(geoJsonFile);
 
-                Color color;
-                float opacity;
-                int order;
-
-                try
-                {
-                    color = GetColorFromGeoJson(document!);
-                    opacity = GetOpacityFromGeoJson(document!);
-                    order = GetOrderFromGeoJson(document!);
-                }
-                catch (Exception e)
-                {
-                    LogExtensions.LogError(e, "Parsing of file {0} has failed", this, Path.GetFileName(geoJsonFile));
-                    throw;
-                }
+                var color = GetColorFromGeoJson(document!);
+                var opacity = GetOpacityFromGeoJson(document!);
+                var order = GetOrderFromGeoJson(document!);
+                var drawLabels = GetDrawLabelsFromGeoJson(document!);
 
                 _geoJsonLayerProperties.Add(new LayerProperty
                 {
                     Name = fileName,
-                    Style = GetStyle(color),
+                    Style = GetStyles(color, drawLabels),
                     Opacity = opacity,
                     Order = order,
-                    Provider = new GeoJsonProvider(geoJsonFile)
+                    Provider = new GeoJsonProvider(geoJsonFile),
                 });
 
                 document?.Dispose();
@@ -121,7 +111,7 @@ public class GeoJsonLayerStyleProvider
         }
         catch (JsonException e)
         {
-            LogExtensions.LogWarning("Failed to parse file to JsonDocument: {0}", this, fileName);
+            LogExtensions.LogError(e, "Failed to parse file to JsonDocument: {0}", this, fileName);
             return false;
         }
         catch (Exception ex)
@@ -133,24 +123,17 @@ public class GeoJsonLayerStyleProvider
         return true;
     }
 
-    /// <summary>
-    /// Retrieves a style for the specified file name, using the associated color from the color map or default color
-    /// </summary>
-    /// <param name="fileName">The name of the file to get the style for</param>
-    /// <param name="color"></param>
-    /// <returns>A ThemeStyle that applies different styling based on geometry type (Point vs other geometries)</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the provider is not initialized</exception>
-    private static IStyle GetStyle(Color color)
+    private static StyleCollection GetStyles(Color color, bool createLabels)
     {
-        return new ThemeStyle(feature =>
+        var pointStyle = new ThemeStyle(feature =>
         {
             return feature switch
             {
                 GeometryFeature { Geometry: Point } => new SymbolStyle()
                 {
                     Fill = new Brush(color),
-                    SymbolScale = 0.2f,
-                    SymbolType = SymbolType.Triangle
+                    SymbolScale = 0.3f,
+                    SymbolType = SymbolType.Triangle,
                 },
                 _ => new VectorStyle
                 {
@@ -159,8 +142,29 @@ public class GeoJsonLayerStyleProvider
                 }
             };
         });
+        var styles = new StyleCollection { Styles = [pointStyle] };
+        if (!createLabels) return styles;
+
+        var labelStyle = new ThemeStyle(feature => new LabelStyle
+        {
+            BackColor = null,
+            ForeColor = Color.Azure,
+            VerticalAlignment = LabelStyle.VerticalAlignmentEnum.Center,
+            Offset = new RelativeOffset(0, 1.9),
+            Font = new Font
+            {
+                Size = 9,
+                FontFamily = "Arial",
+                // Bold = true,
+            },
+            Text = feature["waypoint_label"]?.ToString() ?? "???"
+        });
+        styles.Styles.Add(labelStyle);
+
+        return styles;
     }
 
+    private static bool GetDrawLabelsFromGeoJson(JsonDocument document) => document.RootElement.TryGetProperty(LabelsPropertyName, out var hasLabels) && hasLabels.GetBoolean();
 
     private Color GetColorFromGeoJson(JsonDocument document)
     {
@@ -168,51 +172,36 @@ public class GeoJsonLayerStyleProvider
             ? directColor.GetString()
             : null;
 
-        if (colorValue is not null)
+        if (colorValue is null)
+            return _defaultColor;
+
+        Color? color = null;
+        try
         {
-            Color? color = null;
-            try
-            {
-                color = Color.FromString(colorValue);
-            }
-            catch (ArgumentException e)
-            {
-                LogExtensions.LogDebug("Failed to parse color '{0}' from document", this, colorValue);
-            }
-
-            if (color is null)
-            {
-                LogExtensions.LogDebug("Failed to parse color '{0}' from document", this, colorValue);
-                return _defaultColor;
-            }
-
-            LogExtensions.LogDebug("Extracted color '{0}' from document", this, colorValue);
-            return color;
+            color = Color.FromString(colorValue);
+        }
+        catch (Exception e)
+        {
+            LogExtensions.LogWarning("Failed to parse color '{0}' from document", this, colorValue);
         }
 
-        LogExtensions.LogDebug("No color property found in document", this);
-
-        return _defaultColor;
+        return color ?? _defaultColor;
     }
 
-    private float GetOpacityFromGeoJson(JsonDocument document)
+    private static float GetOpacityFromGeoJson(JsonDocument document)
     {
         try
         {
             if (document.RootElement.TryGetProperty(OpacityPropertyName, out var directOpacity) &&
                 directOpacity.TryGetSingle(out var opacityValue))
             {
-                LogExtensions.LogDebug("Extracted opacity '{0}' from document", this, opacityValue);
                 return Math.Clamp(opacityValue, 0, 1);
             }
         }
-        catch (InvalidOperationException e)
+        catch (Exception e)
         {
             LogExtensions.LogError(e, "Failed to parse opacity from document");
-            throw;
         }
-
-        LogExtensions.LogDebug("No opacity property found in document", this);
 
         return DefaultOpacity;
     }
@@ -231,10 +220,7 @@ public class GeoJsonLayerStyleProvider
         catch (InvalidOperationException e)
         {
             LogExtensions.LogError(e, "Failed to parse order from document");
-            throw;
         }
-
-        LogExtensions.LogDebug("No order property found in document", this);
 
         return DefaultOrder;
     }

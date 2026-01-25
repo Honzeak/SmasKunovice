@@ -1,0 +1,14 @@
+{
+"type": "FeatureCollection",
+"name": "waypoints_1",
+"drawLabels": true,
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5514" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "waypoint_label": "KNE_NDB" }, "geometry": { "type": "Point", "coordinates": [ -538555.91624699998647, -1183474.49521 ] } },
+{ "type": "Feature", "properties": { "id": 2, "waypoint_label": "KU20F" }, "geometry": { "type": "Point", "coordinates": [ -534309.398142099846154, -1176446.248443620279431 ] } },
+{ "type": "Feature", "properties": { "id": 3, "waypoint_label": "KU609" }, "geometry": { "type": "Point", "coordinates": [ -526527.098602219717577, -1181417.865976 ] } },
+{ "type": "Feature", "properties": { "id": 4, "waypoint_label": "KU610" }, "geometry": { "type": "Point", "coordinates": [ -521767.724833234446123, -1173475.227272408083081 ] } },
+{ "type": "Feature", "properties": { "id": 5, "waypoint_label": "KU881" }, "geometry": { "type": "Point", "coordinates": [ -541975.714190739323385, -1189185.920665736543015 ] } },
+{ "type": "Feature", "properties": { "id": 6, "waypoint_label": "NAPAG" }, "geometry": { "type": "Point", "coordinates": [ -529710.233021699474193, -1168716.370765014318749 ] } }
+]
+}

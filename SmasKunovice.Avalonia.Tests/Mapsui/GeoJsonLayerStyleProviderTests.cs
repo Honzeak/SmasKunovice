@@ -53,7 +53,7 @@ public class GeoJsonLayerStyleProviderTests : TestBase
     public void ExtractStylesWithLabelStyle()
     {
         var provider = new GeoJsonLayerStyleProvider(_geoJsonDataPath);
-        var layerProperty = provider.GeoJsonLayerProperties.SingleOrDefault(p => p.Name.Equals("waypoints_1"));
+        var layerProperty = provider.GeoJsonLayerProperties.SingleOrDefault(p => p.Name.Equals("waypoints"));
         Assert.That(layerProperty, Is.Not.Null);
         Assert.That(layerProperty.Style, Is.Not.Null);
         Assert.That(layerProperty.Style, Is.TypeOf<StyleCollection>().With.Property("Styles").Count.EqualTo(2)); // label and point style

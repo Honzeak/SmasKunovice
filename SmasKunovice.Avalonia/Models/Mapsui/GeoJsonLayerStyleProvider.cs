@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using Mapsui.Nts;
@@ -20,6 +21,7 @@ public class GeoJsonLayerStyleProvider
     private const string OpacityPropertyName = "opacity";
     private const string OrderPropertyName = "order";
     private const string LabelsPropertyName = "drawLabels";
+    private const string OutlinePropertyName = "outline";
 
     private readonly string _geoJsonBasePath;
 
@@ -71,11 +73,12 @@ public class GeoJsonLayerStyleProvider
                 var opacity = GetOpacityFromGeoJson(document!);
                 var order = GetOrderFromGeoJson(document!);
                 var drawLabels = GetDrawLabelsFromGeoJson(document!);
+                var drawOutline = GetDrawOutlineFromGeoJson(document!);
 
                 _geoJsonLayerProperties.Add(new LayerProperty
                 {
                     Name = fileName,
-                    Style = GetStyles(color, drawLabels),
+                    Style = GetStyles(color, drawLabels, drawOutline),
                     Opacity = opacity,
                     Order = order,
                     Provider = new GeoJsonProvider(geoJsonFile),
@@ -123,7 +126,7 @@ public class GeoJsonLayerStyleProvider
         return true;
     }
 
-    private static StyleCollection GetStyles(Color color, bool createLabels)
+    private static StyleCollection GetStyles(Color color, bool createLabels, bool drawOutline)
     {
         var pointStyle = new ThemeStyle(feature =>
         {
@@ -131,13 +134,13 @@ public class GeoJsonLayerStyleProvider
             {
                 GeometryFeature { Geometry: Point } => new SymbolStyle()
                 {
-                    Fill = new Brush(color),
+                    Fill = drawOutline ? null : new Brush(color),
                     SymbolScale = 0.3f,
                     SymbolType = SymbolType.Triangle,
                 },
                 _ => new VectorStyle
                 {
-                    Fill = new Brush(color),
+                    Fill = drawOutline ? null : new Brush(color),
                     Line = new Pen(color)
                 }
             };
@@ -157,7 +160,7 @@ public class GeoJsonLayerStyleProvider
                 FontFamily = "Arial",
                 // Bold = true,
             },
-            Text = feature["waypoint_label"]?.ToString() ?? "???"
+            Text = feature["label"]?.ToString() ?? "???"
         });
         styles.Styles.Add(labelStyle);
 
@@ -165,6 +168,7 @@ public class GeoJsonLayerStyleProvider
     }
 
     private static bool GetDrawLabelsFromGeoJson(JsonDocument document) => document.RootElement.TryGetProperty(LabelsPropertyName, out var hasLabels) && hasLabels.GetBoolean();
+    private static bool GetDrawOutlineFromGeoJson(JsonDocument document) => document.RootElement.TryGetProperty(OutlinePropertyName, out var hasLabels) && hasLabels.GetBoolean();
 
     private Color GetColorFromGeoJson(JsonDocument document)
     {

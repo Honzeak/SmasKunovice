@@ -1,0 +1,12 @@
+{
+"type": "FeatureCollection",
+"name": "nswe",
+"drawLabels": true,
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5514" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 1, "label": "NOVEMBER" }, "geometry": { "type": "Point", "coordinates": [ -535752.068558000028133, -1169915.723614 ] } },
+{ "type": "Feature", "properties": { "id": 2, "label": "ECHO" }, "geometry": { "type": "Point", "coordinates": [ -525071.395243, -1187381.008654 ] } },
+{ "type": "Feature", "properties": { "id": 3, "label": "SIERRA" }, "geometry": { "type": "Point", "coordinates": [ -552743.21408900001552, -1190163.372046 ] } },
+{ "type": "Feature", "properties": { "id": 4, "label": "WHISKY" }, "geometry": { "type": "Point", "coordinates": [ -547859.341691000037827, -1175871.943214 ] } }
+]
+}

@@ -1,0 +1,26 @@
+{
+"type": "FeatureCollection",
+"name": "waypoints",
+"drawLabels": true,
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5514" } },
+"features": [
+{ "type": "Feature", "properties": { "id": 0, "label": "KU601" }, "geometry": { "type": "Point", "coordinates": [ -546498.484110999968834, -1178715.701529 ] } },
+{ "type": "Feature", "properties": { "id": 1, "label": "KNE_NDB" }, "geometry": { "type": "Point", "coordinates": [ -538555.91624699998647, -1183474.49521 ] } },
+{ "type": "Feature", "properties": { "id": 2, "label": "KU20F" }, "geometry": { "type": "Point", "coordinates": [ -534309.398142099846154, -1176446.248443620279431 ] } },
+{ "type": "Feature", "properties": { "id": 3, "label": "KU609" }, "geometry": { "type": "Point", "coordinates": [ -526527.098602219717577, -1181417.865976 ] } },
+{ "type": "Feature", "properties": { "id": 4, "label": "KU610" }, "geometry": { "type": "Point", "coordinates": [ -521767.724833234446123, -1173475.227272408083081 ] } },
+{ "type": "Feature", "properties": { "id": 5, "label": "KU881" }, "geometry": { "type": "Point", "coordinates": [ -541975.714190739323385, -1189185.920665736543015 ] } },
+{ "type": "Feature", "properties": { "id": 6, "label": "NAPAG" }, "geometry": { "type": "Point", "coordinates": [ -529710.233021699474193, -1168716.370765014318749 ] } },
+{ "type": "Feature", "properties": { "id": 7, "label": "KU605" }, "geometry": { "type": "Point", "coordinates": [ -588026.240166999981739, -1199114.076155 ] } },
+{ "type": "Feature", "properties": { "id": 8, "label": "KU606" }, "geometry": { "type": "Point", "coordinates": [ -557340.94749699998647, -1193732.019949 ] } },
+{ "type": "Feature", "properties": { "id": 9, "label": "KU607" }, "geometry": { "type": "Point", "coordinates": [ -536395.280782000045292, -1197886.131641 ] } },
+{ "type": "Feature", "properties": { "id": 10, "label": "KU608" }, "geometry": { "type": "Point", "coordinates": [ -530611.615966000012122, -1188234.404434 ] } },
+{ "type": "Feature", "properties": { "id": 11, "label": "KU701" }, "geometry": { "type": "Point", "coordinates": [ -543955.380199, -1192489.869276134297252 ] } },
+{ "type": "Feature", "properties": { "id": 12, "label": "KU702" }, "geometry": { "type": "Point", "coordinates": [ -545858.823556000017561, -1195666.70304899988696 ] } },
+{ "type": "Feature", "properties": { "id": 13, "label": "KU703" }, "geometry": { "type": "Point", "coordinates": [ -550309.29359699995257, -1188682.80384 ] } },
+{ "type": "Feature", "properties": { "id": 14, "label": "KU750" }, "geometry": { "type": "Point", "coordinates": [ -535313.368687, -1178066.264315 ] } },
+{ "type": "Feature", "properties": { "id": 15, "label": "KU751" }, "geometry": { "type": "Point", "coordinates": [ -528959.292590999975801, -1181873.308515 ] } },
+{ "type": "Feature", "properties": { "id": 16, "label": "KU752" }, "geometry": { "type": "Point", "coordinates": [ -541667.46245800005272, -1174259.152734 ] } },
+{ "type": "Feature", "properties": { "id": 17, "label": "TB514" }, "geometry": { "type": "Point", "coordinates": [ -560840.712598999962211, -1173923.489991 ] } }
+]
+}

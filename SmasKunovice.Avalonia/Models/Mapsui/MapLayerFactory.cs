@@ -18,6 +18,7 @@ namespace SmasKunovice.Avalonia.Models.Mapsui;
 public static class MapLayerFactory
 {
     private const string ZtmBaseRestUrl = "https://ags.cuzk.gov.cz/arcgis1/rest/services/ZTM/{{ZTM_DATASET}}/MapServer";
+    public const string ProcedureLayerPrefix = "proc_";
 
     public static ImageLayer[] CreateZtmDynamicLayers(ZtmDatasets ztmDatasetFar, ZtmDatasets ztmDatasetNear)
     {
@@ -109,16 +110,29 @@ public static class MapLayerFactory
         };
     }
 
-    public static IEnumerable<ILayer> CreateAirportElementsLayers(GeoJsonLayerStyleProvider layerStyleProvider)
+    public static IEnumerable<ILayer> CreateAirportElementsLayers(GeoJsonLayerStyleProvider layerStyleProvider, out IReadOnlyList<string> procedureLayerNames)
     {
-        return layerStyleProvider.GeoJsonLayerProperties.OrderByDescending(layerConfig => layerConfig.Order).Select(
-            layerConfig => new Layer
+        var procedureLayerNamesList = new List<string>();
+        var layers = layerStyleProvider.GeoJsonLayerProperties.OrderByDescending(layerConfig => layerConfig.Order).Select(
+            layerConfig =>
             {
-                DataSource = layerConfig.Provider,
-                Style = layerConfig.Style,
-                Opacity = layerConfig.Opacity,
-                Name = layerConfig.Name
+                var layer = new Layer
+                {
+                    DataSource = layerConfig.Provider,
+                    Style = layerConfig.Style,
+                    Opacity = layerConfig.Opacity,
+                    Name = layerConfig.Name
+                };
+
+                if (!layerConfig.Name.StartsWith(ProcedureLayerPrefix)) 
+                    return layer;
+                
+                procedureLayerNamesList.Add(layerConfig.Name[ProcedureLayerPrefix.Length..]);
+                layer.Enabled = false;
+                return layer;
             });
+        procedureLayerNames = procedureLayerNamesList;
+        return layers;
     }
 
     [Obsolete("Agreed to use ARCGis dynamic tiling")]

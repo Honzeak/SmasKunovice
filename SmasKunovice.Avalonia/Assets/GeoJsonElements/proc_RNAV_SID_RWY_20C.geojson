@@ -1,0 +1,14 @@
+{
+"type": "FeatureCollection",
+"name": "proc_RNAV_SID_RWY_20C",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5514" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -550309.29359699995257, -1188682.80384 ], [ -530916.908787146443501, -1153698.015554424142465 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -550309.29359699995257, -1188682.80384 ], [ -543955.380199, -1192489.869276134297252 ], [ -540251.048268094426021, -1186307.634646652732044 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -550309.29359699995257, -1188682.80384 ], [ -560840.712598999962211, -1173923.489991 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -560840.712598999962211, -1173923.489991 ], [ -609655.51295499666594, -1163101.509294094750658 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -543955.380199, -1192489.869276134297252 ], [ -557340.94749699998647, -1193732.019949 ], [ -605155.64010590291582, -1208359.096899627707899 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -543955.380199, -1192489.869276134297252 ], [ -545858.823556000017561, -1195666.70304899988696 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -545858.823556000017561, -1195666.70304899988696 ], [ -534437.491920304251835, -1208805.442131098126993 ] ] ] } }
+]
+}

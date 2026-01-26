@@ -27,6 +27,8 @@ public partial class MainViewViewModel() : ViewModelBase
     [ObservableProperty] private ObservableCollection<DataPropertyRow> _nonNullProperties = [];
     [ObservableProperty] private List<int> _trajectoryPointsViewValues = [1, 10, 100, 500];
     [ObservableProperty] private List<int> _speedVectorMinuteIntervalViewValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 30];
+    [ObservableProperty] private IReadOnlyList<string> _procedureListValues = new List<string>();
+    [ObservableProperty] private string _selectedProcedureName;
 
     private readonly IDronetagClient? _dronetagClient;
     private readonly GeoJsonLayerStyleProvider? _layerStyleProvider;
@@ -111,6 +113,23 @@ public partial class MainViewViewModel() : ViewModelBase
         _positionLayer?.SetLabelVisibility(value);
     }
 
+    partial void OnSelectedProcedureNameChanged(string value)
+    {
+        var procLayers = Map.Layers.Where(layer => layer.Name.StartsWith(MapLayerFactory.ProcedureLayerPrefix)).ToList();
+        if (procLayers.Any())
+        {
+            foreach (var procLayer in procLayers)
+            {
+                procLayer.Enabled = procLayer.Name.Equals(MapLayerFactory.ProcedureLayerPrefix + value);
+            }
+        }
+        else
+        {
+            LogExtensions.LogWarning("Could not find any procedure layers." + value, this);
+        }
+        Map.Refresh();
+    }
+
     public Map CreateMap()
     {
         var map = new Map();
@@ -120,7 +139,8 @@ public partial class MainViewViewModel() : ViewModelBase
             // Dark grey
             map.BackColor = Color.FromString("#033052");
             map.Layers.Add(MapLayerFactory.CreateZtmDynamicLayers(ZtmDatasets.ZTM100, ZtmDatasets.ZTM25));
-            map.Layers.Add(MapLayerFactory.CreateAirportElementsLayers(_layerStyleProvider).ToArray());
+            map.Layers.Add(MapLayerFactory.CreateAirportElementsLayers(_layerStyleProvider, out var procedureLayerNames).ToArray());
+            ProcedureListValues = procedureLayerNames;
             if (HasClient)
             {
                 InitClientLayers(map);

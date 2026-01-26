@@ -14,7 +14,7 @@ public class MapLayerFactoryTests
     {
         // Should load file ApronGuidanceLineMarking.geojson
         var layer = MapLayerFactory
-            .CreateAirportElementsLayers(new GeoJsonLayerStyleProvider($"TestData\\{nameof(MapLayerFactoryTests)}"))
+            .CreateAirportElementsLayers(new GeoJsonLayerStyleProvider($"TestData\\{nameof(MapLayerFactoryTests)}"), out var procedureLayerNames)
             .Single();
         var featureMock = new Mock<IFeature>();
         Assert.That(layer.Style, Is.Not.Null.And.TypeOf<ThemeStyle>());

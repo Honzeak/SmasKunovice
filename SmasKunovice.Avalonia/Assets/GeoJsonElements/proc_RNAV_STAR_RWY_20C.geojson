@@ -1,0 +1,15 @@
+{
+"type": "FeatureCollection",
+"name": "proc_RNAV_STAR_RWY_20C",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5514" } },
+"features": [
+{ "type": "Feature", "properties": { "id": null }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -538555.91624699998647, -1183474.49521 ], [ -546498.484110999968834, -1178715.701529 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -546498.484110999968834, -1178715.701529 ], [ -569997.487529908074066, -1171977.470728697488084 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -569997.487529908074066, -1171977.470728697488084 ], [ -592822.561793031403795, -1167125.851423464948311 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -529710.233021699474193, -1168716.370765014318749 ], [ -521767.724833234446123, -1173475.227272408083081 ], [ -526527.098602219717577, -1181417.865976 ], [ -530611.615966000012122, -1188234.404434 ], [ -538555.91624699998647, -1183474.49521 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -529710.233021699474193, -1168716.370765014318749 ], [ -530246.673185513587669, -1153354.73436290374957 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -530611.615966000012122, -1188234.404434 ], [ -536395.280782000045292, -1197886.131641 ], [ -534324.69699065038003, -1208904.249105572002009 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -536395.280782000045292, -1197886.131641 ], [ -557340.94749699998647, -1193732.019949 ], [ -588026.240166999981739, -1199114.076155 ] ] ] } },
+{ "type": "Feature", "properties": { "id": null }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -588026.240166999981739, -1199114.076155 ], [ -590088.228830824256875, -1213785.887861475115642 ] ] ] } }
+]
+}

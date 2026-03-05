@@ -99,8 +99,11 @@ public static class MapLayerFactory
     {
         var style = new VectorStyle
         {
-            Outline = new Pen(Color.Black, 2),
-            Line = new Pen(Color.FromString("#c3fc05"), 2),
+            Line = new Pen
+            {
+                Color = Color.FromString("#c3fc05"),
+                Width = 2
+            }
         };
 
         return new UpdatingSpeedVectorLayer(new DynamicScoutDataProvider(dronetagClient))

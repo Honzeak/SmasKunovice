@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -17,8 +19,6 @@ namespace SmasKunovice.Avalonia.ViewModels;
 
 public partial class MainViewViewModel() : ViewModelBase
 {
-    [ObservableProperty] private string _greeting = "Welcome to Avalonia!";
-
     [ObservableProperty] private Map _map = new();
     [ObservableProperty] private int _trajectoryPointsCount;
     [ObservableProperty] private int _speedVectorMinuteInterval;
@@ -28,9 +28,9 @@ public partial class MainViewViewModel() : ViewModelBase
     [ObservableProperty] private ObservableCollection<DataPropertyRow> _nonNullProperties = [];
     [ObservableProperty] private List<int> _trajectoryPointsViewValues = [1, 10, 100, 500];
     [ObservableProperty] private List<int> _speedVectorMinuteIntervalViewValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 30];
-    [ObservableProperty] private IReadOnlyList<string> _procedureListValues = new List<string>();
-    [ObservableProperty] private string _selectedProcedureName;
+    [ObservableProperty] private ObservableCollection<SelectProcedure> _procedureList = [];
     [ObservableProperty] private bool _drawCtrOrAtz = true;
+    private List<ILayer> _procedureLayers = [];
 
     private readonly IDronetagClient? _dronetagClient;
     private readonly GeoJsonLayerStyleProvider? _layerStyleProvider;
@@ -46,25 +46,71 @@ public partial class MainViewViewModel() : ViewModelBase
         _layerStyleProvider = new GeoJsonLayerStyleProvider(appSettings.GeoJsonsBasePath);
         _aircraftDatabase = new AircraftDatabase(appSettings.AircraftDatabasePath);
         _svgStyleProvider = new SvgStyleProvider(appSettings.SvgBasePath);
+        ProcedureList.CollectionChanged += OnProcedureListChanged;
+    }
+
+    private void OnProcedureListChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        // Debugger.Launch();
+        if (e.NewItems is not null)
+        {
+            foreach (SelectProcedure newItem in e.NewItems)
+            {
+                newItem.PropertyChanged += OnSelectProcedureChanged;
+            }
+        }
+
+        if (e.OldItems is null)
+            return;
+
+        foreach (SelectProcedure oldItem in e.OldItems)
+        {
+            oldItem.PropertyChanged -= OnSelectProcedureChanged;
+        }
+    }
+
+    private void OnSelectProcedureChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(SelectProcedure.IsChecked))
+        {
+            LogExtensions.LogWarning("Unexpected property name '{0}' in SelectProcedure.", this, e.PropertyName ?? string.Empty);
+            return;
+        }
+
+        if (sender is not SelectProcedure selectedProcedure)
+        {
+            LogExtensions.LogError("Could not get name of changed procedure.", this);
+            return;
+        }
+
+        var layer = _procedureLayers.SingleOrDefault(procLayer => procLayer.Name.Equals(MapLayerFactory.ProcedureLayerPrefix + selectedProcedure.Name));
+        if (layer is null)
+        {
+            LogExtensions.LogWarning("Could not find matching procedure layer to {0}.", this, selectedProcedure.Name);
+            return;
+        }
+
+        layer.Enabled = selectedProcedure.IsChecked;
+        Map.Refresh();
     }
 
     [RelayCommand]
     private void UpdateDrawCtrOrAtz(string value)
     {
-            var ctrLayers = Map.Layers.Where(layer => layer.Name.StartsWith("CTR", StringComparison.InvariantCultureIgnoreCase)).OrderBy(layer => layer.Name).ToList(); // _diff should be second
-            var atzLayers = Map.Layers.Where(layer => layer.Name.StartsWith("ATZ", StringComparison.InvariantCultureIgnoreCase)).OrderBy(layer => layer.Name).ToList(); // _diff should be second
-            
-            if (ctrLayers.Count != 2 || atzLayers.Count != 2)
-            {
-                LogExtensions.LogWarning("Unexpected count of ATZ and CTR layers. Expected two for each, got {0} for CTR and {1} for ATZ", this, ctrLayers.Count, atzLayers.Count);
-                return;
-            }
-            
-            ctrLayers[0].Enabled = value == "ATZ"; // CTR outline layer is enabled when ATZ
-            ctrLayers[1].Enabled = value == "CTR"; // CTR diff layer is enabled when CTR
-            
-            atzLayers[0].Enabled = value == "CTR"; // ATZ outline layer is enabled when CTR
-            atzLayers[1].Enabled = value == "ATZ"; // ATZ diff layer is enabled when ATZ
+        var ctrLayers = Map.Layers.Where(layer => layer.Name.StartsWith("CTR", StringComparison.InvariantCultureIgnoreCase)).OrderBy(layer => layer.Name).ToList(); // _diff should be second
+        var atzLayers = Map.Layers.Where(layer => layer.Name.StartsWith("ATZ", StringComparison.InvariantCultureIgnoreCase)).OrderBy(layer => layer.Name).ToList(); // _diff should be second
+
+        if (ctrLayers.Count != 2 || atzLayers.Count != 2)
+        {
+            LogExtensions.LogWarning("Unexpected count of ATZ and CTR layers. Expected two for each, got {0} for CTR and {1} for ATZ", this, ctrLayers.Count, atzLayers.Count);
+            return;
+        }
+
+        ctrLayers[0].Enabled = value == "ATZ"; // CTR outline layer is enabled when ATZ
+        ctrLayers[1].Enabled = value == "CTR"; // CTR diff layer is enabled when CTR
+
+        atzLayers[0].Enabled = value == "CTR"; // ATZ outline layer is enabled when CTR
+        atzLayers[1].Enabled = value == "ATZ"; // ATZ diff layer is enabled when ATZ
     }
 
     public class DataPropertyRow
@@ -134,23 +180,6 @@ public partial class MainViewViewModel() : ViewModelBase
         _positionLayer?.SetLabelVisibility(value);
     }
 
-    partial void OnSelectedProcedureNameChanged(string value)
-    {
-        var procLayers = Map.Layers.Where(layer => layer.Name.StartsWith(MapLayerFactory.ProcedureLayerPrefix)).ToList();
-        if (procLayers.Any())
-        {
-            foreach (var procLayer in procLayers)
-            {
-                procLayer.Enabled = procLayer.Name.Equals(MapLayerFactory.ProcedureLayerPrefix + value);
-            }
-        }
-        else
-        {
-            LogExtensions.LogWarning("Could not find any procedure layers." + value, this);
-        }
-        Map.Refresh();
-    }
-
     public Map CreateMap()
     {
         var map = new Map();
@@ -161,7 +190,12 @@ public partial class MainViewViewModel() : ViewModelBase
             map.BackColor = Color.FromString("#033052");
             map.Layers.Add(MapLayerFactory.CreateZtmDynamicLayers(ZtmDatasets.ZTM100, ZtmDatasets.ZTM25));
             map.Layers.Add(MapLayerFactory.CreateAirportElementsLayers(_layerStyleProvider, out var procedureLayerNames).ToArray());
-            ProcedureListValues = procedureLayerNames;
+            foreach (var procedure in CreateProceduresModelList(procedureLayerNames))
+            {
+                ProcedureList.Add(procedure);
+            }
+            _procedureLayers = map.Layers.Where(layer => layer.Name.StartsWith(MapLayerFactory.ProcedureLayerPrefix)).ToList();
+
             if (HasClient)
             {
                 InitClientLayers(map);
@@ -174,7 +208,6 @@ public partial class MainViewViewModel() : ViewModelBase
         }
         catch (Exception e)
         {
-            Greeting = e.Message;
             LogExtensions.LogError(e, "Failed to initialize map.", this);
             throw;
         }
@@ -182,6 +215,12 @@ public partial class MainViewViewModel() : ViewModelBase
         Map = map;
         UpdateDrawCtrOrAtz("CTR"); // Need to init this to avoid drawing both CTR and ATZ
         return Map;
+    }
+
+
+    private ObservableCollection<SelectProcedure> CreateProceduresModelList(IEnumerable<string> procedureLayerNames)
+    {
+        return new ObservableCollection<SelectProcedure>(procedureLayerNames.Select(name => new SelectProcedure(name)));
     }
 
     private void InitClientLayers(Map map)

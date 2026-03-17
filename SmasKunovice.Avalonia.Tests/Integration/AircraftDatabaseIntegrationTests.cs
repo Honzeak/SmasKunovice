@@ -8,17 +8,10 @@ namespace SmasKunovice.Avalonia.Tests.Integration;
 public class AircraftDatabaseIntegrationTests : TestBase
 {
     [Test]
-    public void LoadDatabaseFromAppsettings()
+    public void LoadDatabase()
     {
-        var appSettingsPath = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData", "appsettings.json");
-        var configuration = new ConfigurationBuilder()
-            .AddJsonFile(appSettingsPath, optional: false, reloadOnChange: true) // Load appsettings.json
-            .Build();
-        var configSection = configuration.GetSection(nameof(ApplicationSettings));
-        var appSettings = configSection.Get<ApplicationSettings>();
-        Assert.That(appSettings?.AircraftDatabasePath, Is.Not.Null.Or.Empty);
-
-        var aircraftDatabase = new AircraftDatabase(appSettings.AircraftDatabasePath);
+        var databasePath = Directory.EnumerateFiles(AssetProvider.GetFullAssetPath("Database"), "*.csv", SearchOption.TopDirectoryOnly).Single();
+        var aircraftDatabase = new AircraftDatabase(databasePath);
         var record = aircraftDatabase.GetByIcao24("c81004");
         Assert.That(record, Is.Not.Null);
         using (Assert.EnterMultipleScope())

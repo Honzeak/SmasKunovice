@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -43,9 +44,9 @@ public partial class MainViewViewModel() : ViewModelBase
     {
         _dronetagClient = dronetagClient;
         var appSettings = options.Value;
-        _layerStyleProvider = new GeoJsonLayerStyleProvider(appSettings.GeoJsonsBasePath);
-        _aircraftDatabase = new AircraftDatabase(appSettings.AircraftDatabasePath);
-        _svgStyleProvider = new SvgStyleProvider(appSettings.SvgBasePath);
+        _layerStyleProvider = new GeoJsonLayerStyleProvider(AssetProvider.GetFullAssetPath("GeoJsonElements"));
+        _aircraftDatabase = new AircraftDatabase(Directory.EnumerateFiles(AssetProvider.GetFullAssetPath("Database"), "*.csv", SearchOption.TopDirectoryOnly).Single());
+        _svgStyleProvider = new SvgStyleProvider(AssetProvider.GetFullAssetPath("Svg"));
         ProcedureList.CollectionChanged += OnProcedureListChanged;
     }
 

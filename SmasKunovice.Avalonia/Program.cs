@@ -23,8 +23,9 @@ sealed class Program
             .LogToTrace()
             .AfterSetup(_ =>
             {
+                var level = LogEventLevel.Information;
 #if DEBUG
-                var level = LogEventLevel.Debug;
+                level = LogEventLevel.Debug;
 #endif
                 Logger.Sink = new SerilogSink(level);
                 

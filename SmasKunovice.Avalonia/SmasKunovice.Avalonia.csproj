@@ -10,7 +10,10 @@
   </PropertyGroup>
 
     <ItemGroup>
-        <AvaloniaResource Include="Assets\**" />
+        <Content Include="Assets\Database\**" CopyToOutputDirectory="PreserveNewest"/>
+        <Content Include="Assets\Svg\**" CopyToOutputDirectory="PreserveNewest"/>
+        <Content Include="Assets\GeoJsonElements\**" CopyToOutputDirectory="PreserveNewest"/>
+        <AvaloniaResource Include="Assets\avalonia-logo.ico" />
         <AvaloniaXaml Remove="App.axaml" />
         <AvaloniaResource Include="App.axaml" />
     </ItemGroup>
@@ -48,6 +51,9 @@
 
     <ItemGroup>
       <None Update="appsettings.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="appsettings.User.json">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>

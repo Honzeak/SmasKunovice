@@ -20,4 +20,5 @@ public class ClientAdapterOptions
     public string OdidTopic { get; set; } = string.Empty;
     
     public bool HasCredentials => !string.IsNullOrEmpty(Username) && !string.IsNullOrEmpty(Password);
+    public bool LogReceivedMessages { get; set; } = false;
 }

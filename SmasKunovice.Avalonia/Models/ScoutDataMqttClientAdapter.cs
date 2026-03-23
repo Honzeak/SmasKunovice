@@ -1,7 +1,9 @@
 using System;
+using System.IO;
 using System.Security.Authentication;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using MQTTnet;
@@ -15,6 +17,11 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
     private readonly IMqttClient _client;
     private readonly MqttClientOptions _connectOptions;
     private readonly IScoutDataCoordTransformation _transformation;
+    private readonly bool _logReceivedMessages;
+    private readonly string _messagesLogPath = string.Empty;
+    private readonly Channel<string> _loggingChannel = Channel.CreateUnbounded<string>();
+    private readonly Task? _loggingTask;
+
     public event IDronetagClient.DronetagDataReceivedEventHandler? MessageReceived;
     public event EventHandler<string>? HeartbeatReceived;
 
@@ -22,6 +29,14 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
     {
         _transformation = transformation;
         var adapterOptions = options.Value;
+        _logReceivedMessages = adapterOptions.LogReceivedMessages;
+        if (_logReceivedMessages)
+        {
+            _loggingTask = Task.Run(ProcessLogQueue);
+            Directory.CreateDirectory("ScoutMessages");
+            _messagesLogPath = Path.Combine("ScoutMessages", $"log-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.log");
+        }
+
         _client = new MqttClientFactory().CreateMqttClient();
         var connectionBuilder = new MqttClientOptionsBuilder()
             .WithTcpServer(adapterOptions.Host, adapterOptions.Port)
@@ -30,7 +45,7 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
                     .WithAllowUntrustedCertificates()
                     .WithCertificateValidationHandler(_ => true)
                     .WithSslProtocols(SslProtocols.None)
-                )
+            )
             .WithCleanSession();
         if (adapterOptions.HasCredentials)
             connectionBuilder.WithCredentials(adapterOptions.Username, adapterOptions.Password);
@@ -39,6 +54,28 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
 
         SetupConnectionEvents(adapterOptions);
         LogExtensions.LogInfo("Dronetag MQTT client adapter initialized.", this);
+    }
+
+    private async Task ProcessLogQueue()
+    {
+        await using var streamWriter = new StreamWriter(_messagesLogPath, true);
+        var jsonSerializerOptions = new JsonSerializerOptions { WriteIndented = true };
+
+        await foreach (var log in _loggingChannel.Reader.ReadAllAsync())
+        {
+            try
+            {
+                using var jsonDoc = JsonDocument.Parse(log);
+                var prettyJson = JsonSerializer.Serialize(jsonDoc, jsonSerializerOptions);
+                await streamWriter.WriteLineAsync(prettyJson + ",");
+            }
+            catch (Exception ex)
+            {
+                LogExtensions.LogError(ex, "Failed to log JSON message", this);
+            }
+        }
+
+        await streamWriter.FlushAsync();
     }
 
     private void SetupConnectionEvents(ClientAdapterOptions adapterOptions)
@@ -58,7 +95,7 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
             return Task.CompletedTask;
         };
 
-        _client.ApplicationMessageReceivedAsync += e =>
+        _client.ApplicationMessageReceivedAsync += async e =>
         {
             if (e.ApplicationMessage.Topic.Equals(adapterOptions.HeartbeatTopic))
             {
@@ -68,14 +105,12 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
             else if (e.ApplicationMessage.Topic.Equals(adapterOptions.OdidTopic))
             {
                 // LogExtensions.LogDebug("Received message on ODID topic.", this);
-                ProcessOdidMessage(e);
+                await ProcessOdidMessage(e);
             }
             else
             {
                 LogExtensions.LogWarning("Received message on unknown topic.", this);
             }
-
-            return Task.CompletedTask;
         };
     }
 
@@ -87,13 +122,13 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
         LogExtensions.LogDebug("Received Heartbeat message: {0}", this, mqttApplicationMessageReceivedEventArgs.ApplicationMessage.Payload);
     }
 
-    private void ProcessOdidMessage(MqttApplicationMessageReceivedEventArgs eventArgs)
+    private async Task ProcessOdidMessage(MqttApplicationMessageReceivedEventArgs eventArgs)
     {
         try
         {
-            // TODO is it encoded?
             var message = Encoding.UTF8.GetString(eventArgs.ApplicationMessage.Payload);
-            // LogExtensions.LogDebug("Received ODID message", this);
+            if (_logReceivedMessages)
+                await LogJsonMessage(message);
 
             // Deserialize the JSON payload into the ScoutData object
             var scoutData = JsonSerializer.Deserialize<ScoutData>(message, ScoutData.SerializerOptions);
@@ -118,8 +153,14 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
         }
         catch (Exception ex)
         {
-            LogExtensions.LogError(ex,"Processing of ODID message has failed", this);
+            LogExtensions.LogError(ex, "Processing of ODID message has failed", this);
         }
+    }
+
+    private Task LogJsonMessage(string message)
+    {
+        _loggingChannel.Writer.TryWrite(message);
+        return Task.CompletedTask;
     }
 
     public async Task ConnectAsync()
@@ -143,6 +184,8 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
 
     public void Dispose()
     {
+        _loggingChannel.Writer.Complete();
+        _loggingTask?.GetAwaiter().GetResult();
         _client.Dispose();
     }
 }

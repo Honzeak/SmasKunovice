@@ -228,11 +228,11 @@ public partial class MainViewViewModel() : ViewModelBase
     {
         var trajectoryLayer = MapLayerFactory.CreateTrajectoryLayer(_dronetagClient!);
         map.Layers.Add(trajectoryLayer);
-        TrajectoryPointsCount = trajectoryLayer.ObservableQueueSize;
+        _trajectoryPointsCount = trajectoryLayer.ObservableQueueSize;
 
         var speedVectorLayer = MapLayerFactory.CreateSpeedVectorLayer(_dronetagClient!);
         map.Layers.Add(speedVectorLayer);
-        SpeedVectorMinuteInterval = speedVectorLayer.ObservableMinuteInterval;
+        _speedVectorMinuteInterval = speedVectorLayer.ObservableMinuteInterval;
 
         _positionLayer = MapLayerFactory.CreatePlanesPointLayer(_dronetagClient!, _aircraftDatabase!, _svgStyleProvider, map);
         map.Layers.Add(_positionLayer);

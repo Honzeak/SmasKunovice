@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using Avalonia.Logging;
 using Serilog;
 
@@ -35,6 +36,8 @@ public class SerilogSink : ILogSink
 
         // Log the initialization of the logger
         _logger.Information("Logging initialized. Logs will be written to: {LogFilePath}", logFilePath);
+        var appVersion = Assembly.GetExecutingAssembly().GetName().Version;
+        _logger.Information("SmasKunovice App, version: {0}", appVersion?.ToString(3) ?? "0.0.0");
     }
 
     public bool IsEnabled(LogEventLevel level, string area)

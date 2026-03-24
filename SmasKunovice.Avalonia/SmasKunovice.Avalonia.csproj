@@ -6,55 +6,57 @@
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-      <UserSecretsId>8c1bc9e8-d737-493c-a31d-817ab4c2ee9f</UserSecretsId>
-  </PropertyGroup>
+        <UserSecretsId>8c1bc9e8-d737-493c-a31d-817ab4c2ee9f</UserSecretsId>
+        <Version>0.0.0</Version>
+        <SelfContained>true</SelfContained>
+    </PropertyGroup>
 
     <ItemGroup>
         <Content Include="Assets\Database\**" CopyToOutputDirectory="PreserveNewest"/>
         <Content Include="Assets\Svg\**" CopyToOutputDirectory="PreserveNewest"/>
         <Content Include="Assets\GeoJsonElements\**" CopyToOutputDirectory="PreserveNewest"/>
-        <AvaloniaResource Include="Assets\avalonia-logo.ico" />
-        <AvaloniaXaml Remove="App.axaml" />
-        <AvaloniaResource Include="App.axaml" />
+        <AvaloniaResource Include="Assets\avalonia-logo.ico"/>
+        <AvaloniaXaml Remove="App.axaml"/>
+        <AvaloniaResource Include="App.axaml"/>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="11.3.0" />
-        <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.0" />
-        <PackageReference Include="Avalonia.Desktop" Version="11.3.0" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.0" />
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.0" />
+        <PackageReference Include="Avalonia" Version="11.3.0"/>
+        <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.0"/>
+        <PackageReference Include="Avalonia.Desktop" Version="11.3.0"/>
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.0"/>
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.0"/>
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
         <PackageReference Include="Avalonia.Diagnostics" Version="11.3.0">
             <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="BruTile.MbTiles" Version="5.0.6" />
-        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
-        <PackageReference Include="Mapsui.ArcGIS" Version="4.1.9" />
-        <PackageReference Include="Mapsui.Avalonia" Version="4.1.9" />
-        <PackageReference Include="Mapsui.Extensions" Version="4.1.9" />
-        <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.5" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.5" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="9.0.5" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.5" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.5" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.5" />
-        <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.5" />
-        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.5" />
-        <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="9.0.5" />
-        <PackageReference Include="MQTTnet" Version="5.0.1.1416" />
-        <PackageReference Include="ProjNET4GeoAPI" Version="1.4.1" />
-        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
-        <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+        <PackageReference Include="BruTile.MbTiles" Version="5.0.6"/>
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1"/>
+        <PackageReference Include="Mapsui.ArcGIS" Version="4.1.9"/>
+        <PackageReference Include="Mapsui.Avalonia" Version="4.1.9"/>
+        <PackageReference Include="Mapsui.Extensions" Version="4.1.9"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.5"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.5"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="9.0.5"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.5"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.5"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.5"/>
+        <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.5"/>
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.5"/>
+        <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="9.0.5"/>
+        <PackageReference Include="MQTTnet" Version="5.0.1.1416"/>
+        <PackageReference Include="ProjNET4GeoAPI" Version="1.4.1"/>
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0"/>
+        <PackageReference Include="Serilog.Sinks.File" Version="7.0.0"/>
     </ItemGroup>
 
     <ItemGroup>
-      <None Update="appsettings.json">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="appsettings.User.json">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
+        <None Update="appsettings.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="appsettings.User.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 </Project>

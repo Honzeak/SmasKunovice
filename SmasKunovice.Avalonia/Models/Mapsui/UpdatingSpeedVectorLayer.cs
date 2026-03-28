@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading.Tasks;
 using Mapsui;
 using Mapsui.Layers;
 using Mapsui.Nts;
@@ -33,7 +33,7 @@ public class UpdatingSpeedVectorLayer(IProvider provider, int observableMinuteIn
         }
     }
 
-    protected override void ProcessFeatures(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
+    protected override Task ProcessFeaturesAsync(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
     {
         foreach (var pointFeature in updateFeatures)
         {
@@ -55,6 +55,7 @@ public class UpdatingSpeedVectorLayer(IProvider provider, int observableMinuteIn
             
             Features[featureId] = CreateSpeedVectorFeature(coordAx, coordAy, heading.Value, speed.Value);
         }
+        return Task.CompletedTask;
     }
 
     private GeometryFeature CreateSpeedVectorFeature(double coordAx, double coordAy, int headingDegrees, float speedMps)

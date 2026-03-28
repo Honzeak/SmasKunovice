@@ -1,5 +1,5 @@
+using System;
 using Mapsui.Styles;
-using Mapsui.Styles.Thematics;
 using MapsuiColor = Mapsui.Styles.Color;
 using SystemColor = System.Drawing.Color;
 
@@ -7,14 +7,16 @@ namespace SmasKunovice.Avalonia.Models.Mapsui;
 
 public interface IAircraftSymbolProvider
 {
-    IStyle GetAirplaneStyle(bool selected);
-    IStyle GetVehicleStyle(bool selected);
-    IStyle GetDroneStyle(bool selected);
+    IStyle GetAirplaneStyle(SymbolState state);
+    IStyle GetVehicleStyle(SymbolState state);
+    IStyle GetDroneStyle(SymbolState state);
 }
+public enum SymbolState {Normal, Selected, Stale}
 public class AircraftSymbolProvider(SvgStyleProvider svgStyleProvider) : IAircraftSymbolProvider
 {
-    private readonly int _hexagonIdUnselected = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.Blue, SystemColor.Blue);
+    private readonly int _hexagonIdNormal = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.Blue, SystemColor.Blue);
     private readonly int _hexagonIdSelected = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.Yellow, SystemColor.Yellow);
+    private readonly int _hexagonIdStale = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.WhiteSmoke, SystemColor.WhiteSmoke);
     private const string SvgSymbolFileName = "hexagon-full.svg";
 
     private static SymbolStyle GetBaseStyle() => new()
@@ -30,26 +32,50 @@ public class AircraftSymbolProvider(SvgStyleProvider svgStyleProvider) : IAircra
         Fill = new Brush(MapsuiColor.Yellow)
     };
 
-    public IStyle GetAirplaneStyle(bool selected)
+    private static SymbolStyle GetStaleStyle() => new()
     {
-        var style = selected ? GetBaseStyleSelected() : GetBaseStyle();
+        SymbolScale = 0.25f,
+        Fill = new Brush(MapsuiColor.WhiteSmoke)
+    };
+
+    public IStyle GetAirplaneStyle(SymbolState state)
+    {
+        var style = GetStateStyle(state);
         style.SymbolType = SymbolType.Rectangle;
         return style;
     }
 
-    public IStyle GetVehicleStyle(bool selected)
+    private static SymbolStyle GetStateStyle(SymbolState state)
     {
-        var style = selected ? GetBaseStyleSelected() : GetBaseStyle();
+        var style = state switch
+        {
+            SymbolState.Normal => GetBaseStyle(),
+            SymbolState.Selected => GetBaseStyleSelected(),
+            SymbolState.Stale => GetStaleStyle(),
+            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
+        };
+        return style;
+    }
+
+    public IStyle GetVehicleStyle(SymbolState state)
+    {
+        var style = GetStateStyle(state);
         style.SymbolType = SymbolType.Ellipse;
         return style;
     }
 
-    public IStyle GetDroneStyle(bool selected)
+    public IStyle GetDroneStyle(SymbolState state)
     {
-        var style = selected ? GetBaseStyleSelected() : GetBaseStyle();
+        var style = GetStateStyle(state);
         style.SymbolType = SymbolType.Image;
-        style.BitmapId = selected ? _hexagonIdSelected : _hexagonIdUnselected;
-        style.SymbolScale = selected ? 0.025f : 0.015f;
+        style.BitmapId = state switch
+        {
+            SymbolState.Normal => _hexagonIdNormal,
+            SymbolState.Selected => _hexagonIdSelected,
+            SymbolState.Stale => _hexagonIdStale,
+            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
+        };
+        style.SymbolScale = state == SymbolState.Selected ? 0.025f : 0.015f;
         return style;
     }
 }

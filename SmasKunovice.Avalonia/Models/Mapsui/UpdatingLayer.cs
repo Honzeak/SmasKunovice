@@ -42,7 +42,7 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
     private Dictionary<string, PointFeature> PointFeatures { get; } = new();
     public override MRect? Extent => _dataSource.GetExtent();
     
-    protected abstract void ProcessFeatures(IEnumerable<PointFeature> updateFeatures, bool reprocessing);
+    protected abstract Task ProcessFeaturesAsync(IEnumerable<PointFeature> updateFeatures, bool reprocessing);
     protected abstract IEnumerable<IFeature> GetInterfaceFeatures();
 
     public void RefreshData(FetchInfo fetchInfo)
@@ -61,11 +61,11 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
 
     public IProvider? DataSource => _dataSource;
 
-    protected async Task UpdateDataAsync(bool fetch)
+    protected async Task UpdateDataAsync(bool fetchUpdates)
     {
         if (_fetchInfo is null) return;
 
-        if (fetch)
+        if (fetchUpdates)
         {
             var updateFeatures = (await _dataSource.GetFeaturesAsync(_fetchInfo)).Cast<PointFeature>().ToList();
             foreach (var kvp in updateFeatures.ToDictionary(pf => pf.GetFeatureId(ScoutData.FeatureUasIdField) ?? "UNKNOWN" ).Where(kvp => !kvp.Key.Equals("UNKNOWN")))
@@ -73,10 +73,10 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
                 PointFeatures[kvp.Key] = kvp.Value;
             }
 
-            ProcessFeatures(updateFeatures, false);
+            await ProcessFeaturesAsync(updateFeatures, false);
         }
         else
-            ProcessFeatures(PointFeatures.Values, true);
+            await ProcessFeaturesAsync(PointFeatures.Values, true);
         
         OnDataChanged(new DataChangedEventArgs(Name));
     }

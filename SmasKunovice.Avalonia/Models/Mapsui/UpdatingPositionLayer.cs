@@ -1,8 +1,11 @@
 using System.Collections.Generic;
 using System;
+using System.Globalization;
 using System.Linq;
-using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Mapsui;
+using Mapsui.Fetcher;
 using Mapsui.Layers;
 using Mapsui.Providers;
 using Mapsui.Styles;
@@ -16,7 +19,11 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
     private readonly IAircraftDatabase _aircraftDatabase;
     private readonly IAircraftSymbolProvider _aircraftSymbolProvider;
     private const string SelectedFeatureField = "selected";
+    private const string StaleFeatureField = "stale";
     private IFeature? _currentSelectedFeature;
+    private const int StaleThresholdSeconds = 5;
+    private readonly Timer _timer;
+    private readonly SemaphoreSlim _semaphore = new (1, 1);
 
     public event EventHandler<IFeature?>? SelectedFeatureChanged;
 
@@ -30,6 +37,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         map.Info += (sender, e) => ToggleSelected(e.MapInfo?.Feature);
         IsMapInfoLayer = true;
         Style = CreateStyle();
+        _timer = new Timer(_ => UpdateDataAsync(false).GetAwaiter().GetResult(), null, TimeSpan.FromSeconds(StaleThresholdSeconds), Timeout.InfiniteTimeSpan);
     }
 
     private void ToggleSelected(IFeature? feature)
@@ -61,22 +69,27 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
     {
         return new ThemeStyle(f =>
         {
-            if (f[SelectedFeatureField]?.ToString() == "true")
+            var state = SymbolState.Normal;
+            if (f[StaleFeatureField] is true)
+                state = SymbolState.Stale;
 
+            if (f[SelectedFeatureField]?.ToString() == "true")
+            {
                 return new StyleCollection
                 {
                     Styles =
                     {
-                        CreateSymbol(f, true),
-                        CreateSymbol(f, false)
+                        CreateAircraftSymbol(f, SymbolState.Selected),
+                        CreateAircraftSymbol(f, state)
                     }
                 };
+            }
 
-            return CreateSymbol(f, false);
+            return CreateAircraftSymbol(f, state);
         });
     }
 
-    private IStyle CreateSymbol(IFeature feature, bool selectedStyle)
+    private IStyle CreateAircraftSymbol(IFeature feature, SymbolState selectedStyle)
     {
         var scoutData = feature.GetScoutData();
         return scoutData?.Tech switch
@@ -86,34 +99,58 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         };
     }
 
-    protected override void ProcessFeatures(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
+    protected override async Task ProcessFeaturesAsync(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
     {
-        if (reprocessing) // We don't want to amend data when reprocessing
-            return;
-        
-        foreach (var updatedFeature in updateFeatures)
+        await _semaphore.WaitAsync();
+        LogExtensions.LogDebug("Updating position layer. Reprocessing: {0}", this, reprocessing);
+        try
         {
-            var id = updatedFeature.GetFeatureId(ScoutData.FeatureUasIdField);
-            if (id is null)
+            var utcNow = DateTime.UtcNow;
+            foreach (var updatedFeature in updateFeatures)
             {
-                LogExtensions.LogError("Failed to get feature ID. Cannot update position.", this);
-                continue;
-            }
+                var id = updatedFeature.GetFeatureId(ScoutData.FeatureUasIdField);
+                if (id is null)
+                {
+                    LogExtensions.LogError("Failed to get feature ID. Cannot update position.", this);
+                    continue;
+                }
 
-            if (Features.TryGetValue(id, out var existingFeature))
-            {
-                existingFeature.Point.X = updatedFeature.Point.X;
-                existingFeature.Point.Y = updatedFeature.Point.Y;
-                existingFeature[ScoutData.FeatureScoutDataField] = updatedFeature.GetScoutData();
-                SetLabelStyle(existingFeature);
+                if (Features.TryGetValue(id, out var existingFeature))
+                {
+                    existingFeature.Point.X = updatedFeature.Point.X;
+                    existingFeature.Point.Y = updatedFeature.Point.Y;
+                    existingFeature[ScoutData.FeatureScoutDataField] = updatedFeature.GetScoutData();
+                    SetLabelStyle(existingFeature);
+                    SetStaleFeature(existingFeature, utcNow);
+                }
+                else
+                {
+                    Features[id] = updatedFeature;
+                    SetLabelStyle(updatedFeature);
+                }
             }
-            else
-            {
-                Features[id] = updatedFeature;
-                SetLabelStyle(updatedFeature);
-            }
-
+            if (reprocessing) // non-reprocessing call shouldn't restart the timer, since we need to touch all features at least every N seconds
+                RestartTimer();
         }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
+    private void RestartTimer()
+    {
+        _timer.Change(TimeSpan.FromSeconds(StaleThresholdSeconds), Timeout.InfiniteTimeSpan);
+    }
+
+    private static void SetStaleFeature(PointFeature feature, DateTime utcNow)
+    {
+        var scoutData = feature.GetScoutData();
+        var updateTimeStampString = scoutData?.Odid.Location?.Timestamp;
+        if (updateTimeStampString is null) return;
+        var updateTimeStamp = DateTime.ParseExact(updateTimeStampString, "yyyy-MM-ddTHH:mm:ss.ffffff", NumberFormatInfo.InvariantInfo);
+        var isStale = utcNow - updateTimeStamp > TimeSpan.FromSeconds(StaleThresholdSeconds);
+        feature[StaleFeatureField] = isStale;
     }
 
     protected override IEnumerable<IFeature> GetInterfaceFeatures()
@@ -167,6 +204,23 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         if (_currentSelectedFeature is null) return;
         var style = _currentSelectedFeature.Styles.OfType<LabelStyle>().FirstOrDefault();
         if (style != null) style.Enabled = visible;
-        UpdateDataAsync(false).GetAwaiter().GetResult();
+        OnDataChanged(new DataChangedEventArgs(Name));
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _timer.Dispose();
+            _semaphore.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
+
+    public sealed override void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 }

@@ -18,7 +18,7 @@ using SmasKunovice.Avalonia.Models.Mapsui;
 
 namespace SmasKunovice.Avalonia.ViewModels;
 
-public partial class MainViewViewModel() : ViewModelBase
+public partial class MainViewViewModel() : ViewModelBase, IDisposable
 {
     [ObservableProperty] private Map _map = new();
     [ObservableProperty] private int _trajectoryPointsCount;
@@ -38,12 +38,12 @@ public partial class MainViewViewModel() : ViewModelBase
     private readonly AircraftDatabase? _aircraftDatabase;
     private readonly SvgStyleProvider? _svgStyleProvider;
     private UpdatingPositionLayer? _positionLayer;
+    private readonly List<ILayer> _managedLayers = [];
     private bool HasClient => _dronetagClient is not null;
 
     public MainViewViewModel(IDronetagClient dronetagClient, IOptions<ApplicationSettings> options) : this()
     {
         _dronetagClient = dronetagClient;
-        var appSettings = options.Value;
         _layerStyleProvider = new GeoJsonLayerStyleProvider(AssetProvider.GetFullAssetPath("GeoJsonElements"));
         _aircraftDatabase = new AircraftDatabase(Directory.EnumerateFiles(AssetProvider.GetFullAssetPath("Database"), "*.csv", SearchOption.TopDirectoryOnly).Single());
         _svgStyleProvider = new SvgStyleProvider(AssetProvider.GetFullAssetPath("Svg"));
@@ -52,7 +52,6 @@ public partial class MainViewViewModel() : ViewModelBase
 
     private void OnProcedureListChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        // Debugger.Launch();
         if (e.NewItems is not null)
         {
             foreach (SelectProcedure newItem in e.NewItems)
@@ -181,7 +180,7 @@ public partial class MainViewViewModel() : ViewModelBase
         _positionLayer?.SetLabelVisibility(value);
     }
 
-    public Map CreateMap()
+    public Map CreateMap() // TODO I would like to try creating the map in the constructor, then we don't need to keep reference to the drone tag client and dispose will be cleaner.
     {
         var map = new Map();
         try
@@ -189,8 +188,8 @@ public partial class MainViewViewModel() : ViewModelBase
             map.CRS = "EPSG:5514";
             // Dark grey
             map.BackColor = Color.FromString("#033052");
-            map.Layers.Add(MapLayerFactory.CreateZtmDynamicLayers(ZtmDatasets.ZTM100, ZtmDatasets.ZTM25));
-            map.Layers.Add(MapLayerFactory.CreateAirportElementsLayers(_layerStyleProvider, out var procedureLayerNames).ToArray());
+            AddLayers(map, MapLayerFactory.CreateZtmDynamicLayers(ZtmDatasets.ZTM100, ZtmDatasets.ZTM25));
+            AddLayers(map, MapLayerFactory.CreateAirportElementsLayers(_layerStyleProvider!, out var procedureLayerNames).ToArray());
             foreach (var procedure in CreateProceduresModelList(procedureLayerNames))
             {
                 ProcedureList.Add(procedure);
@@ -218,6 +217,15 @@ public partial class MainViewViewModel() : ViewModelBase
         return Map;
     }
 
+    private void AddLayers(Map map, params ILayer[] layers)
+    {
+        map.Layers.Add(layers);
+        foreach (var layer in layers)
+        {
+            _managedLayers.Add(layer);
+        }
+    }
+
 
     private ObservableCollection<SelectProcedure> CreateProceduresModelList(IEnumerable<string> procedureLayerNames)
     {
@@ -227,15 +235,15 @@ public partial class MainViewViewModel() : ViewModelBase
     private void InitClientLayers(Map map)
     {
         var trajectoryLayer = MapLayerFactory.CreateTrajectoryLayer(_dronetagClient!);
-        map.Layers.Add(trajectoryLayer);
+        AddLayers(map, trajectoryLayer);
         _trajectoryPointsCount = trajectoryLayer.ObservableQueueSize;
 
         var speedVectorLayer = MapLayerFactory.CreateSpeedVectorLayer(_dronetagClient!);
-        map.Layers.Add(speedVectorLayer);
+        AddLayers(map, speedVectorLayer);
         _speedVectorMinuteInterval = speedVectorLayer.ObservableMinuteInterval;
 
         _positionLayer = MapLayerFactory.CreatePlanesPointLayer(_dronetagClient!, _aircraftDatabase!, _svgStyleProvider, map);
-        map.Layers.Add(_positionLayer);
+        AddLayers(map, _positionLayer);
         _positionLayer.SelectedFeatureChanged += (sender, feature) =>
         {
             IsFeatureSelected = feature is not null;
@@ -259,5 +267,14 @@ public partial class MainViewViewModel() : ViewModelBase
                 NonNullProperties.Clear();
             }
         };
+    }
+
+    public void Dispose()
+    {
+        Map.Dispose();
+        foreach (var layer in _managedLayers)
+        {
+            layer.Dispose();
+        }
     }
 }

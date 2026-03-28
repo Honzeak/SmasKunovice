@@ -20,7 +20,7 @@ public static class MapLayerFactory
     private const string ZtmBaseRestUrl = "https://ags.cuzk.gov.cz/arcgis1/rest/services/ZTM/{{ZTM_DATASET}}/MapServer";
     public const string ProcedureLayerPrefix = "proc_";
 
-    public static ImageLayer[] CreateZtmDynamicLayers(ZtmDatasets ztmDatasetFar, ZtmDatasets ztmDatasetNear)
+    public static ILayer[] CreateZtmDynamicLayers(ZtmDatasets ztmDatasetFar, ZtmDatasets ztmDatasetNear)
     {
         var farLayer = CreateZtmLayer(ztmDatasetFar, minVisible: 8);
         var nearLayer = CreateZtmLayer(ztmDatasetNear, maxVisible: 8);

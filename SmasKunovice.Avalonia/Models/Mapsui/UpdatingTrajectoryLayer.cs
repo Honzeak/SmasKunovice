@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using Mapsui;
 using Mapsui.Layers;
 using Mapsui.Providers;
@@ -26,10 +27,10 @@ public class UpdatingTrajectoryLayer(IProvider dataSource) : UpdatingLayer<Linke
 
     private int _observableQueueSize = 1;
 
-    protected override void ProcessFeatures(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
+    protected override Task ProcessFeaturesAsync(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
     {
         if (reprocessing) // We don't want to amend data when reprocessing, just change number of returned points on the interface
-            return;
+            return Task.CompletedTask;
         
         foreach (var updateFeature in updateFeatures)
         {
@@ -52,6 +53,8 @@ public class UpdatingTrajectoryLayer(IProvider dataSource) : UpdatingLayer<Linke
                 foundLog.AddFirst(updateFeature);
             }
         }
+        
+        return Task.CompletedTask;
     }
 
     protected override IEnumerable<IFeature> GetInterfaceFeatures()

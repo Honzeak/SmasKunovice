@@ -5,6 +5,8 @@ using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models;
 using SmasKunovice.Avalonia.Models.Config;
 using SmasKunovice.Avalonia.Models.FakeClient;
@@ -58,13 +60,18 @@ public partial class App : Application
         services.AddOptions<ClientAdapterOptions>().Bind(configuration.GetSection(nameof(ClientAdapterOptions))).ValidateDataAnnotations();
         services.AddOptions<ApplicationSettings>().Bind(configuration.GetSection(nameof(ApplicationSettings))).ValidateDataAnnotations();
         services.AddSingleton<IScoutDataCoordTransformation, Wgs84ToKrovakTransformator>();
-        services.AddSingleton<IDronetagClient, ScoutDataMqttClientAdapter>();
-        // services.AddSingleton<IDronetagClient, RandomMessageDronetagClient>();
-        // services.AddSingleton<IDronetagClient>(sp => 
-        // {
-        //     var filePath = @"C:\Users\honza\codes\SmasKunovice\SmasKunovice.Avalonia.Tests\TestData\LogFileDronetagClientTests\dronetag-odid-fix.json";
-        //     return new LogfileDronetagClient(filePath, 1000, sp.GetRequiredService<IScoutDataCoordTransformation>());
-        // });
+        services.AddSingleton<IDronetagClient>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<ClientAdapterOptions>>();
+            if (string.IsNullOrEmpty(options.Value.ClientSourceLogFilePath))
+            {
+                LogExtensions.LogInfo("Initializing MQTT client.",this);
+                return new ScoutDataMqttClientAdapter(sp.GetRequiredService<IScoutDataCoordTransformation>(), options);
+            }
+            
+            LogExtensions.LogInfo("Initializing log file client.",this);
+            return new LogfileDronetagClient(options, sp.GetRequiredService<IScoutDataCoordTransformation>());
+        });
         services.AddSingleton<MainViewViewModel>();
         return services;
     }

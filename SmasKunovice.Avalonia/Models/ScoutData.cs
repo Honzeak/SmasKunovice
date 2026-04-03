@@ -1,3 +1,5 @@
+using System;
+using System.Globalization;
 using System.Text.Json;
 using Mapsui.Layers;
 using SmasKunovice.Avalonia.Models.JsonConverters;
@@ -13,6 +15,7 @@ public record ScoutData : IScoutData
 {
     public const string FeatureUasIdField = "ID";
     public const string FeatureScoutDataField = "ScoutData";
+    public const string TimestampFormat = "yyyy-MM-ddTHH:mm:ss.ffffff";
     public bool HasLocation => Odid.Location?.Latitude is not null && Odid.Location.Longitude is not null;
 
     public bool TryCreatePointFeature(out PointFeature? pointFeature)
@@ -32,10 +35,18 @@ public record ScoutData : IScoutData
         return Odid.BasicId[0].UasId;
     }
 
+    public DateTime? GetTimestamp()
+    {
+        var updateTimeStampString = Odid.Location?.Timestamp;
+        if (updateTimeStampString is null) return null;
+        return DateTime.ParseExact(updateTimeStampString, TimestampFormat, NumberFormatInfo.InvariantInfo);
+    }
+
     public static JsonSerializerOptions? SerializerOptions { get; } = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
+        AllowTrailingCommas = true,
         Converters = { new StringOrStringArrayConverter(), new OdidInt32Converter() }
     };
 
@@ -125,6 +136,11 @@ public record LocationData
         _longitude = longitude;
         _latitude = latitude;
     }
+
+    public void SetTimestamp(DateTime timestamp)
+    {
+        _timestamp = timestamp.ToString(ScoutData.TimestampFormat, NumberFormatInfo.InvariantInfo);
+    }
     /// <summary>
     /// UNDECLARED = 0, GROUND = 1, AIRBORNE = 2, EMERGENCY = 3, REMOTE_ID_SYSTEM_FAILURE = 4
     /// </summary>
@@ -211,7 +227,9 @@ public record LocationData
     /// <summary>
     /// date-time in ISO 8601 format; UTC, maximal resolution 1/10 of second
     /// </summary>
-    public string? Timestamp { get; init; }
+    public string? Timestamp { get => _timestamp; init => _timestamp = value; }
+
+    private string? _timestamp;
 }
 
 public record SelfIdData

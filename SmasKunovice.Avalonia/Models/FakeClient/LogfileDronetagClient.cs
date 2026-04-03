@@ -1,50 +1,92 @@
 using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
-using System.Timers;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
+using SmasKunovice.Avalonia.Extensions;
+using SmasKunovice.Avalonia.Models.Config;
 
 namespace SmasKunovice.Avalonia.Models.FakeClient;
 
 public class LogfileDronetagClient : FakeDronetagClient
 {
-    private int _currentIndex = 0;
-    private readonly List<ScoutData> _messages;
     private readonly IScoutDataCoordTransformation _transformation;
+    private readonly string _sourceLogFilePath;
 
-    public LogfileDronetagClient(string logFilePath, int intervalMs, IScoutDataCoordTransformation transformation) : base(intervalMs)
+    private Task? _publishTask;
+    private JsonArrayWrapperStream? _stream;
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
+
+    public LogfileDronetagClient(IOptions<ClientAdapterOptions> options, IScoutDataCoordTransformation transformation)
     {
-        if (!File.Exists(logFilePath))
-            throw new FileNotFoundException($"Log file '{logFilePath}' not found.");
-
         _transformation = transformation;
-        _messages = ParseJsonLog(logFilePath);
+        var adapterOptions = options.Value;
+        if (string.IsNullOrEmpty(adapterOptions.ClientSourceLogFilePath))
+            throw new ArgumentException("Client source log file path is not set.", nameof(options));
+
+        _sourceLogFilePath = adapterOptions.ClientSourceLogFilePath;
+        if (!File.Exists(_sourceLogFilePath))
+            throw new FileNotFoundException($"Log file '{_sourceLogFilePath}' not found.");
     }
 
-    private List<ScoutData> ParseJsonLog(string logFilePath)
+    public override async Task ConnectAsync()
     {
-        List<ScoutData>? messages;
+        _stream = new JsonArrayWrapperStream(File.OpenRead(_sourceLogFilePath));
+        _publishTask = PublishMessagesAsync(_stream);
+        await base.ConnectAsync();
+    }
+
+    private async Task PublishMessagesAsync(JsonArrayWrapperStream stream)
+    {
         try
         {
-            messages = JsonSerializer.Deserialize<List<ScoutData>>(File.ReadAllText(logFilePath), ScoutData.SerializerOptions)?.Select(scoutData => _transformation.TransformScoutDataCoords(scoutData) ?? scoutData).ToList();
+            var messages = JsonSerializer.DeserializeAsyncEnumerable<ScoutData>(stream, ScoutData.SerializerOptions, _cancellationTokenSource.Token);
+
+            DateTime? startTime = null;
+            Stopwatch? clock = null;
+
+            await foreach (var message in messages)
+            {
+                var messageTimestamp = message?.GetTimestamp();
+                if (message is null || messageTimestamp is null) continue;
+                if (startTime is null)
+                {
+                    startTime = messageTimestamp;
+                    clock = Stopwatch.StartNew();
+                }
+
+                var simTimeNow = startTime.Value + clock!.Elapsed;
+                var delay = messageTimestamp.Value - simTimeNow;
+
+                if (delay > TimeSpan.Zero)
+                    await Task.Delay(delay, _cancellationTokenSource.Token);
+
+                message.Odid?.Location?.SetTimestamp(DateTime.UtcNow);
+                _transformation.TransformScoutDataCoords(message); // message is immutable (?)
+                SendMessageReceived(new ScoutDataReceivedEventArgs { Messages = [message] });
+            }
+        }
+        catch (OperationCanceledException)
+        {
         }
         catch (Exception e)
         {
-            throw new InvalidOperationException($"Failed to parse JSON log file '{logFilePath}'.", e);
+            LogExtensions.LogError(e, "Message replay logging failed.", this);
         }
-        
-        return messages!;
+        LogExtensions.LogWarning("Message replay logging finished.", this);
     }
-
-
-    protected override void OnTimerElapsed(object? sender, ElapsedEventArgs e)
+    
+    protected override void Dispose(bool disposing)
     {
-        if (_messages.Count == 0)
-            return;
+        if (disposing)
+        {
+            _cancellationTokenSource.Cancel();
+            _stream?.Dispose();
+            _cancellationTokenSource.Dispose();
+        }
 
-        var scoutData = _messages[_currentIndex];
-        SendMessageReceived(new ScoutDataReceivedEventArgs{ Messages = [scoutData] });
-        _currentIndex = (_currentIndex + 1) % _messages.Count;
+        base.Dispose(disposing);
     }
 }

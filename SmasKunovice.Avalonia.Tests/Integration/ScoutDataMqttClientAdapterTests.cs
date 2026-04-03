@@ -1,12 +1,8 @@
 using Mapsui;
 using Mapsui.Layers;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-using Moq;
 using SmasKunovice.Avalonia.Models;
-using SmasKunovice.Avalonia.Models.Config;
 using SmasKunovice.Avalonia.Models.Mapsui;
-using SmasKunovice.Avalonia.Tests.Models.Mapsui;
+using SmasKunovice.Avalonia.Tests.Mapsui;
 using SmasKunovice.Avalonia.Tests.TestUtils;
 
 namespace SmasKunovice.Avalonia.Tests.Integration;
@@ -18,7 +14,7 @@ public class ScoutDataMqttClientAdapterTests
     [Test]
     public void TestUpdatingPositionLayerWithMqttClient()
     {
-        var mockOptions = CreateClientAdapterOptions();
+        var mockOptions = TestHelpers.CreateClientAdapterOptions();
         using var scoutDataClient = new ScoutDataMqttClientAdapter(new Wgs84ToKrovakTransformator(), mockOptions);
         var provider = new DynamicScoutDataProvider(scoutDataClient);
         var layer = new UpdatingPositionLayer(provider, new DummyAircraftDatabase(), new DummyAircraftSymbolProvider(), new Map());
@@ -36,7 +32,7 @@ public class ScoutDataMqttClientAdapterTests
     [Test]
     public void ConnectAsync_WithValidOptions_ShouldConnect()
     {
-        var mockOptions = CreateClientAdapterOptions();
+        var mockOptions = TestHelpers.CreateClientAdapterOptions();
 
         using var dronetagClient = new ScoutDataMqttClientAdapter(new DummyTransformator(), mockOptions);
         dronetagClient.ConnectAsync().GetAwaiter().GetResult();
@@ -48,20 +44,5 @@ public class ScoutDataMqttClientAdapterTests
         };
         var eventFired = messageReceivedEvent.Wait(TimeSpan.FromSeconds(11));
         Assert.That(eventFired, Is.True);
-    }
-
-    private static IOptions<ClientAdapterOptions> CreateClientAdapterOptions()
-    {
-        var appSettingsBasePath = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData");
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(appSettingsBasePath)
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddUserSecrets<App>()
-            .Build();
-        var clientAdapterOptions = configuration.GetSection(nameof(ClientAdapterOptions)).Get<ClientAdapterOptions>();
-        Assert.That(clientAdapterOptions, Is.Not.Null);
-        var mockOptions = new Mock<IOptions<ClientAdapterOptions>>();
-        mockOptions.Setup(o => o.Value).Returns(clientAdapterOptions);
-        return mockOptions.Object;
     }
 }

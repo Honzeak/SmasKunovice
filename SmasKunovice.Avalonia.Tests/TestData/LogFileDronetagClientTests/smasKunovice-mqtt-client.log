@@ -1,0 +1,129 @@
+{
+  "sn": "D17D80CF73E53E5DF9",
+  "mac": "00:00:4d:22:b3:00",
+  "counter": 0,
+  "rssi": -42,
+  "tech": "AB",
+  "recv_id": 0,
+  "module_id": 0,
+  "module_type": 1090,
+  "msg_type": 15,
+  "noise_floor": null,
+  "odid": {
+    "BasicID": [
+      {
+        "UAType": 15,
+        "IDType": 2,
+        "UASID": "4D22B3"
+      }
+    ],
+    "Location": {
+      "Status": 2,
+      "Longitude": 16.093307495117188,
+      "Latitude": 48.48066329956055,
+      "Direction": 110,
+      "SpeedHorizontal": 158.39999389648438,
+      "SpeedVertical": -5.8521599769592285,
+      "AltitudeBaro": 4274.0,
+      "AltitudeGeo": 4334.0,
+      "HeightType": 0,
+      "Height": 0.0,
+      "HorizAccuracy": 0,
+      "VertAccuracy": 0,
+      "BaroAccuracy": 0,
+      "SpeedAccuracy": 0,
+      "TSAccuracy": 0,
+      "Timestamp": "2026-03-23T21:43:33.252811"
+    },
+    "SelfID": {
+      "DescType": 0,
+      "Desc": "RYR728F"
+    }
+  }
+},
+{
+  "sn": "D17D80CF73E53E5DF9",
+  "mac": "00:00:48:45:59:00",
+  "counter": 0,
+  "rssi": -42,
+  "tech": "AB",
+  "recv_id": 0,
+  "module_id": 0,
+  "module_type": 1090,
+  "msg_type": 15,
+  "noise_floor": null,
+  "odid": {
+    "BasicID": [
+      {
+        "UAType": 1,
+        "IDType": 2,
+        "UASID": "484559"
+      }
+    ],
+    "Location": {
+      "Status": 2,
+      "Longitude": 16.05877113342285,
+      "Latitude": 48.40965270996094,
+      "Direction": 111,
+      "SpeedHorizontal": 149.1999969482422,
+      "SpeedVertical": -7.802879810333252,
+      "AltitudeBaro": 3086.0,
+      "AltitudeGeo": 3131.0,
+      "HeightType": 0,
+      "Height": 0.0,
+      "HorizAccuracy": 0,
+      "VertAccuracy": 0,
+      "BaroAccuracy": 0,
+      "SpeedAccuracy": 0,
+      "TSAccuracy": 0,
+      "Timestamp": "2026-03-23T21:43:33.352811"
+    },
+    "SelfID": {
+      "DescType": 0,
+      "Desc": "KLM57C"
+    }
+  }
+},
+{
+  "sn": "D17D80CF73E53E5DF9",
+  "mac": "00:00:4d:22:b3:00",
+  "counter": 0,
+  "rssi": -42,
+  "tech": "AB",
+  "recv_id": 0,
+  "module_id": 0,
+  "module_type": 1090,
+  "msg_type": 15,
+  "noise_floor": null,
+  "odid": {
+    "BasicID": [
+      {
+        "UAType": 15,
+        "IDType": 2,
+        "UASID": "4D22B3"
+      }
+    ],
+    "Location": {
+      "Status": 2,
+      "Longitude": 16.10552215576172,
+      "Latitude": 48.47754669189453,
+      "Direction": 116,
+      "SpeedHorizontal": 158.39999389648438,
+      "SpeedVertical": -5.527040004730225,
+      "AltitudeBaro": 4259.0,
+      "AltitudeGeo": 4319.0,
+      "HeightType": 0,
+      "Height": 0.0,
+      "HorizAccuracy": 0,
+      "VertAccuracy": 0,
+      "BaroAccuracy": 0,
+      "SpeedAccuracy": 0,
+      "TSAccuracy": 0,
+      "Timestamp": "2026-03-23T21:43:37.348634"
+    },
+    "SelfID": {
+      "DescType": 0,
+      "Desc": "RYR728F"
+    }
+  }
+},

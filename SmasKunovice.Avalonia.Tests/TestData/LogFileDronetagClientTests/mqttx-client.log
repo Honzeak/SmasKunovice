@@ -1,0 +1,333 @@
+{
+  "sn": "D17D80CF73E53E5DF9",
+  "mac": "00:00:4c:ad:ba:00",
+  "counter": 0,
+  "rssi": -43,
+  "tech": "AB",
+  "recv_id": 0,
+  "module_id": 0,
+  "module_type": 1090,
+  "msg_type": 15,
+  "noise_floor": null,
+  "odid": {
+    "BasicID": [
+      {
+        "UAType": 15,
+        "IDType": 2,
+        "UASID": "4CADBA"
+      }
+    ],
+    "Location": {
+      "Status": 1,
+      "Longitude": 17.84271240234375,
+      "Latitude": 47.38301086425781,
+      "Direction": 295,
+      "SpeedHorizontal": 248,
+      "SpeedVertical": 0.3251200020313263,
+      "AltitudeBaro": -45,
+      "AltitudeGeo": -136,
+      "HeightType": 0,
+      "Height": 0,
+      "HorizAccuracy": 0,
+      "VertAccuracy": 0,
+      "BaroAccuracy": 0,
+      "SpeedAccuracy": 0,
+      "TSAccuracy": 0,
+      "Timestamp": "2026-03-27T21:39:00.222663"
+    },
+    "SelfID": {
+      "DescType": 0,
+      "Desc": "RYR7628"
+    }
+  }
+},{
+  "sn": "D17D80CF73E53E5DF9",
+  "mac": "00:00:48:c1:33:00",
+  "counter": 0,
+  "rssi": -43,
+  "tech": "AB",
+  "recv_id": 0,
+  "module_id": 0,
+  "module_type": 1090,
+  "msg_type": 15,
+  "noise_floor": null,
+  "odid": {
+    "BasicID": [
+      {
+        "UAType": 15,
+        "IDType": 2,
+        "UASID": "48C133"
+      }
+    ],
+    "Location": {
+      "Status": 2,
+      "Longitude": 17.60544204711914,
+      "Latitude": 50.27799987792969,
+      "Direction": 340,
+      "SpeedHorizontal": 191.89999389648438,
+      "SpeedVertical": -11.704319953918457,
+      "AltitudeBaro": 5013,
+      "AltitudeGeo": 4998,
+      "HeightType": 0,
+      "Height": 0,
+      "HorizAccuracy": 0,
+      "VertAccuracy": 0,
+      "BaroAccuracy": 0,
+      "SpeedAccuracy": 0,
+      "TSAccuracy": 0,
+      "Timestamp": "2026-03-27T21:39:00.322667"
+    },
+    "SelfID": {
+      "DescType": 0,
+      "Desc": "RYR4759"
+    }
+  }
+},{
+  "sn": "D17D80CF73E53E5DF9",
+  "mac": "00:00:48:c1:33:00",
+  "counter": 0,
+  "rssi": -42,
+  "tech": "AB",
+  "recv_id": 0,
+  "module_id": 0,
+  "module_type": 1090,
+  "msg_type": 15,
+  "noise_floor": null,
+  "odid": {
+    "BasicID": [
+      {
+        "UAType": 1,
+        "IDType": 2,
+        "UASID": "48C133"
+      }
+    ],
+    "Location": {
+      "Status": 2,
+      "Longitude": 17.58339500427246,
+      "Latitude": 50.317710876464844,
+      "Direction": 340,
+      "SpeedHorizontal": 191.89999389648438,
+      "SpeedVertical": -11.704319953918457,
+      "AltitudeBaro": 4922,
+      "AltitudeGeo": 4907,
+      "HeightType": 0,
+      "Height": 0,
+      "HorizAccuracy": 0,
+      "VertAccuracy": 0,
+      "BaroAccuracy": 0,
+      "SpeedAccuracy": 0,
+      "TSAccuracy": 0,
+      "Timestamp": "2026-03-27T21:40:12.090552"
+    },
+    "SelfID": {
+      "DescType": 0,
+      "Desc": "RYR4759"
+    }
+  }
+},{
+  "sn": "D17D80CF73E53E5DF9",
+  "mac": "00:00:48:c1:33:00",
+  "counter": 0,
+  "rssi": -42,
+  "tech": "AB",
+  "recv_id": 0,
+  "module_id": 0,
+  "module_type": 1090,
+  "msg_type": 15,
+  "noise_floor": null,
+  "odid": {
+    "BasicID": [
+      {
+        "UAType": 1,
+        "IDType": 2,
+        "UASID": "48C133"
+      }
+    ],
+    "Location": {
+      "Status": 2,
+      "Longitude": 17.58339500427246,
+      "Latitude": 50.317710876464844,
+      "Direction": 340,
+      "SpeedHorizontal": 190.3000030517578,
+      "SpeedVertical": -11.704319953918457,
+      "AltitudeBaro": 4876,
+      "AltitudeGeo": 4861,
+      "HeightType": 0,
+      "Height": 0,
+      "HorizAccuracy": 0,
+      "VertAccuracy": 0,
+      "BaroAccuracy": 0,
+      "SpeedAccuracy": 0,
+      "TSAccuracy": 0,
+      "Timestamp": "2026-03-27T21:40:16.562304"
+    },
+    "SelfID": {
+      "DescType": 0,
+      "Desc": "RYR4759"
+    }
+  }
+},{
+  "sn": "D17D80CF73E53E5DF9",
+  "mac": "00:00:48:c1:32:00",
+  "counter": 0,
+  "rssi": -42,
+  "tech": "AB",
+  "recv_id": 0,
+  "module_id": 0,
+  "module_type": 1090,
+  "msg_type": 15,
+  "noise_floor": null,
+  "odid": {
+    "BasicID": [
+      {
+        "UAType": 1,
+        "IDType": 2,
+        "UASID": "48C132"
+      }
+    ],
+    "Location": {
+      "Status": 2,
+      "Longitude": 19.070892333984375,
+      "Latitude": 48.726646423339844,
+      "Direction": 28,
+      "SpeedHorizontal": 221.1999969482422,
+      "SpeedVertical": -9.26591968536377,
+      "AltitudeBaro": 4853,
+      "AltitudeGeo": 4754,
+      "HeightType": 0,
+      "Height": 0,
+      "HorizAccuracy": 0,
+      "VertAccuracy": 0,
+      "BaroAccuracy": 0,
+      "SpeedAccuracy": 0,
+      "TSAccuracy": 0,
+      "Timestamp": "2026-03-27T21:40:19.094146"
+    },
+    "SelfID": {
+      "DescType": 0,
+      "Desc": "RYR2965"
+    }
+  }
+},{
+  "sn": "D17D80CF73E53E5DF9",
+  "mac": "00:00:48:c1:33:00",
+  "counter": 0,
+  "rssi": -42,
+  "tech": "AB",
+  "recv_id": 0,
+  "module_id": 0,
+  "module_type": 1090,
+  "msg_type": 15,
+  "noise_floor": null,
+  "odid": {
+    "BasicID": [
+      {
+        "UAType": 15,
+        "IDType": 2,
+        "UASID": "48C133"
+      }
+    ],
+    "Location": {
+      "Status": 2,
+      "Longitude": 17.58339500427246,
+      "Latitude": 50.317710876464844,
+      "Direction": 340,
+      "SpeedHorizontal": 190.3000030517578,
+      "SpeedVertical": -8.778240203857422,
+      "AltitudeBaro": 4869,
+      "AltitudeGeo": 4854,
+      "HeightType": 0,
+      "Height": 0,
+      "HorizAccuracy": 0,
+      "VertAccuracy": 0,
+      "BaroAccuracy": 0,
+      "SpeedAccuracy": 0,
+      "TSAccuracy": 0,
+      "Timestamp": "2026-03-27T21:40:25.852529"
+    },
+    "SelfID": {
+      "DescType": 0,
+      "Desc": "RYR4759"
+    }
+  }
+},{
+  "sn": "D17D80CF73E53E5DF9",
+  "mac": "00:00:44:08:1e:00",
+  "counter": 0,
+  "rssi": -43,
+  "tech": "AB",
+  "recv_id": 0,
+  "module_id": 0,
+  "module_type": 1090,
+  "msg_type": 15,
+  "noise_floor": null,
+  "odid": {
+    "BasicID": [
+      {
+        "UAType": 15,
+        "IDType": 2,
+        "UASID": "44081E"
+      }
+    ],
+    "Location": {
+      "Status": 2,
+      "Longitude": 16.594566345214844,
+      "Latitude": 47.825626373291016,
+      "Direction": 0,
+      "SpeedHorizontal": 0,
+      "SpeedVertical": 0,
+      "AltitudeBaro": 3223,
+      "AltitudeGeo": null,
+      "HeightType": 0,
+      "Height": 0,
+      "HorizAccuracy": 0,
+      "VertAccuracy": 0,
+      "BaroAccuracy": 0,
+      "SpeedAccuracy": 0,
+      "TSAccuracy": 0,
+      "Timestamp": "2026-03-27T21:41:14.579011"
+    }
+  }
+},{
+  "sn": "D17D80CF73E53E5DF9",
+  "mac": "00:00:48:c1:33:00",
+  "counter": 0,
+  "rssi": -42,
+  "tech": "AB",
+  "recv_id": 0,
+  "module_id": 0,
+  "module_type": 1090,
+  "msg_type": 15,
+  "noise_floor": null,
+  "odid": {
+    "BasicID": [
+      {
+        "UAType": 1,
+        "IDType": 2,
+        "UASID": "48C133"
+      }
+    ],
+    "Location": {
+      "Status": 2,
+      "Longitude": 17.58339500427246,
+      "Latitude": 50.317710876464844,
+      "Direction": 340,
+      "SpeedHorizontal": 186.6999969482422,
+      "SpeedVertical": -8.453120231628418,
+      "AltitudeBaro": 4381,
+      "AltitudeGeo": 4374,
+      "HeightType": 0,
+      "Height": 0,
+      "HorizAccuracy": 0,
+      "VertAccuracy": 0,
+      "BaroAccuracy": 0,
+      "SpeedAccuracy": 0,
+      "TSAccuracy": 0,
+      "Timestamp": "2026-03-27T21:41:15.276998"
+    },
+    "SelfID": {
+      "DescType": 0,
+      "Desc": "RYR4759"
+    }
+  }
+},

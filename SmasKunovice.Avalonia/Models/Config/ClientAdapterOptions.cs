@@ -21,4 +21,5 @@ public class ClientAdapterOptions
     
     public bool HasCredentials => !string.IsNullOrEmpty(Username) && !string.IsNullOrEmpty(Password);
     public bool LogReceivedMessages { get; set; } = false;
+    public string ClientSourceLogFilePath { get; set; } = string.Empty;
 }

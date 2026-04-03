@@ -3,7 +3,7 @@ using Mapsui.Layers;
 using SmasKunovice.Avalonia.Models;
 using SmasKunovice.Avalonia.Models.Mapsui;
 
-namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
+namespace SmasKunovice.Avalonia.Tests.Mapsui
 {
     [TestFixture]
     public class UpdatingTrajectoryLayerTests

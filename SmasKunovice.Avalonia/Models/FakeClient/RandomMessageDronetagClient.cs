@@ -4,7 +4,7 @@ using System.Timers;
 
 namespace SmasKunovice.Avalonia.Models.FakeClient;
 
-public class RandomMessageDronetagClient : FakeDronetagClient
+public class RandomMessageDronetagClient : PeriodicDronetagClient
 {
     private readonly Random _random = new();
     private int _counter = 0;

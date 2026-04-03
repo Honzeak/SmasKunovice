@@ -6,30 +6,44 @@ namespace SmasKunovice.Avalonia.Tests;
 public class LogfileDronetagClientTests : TestBase
 {
     [Test]
-    public void Constructor_WithValidJsonLogFile_InitializesSuccessfully()
+    [TestCase("mqttx-client.log")]
+    [TestCase("smasKunovice-mqtt-client.log")]
+    public async Task Constructor_WithValidJsonLogFile_InitializesSuccessfully(string logFileName)
     {
-        var jsonLogFilePath = Path.Combine("TestData", nameof(LogfileDronetagClientTests), "dronetag-odid-fix.json");
+        const int waitTimelMs = 200;
+        var jsonLogFilePath = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData", nameof(LogfileDronetagClientTests), logFileName);
         var messageReceivedEvent = new ManualResetEventSlim(false);
         ScoutData? message = null;
 
-
-        var client = new LogfileDronetagClient(jsonLogFilePath, 500, new DummyTransformator());
+        var options = TestHelpers.CreateClientAdapterOptions();
+        options.Value.ClientSourceLogFilePath = jsonLogFilePath;
+        var client = new LogfileDronetagClient(options, new DummyTransformator());
         client.MessageReceived += (sender, args) =>
         {
             message = args.Messages.Single();
             messageReceivedEvent.Set();
         };
-        client.ConnectAsync().Wait();
-        var triggered = messageReceivedEvent.Wait(TimeSpan.FromSeconds(5));
+        await client.ConnectAsync();
+        var triggered = messageReceivedEvent.Wait(TimeSpan.FromMilliseconds(waitTimelMs));
+        messageReceivedEvent.Reset();
+        AssertMessageReceived();
+        
+        // wait for the second message
+        triggered = messageReceivedEvent.Wait(TimeSpan.FromMilliseconds(waitTimelMs));
+        AssertMessageReceived();
 
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(triggered, Is.True);
-            Assert.That(message, Is.Not.Null);
-        }
 
         client.Dispose();
+        return;
 
-        // Note: No cleanup needed as we're using an existing file
+        void AssertMessageReceived()
+        {
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(triggered, Is.True);
+                Assert.That(message, Is.Not.Null);
+                TestContext.Out.WriteLine($"Received client message:\n\t{message}");
+            }
+        }
     }
 }

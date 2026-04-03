@@ -1,9 +1,8 @@
-using System.Timers;
 using Mapsui;
 using SmasKunovice.Avalonia.Models;
 using SmasKunovice.Avalonia.Models.FakeClient;
 
-namespace SmasKunovice.Avalonia.Tests.Models.Mapsui;
+namespace SmasKunovice.Avalonia.Tests.Mapsui;
 
 public class TestDroneTagClient : FakeDronetagClient
 {
@@ -18,7 +17,7 @@ public class TestDroneTagClient : FakeDronetagClient
     private int _maxMessages = 5;
     private readonly List<ScoutData> _currentMessage;
 
-    public TestDroneTagClient(int? intervalMs = null) : base(intervalMs)
+    public TestDroneTagClient()
     {
         // Each object should move only one tenth of the extent at max
         _maxYShift = (Math.Abs(_yMax) - Math.Abs(_yMin)) / 10;
@@ -29,12 +28,6 @@ public class TestDroneTagClient : FakeDronetagClient
     public static MRect GetExtent()
     {
         return new MRect(_xMin, _yMin, _xMax, _yMax).Grow(1000);
-    }
-
-    protected override void OnTimerElapsed(object? sender, ElapsedEventArgs e)
-    {
-        // Timer is no longer used for message generation
-        // This method can be left empty or removed if the base class allows it
     }
 
     /// <summary>

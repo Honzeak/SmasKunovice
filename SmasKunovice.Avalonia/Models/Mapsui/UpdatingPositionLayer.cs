@@ -102,7 +102,6 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
     protected override async Task ProcessFeaturesAsync(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
     {
         await _semaphore.WaitAsync();
-        LogExtensions.LogDebug("Updating position layer. Reprocessing: {0}", this, reprocessing);
         try
         {
             var utcNow = DateTime.UtcNow;
@@ -145,10 +144,13 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
 
     private static void SetStaleFeature(PointFeature feature, DateTime utcNow)
     {
-        var scoutData = feature.GetScoutData();
-        var updateTimeStampString = scoutData?.Odid.Location?.Timestamp;
-        if (updateTimeStampString is null) return;
-        var updateTimeStamp = DateTime.ParseExact(updateTimeStampString, "yyyy-MM-ddTHH:mm:ss.ffffff", NumberFormatInfo.InvariantInfo);
+        var updateTimeStamp = feature.GetScoutData()?.GetTimestamp();
+        if (updateTimeStamp is null)
+        {
+            feature[StaleFeatureField] = true; // if the feature doesn't have a timestamp, we consider it stale
+            return;
+        }
+        
         var isStale = utcNow - updateTimeStamp > TimeSpan.FromSeconds(StaleThresholdSeconds);
         feature[StaleFeatureField] = isStale;
     }

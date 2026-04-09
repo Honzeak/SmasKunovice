@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Mapsui;
@@ -18,8 +19,11 @@ using Microsoft.Extensions.Options;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models;
 using SmasKunovice.Avalonia.Models.Config;
+using SmasKunovice.Avalonia.Models.FakeClient;
 using SmasKunovice.Avalonia.Models.Mapsui;
 using SmasKunovice.Avalonia.Views;
+using MapsuiColor = Mapsui.Styles.Color;
+using AvaloniaColor = Avalonia.Media.Color;
 
 namespace SmasKunovice.Avalonia.ViewModels;
 
@@ -37,6 +41,8 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
     [ObservableProperty] private List<int> _speedVectorMinuteIntervalViewValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 30];
     [ObservableProperty] private ObservableCollection<SelectProcedure> _procedureList = [];
     [ObservableProperty] private bool _drawCtrOrAtz = true;
+    [ObservableProperty] private string _streamingStatusMessage = string.Empty;
+    [ObservableProperty] private SolidColorBrush _statusBrush = new();
 
     private List<ILayer> _procedureLayers = [];
     private readonly IDronetagClient? _dronetagClient;
@@ -55,6 +61,23 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
         _aircraftDatabase = new AircraftDatabase(Directory.EnumerateFiles(AssetProvider.GetFullAssetPath("Database"), "*.csv", SearchOption.TopDirectoryOnly).Single());
         _svgStyleProvider = new SvgStyleProvider(AssetProvider.GetFullAssetPath("Svg"));
         ProcedureList.CollectionChanged += OnProcedureListChanged;
+        InitializeStreamingStatus(dronetagClient);
+    }
+
+    private void InitializeStreamingStatus(IDronetagClient dronetagClient)
+    {
+        StreamingStatusMessage = dronetagClient switch
+        {
+            LogfileDronetagClient => "Log file replay mode",
+            ScoutDataMqttClientAdapter => "Live streaming mode",
+            _ => throw new ArgumentOutOfRangeException(nameof(dronetagClient))
+        };
+        StatusBrush.Color = dronetagClient switch
+        {
+            LogfileDronetagClient => AvaloniaColor.Parse("#c4ba2b"),
+            ScoutDataMqttClientAdapter => AvaloniaColor.Parse("#429929"),
+            _ => throw new ArgumentOutOfRangeException(nameof(dronetagClient))
+        };
     }
 
     private void OnProcedureListChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -211,7 +234,7 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
         {
             map.CRS = "EPSG:5514";
             // Dark grey
-            map.BackColor = Color.FromString("#033052");
+            map.BackColor = MapsuiColor.FromString("#033052");
             AddLayers(map, MapLayerFactory.CreateZtmDynamicLayers(ZtmDatasets.ZTM100, ZtmDatasets.ZTM25));
             AddLayers(map, MapLayerFactory.CreateAirportElementsLayers(_layerStyleProvider!, out var procedureLayerNames).ToArray());
             foreach (var procedure in CreateProceduresModelList(procedureLayerNames))

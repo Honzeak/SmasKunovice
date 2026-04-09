@@ -17,10 +17,21 @@
     <Grid
         RowDefinitions="*,Auto"
         ColumnDefinitions="*,Auto">
-        <mapsui:MapControl
+        <Grid
             Grid.Row="0"
             Grid.Column="0"
-            x:Name="MapControl" />
+            RowDefinitions="*,Auto">
+            <mapsui:MapControl
+                Grid.Row="0"
+                Grid.Column="0"
+                x:Name="MapControl" />
+            <TextBlock
+                Grid.Row="1"
+                Text="{Binding StreamingStatusMessage}"
+                Foreground="{Binding StatusBrush}"
+                Margin="5">
+            </TextBlock>
+        </Grid>
         <Grid
             Grid.Row="0"
             Grid.Column="1"

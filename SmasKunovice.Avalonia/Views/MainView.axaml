@@ -26,7 +26,7 @@
             Grid.Column="1"
             Width="350"
             Margin="20"
-            RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
+            RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
             <Grid
                 Grid.Row="0"
                 Width="350"
@@ -125,16 +125,22 @@
                 IsChecked="{Binding ShowSelectedFeatureLabel}"
                 Content="Show selected feature label"
                 IsEnabled="{Binding IsFeatureSelected}" />
+            <Button
+                Grid.Row="9"
+                Command="{Binding OpenOverrideIdPromptCommand}"
+                IsEnabled="{Binding IsFeatureSelected}">
+                Override ID
+            </Button>
 
             <!-- Aircraft Record Table -->
             <TextBlock
-                Grid.Row="9"
+                Grid.Row="10"
                 Margin="0 10 0 5"
                 IsVisible="{Binding IsFeatureSelected}">
                 Selected Aircraft:
             </TextBlock>
             <ScrollViewer
-                Grid.Row="10"
+                Grid.Row="11"
                 IsVisible="{Binding IsFeatureSelected}"
                 VerticalScrollBarVisibility="Auto"
                 HorizontalScrollBarVisibility="Auto">

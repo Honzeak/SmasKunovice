@@ -4,8 +4,10 @@
     <option name="projectPerEditor">
       <map>
         <entry key="SmasKunovice.Avalonia/App.axaml" value="SmasKunovice.Avalonia/SmasKunovice.Avalonia.csproj" />
+        <entry key="SmasKunovice.Avalonia/Views/DIalogWindow.axaml" value="SmasKunovice.Avalonia/SmasKunovice.Avalonia.csproj" />
         <entry key="SmasKunovice.Avalonia/Views/MainView.axaml" value="SmasKunovice.Avalonia/SmasKunovice.Avalonia.csproj" />
         <entry key="SmasKunovice.Avalonia/Views/MainWindow.axaml" value="SmasKunovice.Avalonia/SmasKunovice.Avalonia.csproj" />
+        <entry key="SmasKunovice.Avalonia/Views/PromptWindow.axaml" value="SmasKunovice.Avalonia/SmasKunovice.Avalonia.csproj" />
       </map>
     </option>
   </component>

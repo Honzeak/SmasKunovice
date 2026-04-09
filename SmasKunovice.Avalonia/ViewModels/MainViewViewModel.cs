@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Mapsui;
@@ -15,11 +19,13 @@ using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models;
 using SmasKunovice.Avalonia.Models.Config;
 using SmasKunovice.Avalonia.Models.Mapsui;
+using SmasKunovice.Avalonia.Views;
 
 namespace SmasKunovice.Avalonia.ViewModels;
 
 public partial class MainViewViewModel() : ViewModelBase, IDisposable
 {
+    public const string DisplayIdOverride = "displayIdOverride";
     [ObservableProperty] private Map _map = new();
     [ObservableProperty] private int _trajectoryPointsCount;
     [ObservableProperty] private int _speedVectorMinuteInterval;
@@ -31,14 +37,15 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
     [ObservableProperty] private List<int> _speedVectorMinuteIntervalViewValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 30];
     [ObservableProperty] private ObservableCollection<SelectProcedure> _procedureList = [];
     [ObservableProperty] private bool _drawCtrOrAtz = true;
-    private List<ILayer> _procedureLayers = [];
 
+    private List<ILayer> _procedureLayers = [];
     private readonly IDronetagClient? _dronetagClient;
     private readonly GeoJsonLayerStyleProvider? _layerStyleProvider;
     private readonly AircraftDatabase? _aircraftDatabase;
     private readonly SvgStyleProvider? _svgStyleProvider;
     private UpdatingPositionLayer? _positionLayer;
     private readonly List<ILayer> _managedLayers = [];
+    private IFeature? _selectedFeature;
     private bool HasClient => _dronetagClient is not null;
 
     public MainViewViewModel(IDronetagClient dronetagClient, IOptions<ApplicationSettings> options) : this()
@@ -111,6 +118,23 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
 
         atzLayers[0].Enabled = value == "CTR"; // ATZ outline layer is enabled when CTR
         atzLayers[1].Enabled = value == "ATZ"; // ATZ diff layer is enabled when ATZ
+    }
+
+    [RelayCommand]
+    private async Task OpenOverrideIdPrompt()
+    {
+        var dialog = new PromptWindow();
+        var desktop = Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime;
+        var parent = desktop?.MainWindow;
+        var result = await dialog.ShowDialog<string?>(parent!);
+        if (result is null)
+            return;
+        
+        if (!IsFeatureSelected || _selectedFeature is null)
+            return;
+
+        _selectedFeature[DisplayIdOverride] = result;
+        // TODO label only updates after a periodic update
     }
 
     public class DataPropertyRow
@@ -194,6 +218,7 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
             {
                 ProcedureList.Add(procedure);
             }
+
             _procedureLayers = map.Layers.Where(layer => layer.Name.StartsWith(MapLayerFactory.ProcedureLayerPrefix)).ToList();
 
             if (HasClient)
@@ -232,6 +257,7 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
         return new ObservableCollection<SelectProcedure>(procedureLayerNames.Select(name => new SelectProcedure(name)));
     }
 
+    [SuppressMessage("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "MVVMTK0034:Direct field reference to [ObservableProperty] backing field")]
     private void InitClientLayers(Map map)
     {
         var trajectoryLayer = MapLayerFactory.CreateTrajectoryLayer(_dronetagClient!);
@@ -251,6 +277,7 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
 
             if (feature is not null)
             {
+                _selectedFeature = feature;
                 var scoutData = feature.GetScoutData();
                 if (scoutData is not null)
                 {
@@ -276,5 +303,7 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
         {
             layer.Dispose();
         }
+
+        GC.SuppressFinalize(this);
     }
 }

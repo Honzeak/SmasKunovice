@@ -11,6 +11,7 @@ using Mapsui.Providers;
 using Mapsui.Styles;
 using Mapsui.Styles.Thematics;
 using SmasKunovice.Avalonia.Extensions;
+using SmasKunovice.Avalonia.ViewModels;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
@@ -23,7 +24,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
     private IFeature? _currentSelectedFeature;
     private const int StaleThresholdSeconds = 5;
     private readonly Timer _timer;
-    private readonly SemaphoreSlim _semaphore = new (1, 1);
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
 
     public event EventHandler<IFeature?>? SelectedFeatureChanged;
 
@@ -128,6 +129,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
                     SetLabelStyle(updatedFeature);
                 }
             }
+
             if (reprocessing) // non-reprocessing call shouldn't restart the timer, since we need to touch all features at least every N seconds
                 RestartTimer();
         }
@@ -150,7 +152,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
             feature[StaleFeatureField] = true; // if the feature doesn't have a timestamp, we consider it stale
             return;
         }
-        
+
         var isStale = utcNow - updateTimeStamp > TimeSpan.FromSeconds(StaleThresholdSeconds);
         feature[StaleFeatureField] = isStale;
     }
@@ -163,7 +165,8 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
     private void SetLabelStyle(IFeature feature)
     {
         var scoutData = feature.GetScoutData();
-        var displayText = scoutData is null ? "???" : GetDisplayText(scoutData);
+        // var displayText = scoutData is null ? "???" : GetDisplayText(feature);
+        var displayText = GetDisplayText(feature);
         var labelStyle = feature.Styles.OfType<LabelStyle>().SingleOrDefault();
         if (labelStyle is null)
         {
@@ -185,11 +188,21 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         labelStyle.Text = displayText;
     }
 
-    private string GetDisplayText(ScoutData scoutData)
+    private string GetDisplayText(IFeature feature)
     {
-        var uasId = scoutData.GetUasId();
-        var aircraftRecord = _aircraftDatabase.GetByIcao24(uasId);
-        var registration = aircraftRecord?.Registration ?? uasId;
+        var scoutData = feature.GetScoutData();
+        if (scoutData is null) return "???";
+        string registration;
+        if (feature[MainViewViewModel.DisplayIdOverride] is string overrideId)
+        {
+            registration = overrideId;
+        }
+        else
+        {
+            var uasId = scoutData.GetUasId();
+            var aircraftRecord = _aircraftDatabase.GetByIcao24(uasId);
+            registration = aircraftRecord?.Registration ?? uasId;
+        }
 
         var heightString = AircraftDataFormatter.GetHeightString(scoutData);
         var speedString = AircraftDataFormatter.GetSpeedString(scoutData);

@@ -20,10 +20,10 @@ namespace SmasKunovice.Avalonia.Models.Mapsui;
 public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, ILayerDataSource<IProvider>,
     IModifyFeatureLayer
 {
+    public event EventHandler<string>? FeatureRemoved;
     private readonly IProvider _dataSource;
     private FetchInfo? _fetchInfo;
 
-    [SuppressMessage("Usage", "VSTHRD101:Avoid unsupported async delegates")]
     protected UpdatingLayer(IProvider dataSource)
     {
         _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
@@ -33,7 +33,6 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
                 Catch.Exceptions(async () =>
                 {
                     await UpdateDataAsync(true);
-                    DataHasChanged();
                 });
             };
     }
@@ -45,6 +44,13 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
     protected abstract Task ProcessFeaturesAsync(IEnumerable<PointFeature> updateFeatures, bool reprocessing);
     protected abstract IEnumerable<IFeature> GetInterfaceFeatures();
 
+    /// <summary>
+    /// Re-generates features on the layer. Used when feature re-processing is required.
+    /// </summary>
+    public async Task RefreshData()
+    {
+        await UpdateDataAsync(false);
+    }
     public void RefreshData(FetchInfo fetchInfo)
     {
         _fetchInfo = fetchInfo;
@@ -129,16 +135,17 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
         });
     }
 
-    // public bool RemoveFeature(object featureId)
-    // {
-    //     var featureToRemove = _features.FirstOrDefault(f => f[IdField]?.Equals(featureId) ?? false);
-    //     if (featureToRemove == null)
-    //         return false;
-    //     _features.Remove(featureToRemove);
-    //     DataHasChanged();
-    //     return true;
-    // }
-    //
+    protected bool RemoveFeature(string featureId)
+    {
+        var removed = Features.Remove(featureId);
+        if (!removed)
+            return false;
+
+        FeatureRemoved?.Invoke(this, featureId);
+        OnDataChanged(new DataChangedEventArgs(Name));
+        return true;
+    }
+
     // /// <summary>
     // /// Adds a new feature to the layer.
     // /// </summary>

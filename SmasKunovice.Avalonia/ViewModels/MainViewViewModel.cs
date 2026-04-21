@@ -29,7 +29,7 @@ namespace SmasKunovice.Avalonia.ViewModels;
 
 public partial class MainViewViewModel() : ViewModelBase, IDisposable
 {
-    public const string DisplayIdOverride = "displayIdOverride";
+    public const string IdOverrideFeatureAttribute = "displayIdOverride";
     [ObservableProperty] private Map _map = new();
     [ObservableProperty] private int _trajectoryPointsCount;
     [ObservableProperty] private int _speedVectorMinuteInterval;
@@ -156,8 +156,8 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
         if (!IsFeatureSelected || _selectedFeature is null)
             return;
 
-        _selectedFeature[DisplayIdOverride] = result;
-        // TODO label only updates after a periodic update
+        _selectedFeature[IdOverrideFeatureAttribute] = result;
+        await _positionLayer!.RefreshData();
     }
 
     public class DataPropertyRow
@@ -235,8 +235,9 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
             map.CRS = "EPSG:5514";
             // Dark grey
             map.BackColor = MapsuiColor.FromString("#033052");
-            AddLayers(map, MapLayerFactory.CreateZtmDynamicLayers(ZtmDatasets.ZTM100, ZtmDatasets.ZTM25));
-            AddLayers(map, MapLayerFactory.CreateAirportElementsLayers(_layerStyleProvider!, out var procedureLayerNames).ToArray());
+            var layerFactory = new MapLayerFactory(_dronetagClient);
+            AddLayers(map, layerFactory.CreateZtmDynamicLayers(ZtmDatasets.ZTM100, ZtmDatasets.ZTM25));
+            AddLayers(map, layerFactory.CreateAirportElementsLayers(_layerStyleProvider!, out var procedureLayerNames).ToArray());
             foreach (var procedure in CreateProceduresModelList(procedureLayerNames))
             {
                 ProcedureList.Add(procedure);
@@ -246,7 +247,7 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
 
             if (HasClient)
             {
-                InitClientLayers(map);
+                InitClientLayers(map, layerFactory);
             }
             else
                 LogExtensions.LogError("{0} not provided. Creating map without SMAS data.", this,
@@ -281,18 +282,15 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
     }
 
     [SuppressMessage("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "MVVMTK0034:Direct field reference to [ObservableProperty] backing field")]
-    private void InitClientLayers(Map map)
+    private void InitClientLayers(Map map, MapLayerFactory layerFactory)
     {
-        var trajectoryLayer = MapLayerFactory.CreateTrajectoryLayer(_dronetagClient!);
-        AddLayers(map, trajectoryLayer);
+        _positionLayer = layerFactory.CreatePlanesPointLayer(_aircraftDatabase!, _svgStyleProvider, map);
+        var trajectoryLayer = layerFactory.CreateTrajectoryLayer(_positionLayer);
         _trajectoryPointsCount = trajectoryLayer.ObservableQueueSize;
-
-        var speedVectorLayer = MapLayerFactory.CreateSpeedVectorLayer(_dronetagClient!);
-        AddLayers(map, speedVectorLayer);
+        var speedVectorLayer = layerFactory.CreateSpeedVectorLayer(_positionLayer);
         _speedVectorMinuteInterval = speedVectorLayer.ObservableMinuteInterval;
+        AddLayers(map, _positionLayer, trajectoryLayer, speedVectorLayer);
 
-        _positionLayer = MapLayerFactory.CreatePlanesPointLayer(_dronetagClient!, _aircraftDatabase!, _svgStyleProvider, map);
-        AddLayers(map, _positionLayer);
         _positionLayer.SelectedFeatureChanged += (sender, feature) =>
         {
             IsFeatureSelected = feature is not null;

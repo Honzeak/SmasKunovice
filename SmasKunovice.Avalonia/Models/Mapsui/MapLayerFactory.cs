@@ -15,19 +15,27 @@ using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
-public static class MapLayerFactory
+public class MapLayerFactory
 {
+    private readonly DynamicScoutDataProvider? _dynamicScoutDataProvider;
     private const string ZtmBaseRestUrl = "https://ags.cuzk.gov.cz/arcgis1/rest/services/ZTM/{{ZTM_DATASET}}/MapServer";
     public const string ProcedureLayerPrefix = "proc_";
+    private bool HasClient => _dynamicScoutDataProvider is not null;
 
-    public static ILayer[] CreateZtmDynamicLayers(ZtmDatasets ztmDatasetFar, ZtmDatasets ztmDatasetNear)
+    public MapLayerFactory(IDronetagClient? client = null)
+    {
+        if (client is not null)
+            _dynamicScoutDataProvider = new DynamicScoutDataProvider(client);
+    }
+
+    public ILayer[] CreateZtmDynamicLayers(ZtmDatasets ztmDatasetFar, ZtmDatasets ztmDatasetNear)
     {
         var farLayer = CreateZtmLayer(ztmDatasetFar, minVisible: 8);
         var nearLayer = CreateZtmLayer(ztmDatasetNear, maxVisible: 8);
         return [farLayer, nearLayer];
     }
 
-    private static ImageLayer CreateZtmLayer(ZtmDatasets ztmDataset, double minVisible = 0, double maxVisible = double.MaxValue)
+    private ImageLayer CreateZtmLayer(ZtmDatasets ztmDataset, double minVisible = 0, double maxVisible = double.MaxValue)
     {
         var url = ZtmBaseRestUrl.Replace("{{ZTM_DATASET}}", ztmDataset.ToString());
         IUrlPersistentCache? defaultCache = null;
@@ -69,17 +77,23 @@ public static class MapLayerFactory
         };
     }
 
-    public static UpdatingPositionLayer CreatePlanesPointLayer(IDronetagClient dronetagClient, AircraftDatabase aircraftDb, SvgStyleProvider svgStyleProvider, Map map)
+    public UpdatingPositionLayer CreatePlanesPointLayer(AircraftDatabase aircraftDb, SvgStyleProvider svgStyleProvider, Map map)
     {
+        if (!HasClient)
+            throw new InvalidOperationException("Unable to create planes point layer without a client");
+        
         var aircraftSymbolProvider = new AircraftSymbolProvider(svgStyleProvider);
-        return new UpdatingPositionLayer(new DynamicScoutDataProvider(dronetagClient), aircraftDb, aircraftSymbolProvider, map)
+        return new UpdatingPositionLayer(_dynamicScoutDataProvider!, aircraftDb, aircraftSymbolProvider, map)
         {
             Name = "Position layer",
         };
     }
 
-    public static UpdatingTrajectoryLayer CreateTrajectoryLayer(IDronetagClient dronetagClient)
+    public UpdatingTrajectoryLayer CreateTrajectoryLayer(UpdatingPositionLayer positionLayer)
     {
+        if (!HasClient)
+            throw new InvalidOperationException("Unable to create trajectory layer without a client");
+        
         var style = new SymbolStyle
         {
             Fill = new Brush(Color.FromString("#c3fc05")),
@@ -88,15 +102,18 @@ public static class MapLayerFactory
             SymbolType = SymbolType.Ellipse
         };
 
-        return new UpdatingTrajectoryLayer(new DynamicScoutDataProvider(dronetagClient))
+        return new UpdatingTrajectoryLayer(_dynamicScoutDataProvider!, positionLayer)
         {
             Name = "Trajectory layer",
             Style = style
         };
     }
 
-    public static UpdatingSpeedVectorLayer CreateSpeedVectorLayer(IDronetagClient dronetagClient)
+    public UpdatingSpeedVectorLayer CreateSpeedVectorLayer(UpdatingPositionLayer positionLayer)
     {
+        if (!HasClient)
+            throw new InvalidOperationException("Unable to create speed vector layer without a client");
+        
         var style = new VectorStyle
         {
             Line = new Pen
@@ -106,14 +123,14 @@ public static class MapLayerFactory
             }
         };
 
-        return new UpdatingSpeedVectorLayer(new DynamicScoutDataProvider(dronetagClient))
+        return new UpdatingSpeedVectorLayer(_dynamicScoutDataProvider!, positionLayer)
         {
             Name = "Speed vector layer",
             Style = style
         };
     }
 
-    public static IEnumerable<ILayer> CreateAirportElementsLayers(GeoJsonLayerStyleProvider layerStyleProvider, out IReadOnlyList<string> procedureLayerNames)
+    public IEnumerable<ILayer> CreateAirportElementsLayers(GeoJsonLayerStyleProvider layerStyleProvider, out IReadOnlyList<string> procedureLayerNames)
     {
         var procedureLayerNamesList = new List<string>();
         var layers = layerStyleProvider.GeoJsonLayerProperties.OrderByDescending(layerConfig => layerConfig.Order).Select(
@@ -139,7 +156,7 @@ public static class MapLayerFactory
     }
 
     [Obsolete("Agreed to use ARCGis dynamic tiling")]
-    public static ILayer CreateGeoTiffLayer()
+    public ILayer CreateGeoTiffLayer()
     {
         // var MbTilesFilePath = @"C:\Users\honza\OneDrive\Code\SMAS-Data\Kunovice_tiff\mbTiles\output_file.mbtiles";
         // var mbTilesTileSource = new MbTilesTileSource(new SQLiteConnectionString(MbTilesFilePath, true));

@@ -11,9 +11,9 @@ using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
-public class UpdatingSpeedVectorLayer(IProvider provider, int observableMinuteInterval = 5) : UpdatingLayer<GeometryFeature>(provider)
+public class UpdatingSpeedVectorLayer : UpdatingLayer<GeometryFeature>
 {
-    private int _observableMinuteInterval = observableMinuteInterval;
+    private int _observableMinuteInterval;
     private readonly VectorStyle _solidVectorStyle = new() 
     { 
         Line = new Pen
@@ -22,6 +22,13 @@ public class UpdatingSpeedVectorLayer(IProvider provider, int observableMinuteIn
             Width = 2
         }
     };
+
+    public UpdatingSpeedVectorLayer(IProvider provider, UpdatingPositionLayer? positionLayer = null, int observableMinuteInterval = 5) : base(provider)
+    {
+        _observableMinuteInterval = observableMinuteInterval;
+        if (positionLayer is not null)
+            positionLayer.FeatureRemoved += (sender, s) => RemoveFeature(s);
+    }
 
     public int ObservableMinuteInterval
     {

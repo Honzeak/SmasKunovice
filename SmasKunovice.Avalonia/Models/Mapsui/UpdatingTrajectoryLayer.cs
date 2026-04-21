@@ -10,7 +10,7 @@ using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
-public class UpdatingTrajectoryLayer(IProvider dataSource) : UpdatingLayer<LinkedList<PointFeature>>(dataSource)
+public class UpdatingTrajectoryLayer : UpdatingLayer<LinkedList<PointFeature>>
 {
     // protected override Dictionary<string, LinkedList<PointFeature>> Features { get; } = new();
     private const int QueueCapacity = 500;
@@ -26,6 +26,12 @@ public class UpdatingTrajectoryLayer(IProvider dataSource) : UpdatingLayer<Linke
     }
 
     private int _observableQueueSize = 1;
+
+    public UpdatingTrajectoryLayer(IProvider dataSource, UpdatingPositionLayer? positionLayer = null) : base(dataSource)
+    {
+        if (positionLayer is not null)
+            positionLayer.FeatureRemoved += (sender, s) => RemoveFeature(s);
+    }
 
     protected override Task ProcessFeaturesAsync(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
     {

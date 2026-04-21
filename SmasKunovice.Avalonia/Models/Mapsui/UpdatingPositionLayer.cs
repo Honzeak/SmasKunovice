@@ -23,6 +23,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
     private const string StaleFeatureField = "stale";
     private IFeature? _currentSelectedFeature;
     private const int StaleThresholdSeconds = 5;
+    private const int InactiveThresholdSeconds = 60;
     private readonly Timer _timer;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
 
@@ -117,11 +118,17 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
 
                 if (Features.TryGetValue(id, out var existingFeature))
                 {
+                    if (IsFeatureInactive(existingFeature, utcNow))
+                    {
+                        RemoveFeature(id);
+                        continue;
+                    }
+                    
                     existingFeature.Point.X = updatedFeature.Point.X;
                     existingFeature.Point.Y = updatedFeature.Point.Y;
                     existingFeature[ScoutData.FeatureScoutDataField] = updatedFeature.GetScoutData();
                     SetLabelStyle(existingFeature);
-                    SetStaleFeature(existingFeature, utcNow);
+                    SetStaleFeature(existingFeature, utcNow); // Grey out stale features
                 }
                 else
                 {
@@ -137,6 +144,15 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         {
             _semaphore.Release();
         }
+    }
+
+    private static bool IsFeatureInactive(PointFeature existingFeature, DateTime utcNow)
+    {
+        var updateTimeStamp = existingFeature.GetScoutData()?.GetTimestamp();
+        if (updateTimeStamp is null) // if the feature doesn't have a timestamp, we will update it to stale later
+            return false;
+        
+        return utcNow - updateTimeStamp > TimeSpan.FromSeconds(InactiveThresholdSeconds);
     }
 
     private void RestartTimer()
@@ -164,8 +180,6 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
 
     private void SetLabelStyle(IFeature feature)
     {
-        var scoutData = feature.GetScoutData();
-        // var displayText = scoutData is null ? "???" : GetDisplayText(feature);
         var displayText = GetDisplayText(feature);
         var labelStyle = feature.Styles.OfType<LabelStyle>().SingleOrDefault();
         if (labelStyle is null)
@@ -193,7 +207,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         var scoutData = feature.GetScoutData();
         if (scoutData is null) return "???";
         string registration;
-        if (feature[MainViewViewModel.DisplayIdOverride] is string overrideId)
+        if (feature[MainViewViewModel.IdOverrideFeatureAttribute] is string overrideId)
         {
             registration = overrideId;
         }

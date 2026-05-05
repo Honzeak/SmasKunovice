@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -57,7 +56,7 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
     public MainViewViewModel(IDronetagClient dronetagClient, IOptions<ApplicationSettings> options) : this()
     {
         _dronetagClient = dronetagClient;
-        _layerStyleProvider = new GeoJsonLayerStyleProvider(AssetProvider.GetFullAssetPath("GeoJsonElements"));
+        _layerStyleProvider = new GeoJsonLayerStyleProvider(AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "AirportElements")));
         _aircraftDatabase = new AircraftDatabase(Directory.EnumerateFiles(AssetProvider.GetFullAssetPath("Database"), "*.csv", SearchOption.TopDirectoryOnly).Single());
         _svgStyleProvider = new SvgStyleProvider(AssetProvider.GetFullAssetPath("Svg"));
         ProcedureList.CollectionChanged += OnProcedureListChanged;
@@ -247,7 +246,13 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
 
             if (HasClient)
             {
-                InitClientLayers(map, layerFactory);
+                _positionLayer = layerFactory.CreatePlanesPointLayer(_aircraftDatabase!, _svgStyleProvider, map);
+                SetFeatureSelectedEvent();
+                var trajectoryLayer = layerFactory.CreateTrajectoryLayer(_positionLayer);
+                TrajectoryPointsCount = trajectoryLayer.ObservableQueueSize;
+                var speedVectorLayer = layerFactory.CreateSpeedVectorLayer(_positionLayer);
+                SpeedVectorMinuteInterval = speedVectorLayer.ObservableMinuteInterval;
+                AddLayers(map, trajectoryLayer, speedVectorLayer, _positionLayer);
             }
             else
                 LogExtensions.LogError("{0} not provided. Creating map without SMAS data.", this,
@@ -266,32 +271,9 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
         return Map;
     }
 
-    private void AddLayers(Map map, params ILayer[] layers)
+    private void SetFeatureSelectedEvent()
     {
-        map.Layers.Add(layers);
-        foreach (var layer in layers)
-        {
-            _managedLayers.Add(layer);
-        }
-    }
-
-
-    private ObservableCollection<SelectProcedure> CreateProceduresModelList(IEnumerable<string> procedureLayerNames)
-    {
-        return new ObservableCollection<SelectProcedure>(procedureLayerNames.Select(name => new SelectProcedure(name)));
-    }
-
-    [SuppressMessage("CommunityToolkit.Mvvm.SourceGenerators.ObservablePropertyGenerator", "MVVMTK0034:Direct field reference to [ObservableProperty] backing field")]
-    private void InitClientLayers(Map map, MapLayerFactory layerFactory)
-    {
-        _positionLayer = layerFactory.CreatePlanesPointLayer(_aircraftDatabase!, _svgStyleProvider, map);
-        var trajectoryLayer = layerFactory.CreateTrajectoryLayer(_positionLayer);
-        _trajectoryPointsCount = trajectoryLayer.ObservableQueueSize;
-        var speedVectorLayer = layerFactory.CreateSpeedVectorLayer(_positionLayer);
-        _speedVectorMinuteInterval = speedVectorLayer.ObservableMinuteInterval;
-        AddLayers(map, _positionLayer, trajectoryLayer, speedVectorLayer);
-
-        _positionLayer.SelectedFeatureChanged += (sender, feature) =>
+        _positionLayer!.SelectedFeatureChanged += (sender, feature) =>
         {
             IsFeatureSelected = feature is not null;
             ShowSelectedFeatureLabel = feature?.Styles.OfType<LabelStyle>().FirstOrDefault()?.Enabled ?? false;
@@ -315,6 +297,21 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
                 NonNullProperties.Clear();
             }
         };
+    }
+
+    private void AddLayers(Map map, params ILayer[] layers)
+    {
+        map.Layers.Add(layers);
+        foreach (var layer in layers)
+        {
+            _managedLayers.Add(layer);
+        }
+    }
+
+
+    private ObservableCollection<SelectProcedure> CreateProceduresModelList(IEnumerable<string> procedureLayerNames)
+    {
+        return new ObservableCollection<SelectProcedure>(procedureLayerNames.Select(name => new SelectProcedure(name)));
     }
 
     public void Dispose()

@@ -1,3 +1,5 @@
+using System;
+
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
 public static class AircraftDataFormatter
@@ -20,7 +22,7 @@ public static class AircraftDataFormatter
             _ => string.Empty
             // null or 0 or <= -63 or >= 63 => string.Empty,
         };
-        var scoutDataAltitude = scoutData.Odid?.Location?.AltitudeGeo;
+        var scoutDataAltitude = scoutData.Odid?.Location?.AltitudeBaro;
         string heightValue;
         if (scoutDataAltitude is null)
         {
@@ -29,7 +31,7 @@ public static class AircraftDataFormatter
         else
         {
             var feet = (int)(scoutDataAltitude.Value * meterToFeetConvertFactor);
-            heightValue = feet < 5000 ? feet.ToString() : $"FL{feet / 100f:F0}";
+            heightValue = feet < 5000 ? Math.Max(feet, 0).ToString() : $"FL{feet / 100f:F0}";
         }
 
         return heightValue + verticalSpeedSymbol;

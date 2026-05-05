@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 using Mapsui;
 using Mapsui.Layers;
@@ -40,10 +39,7 @@ public class UpdatingTrajectoryLayer : UpdatingLayer<LinkedList<PointFeature>>
         
         foreach (var updateFeature in updateFeatures)
         {
-            var featureId = updateFeature.GetFeatureId(ScoutData.FeatureUasIdField);
-            if (featureId is null)
-                continue;
-            
+            var featureId = updateFeature.GetScoutDataId();
             var foundLog = FindExistingFeature(featureId);
             if (foundLog is null)
             {

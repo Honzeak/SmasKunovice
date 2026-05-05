@@ -74,7 +74,7 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
         if (fetchUpdates)
         {
             var updateFeatures = (await _dataSource.GetFeaturesAsync(_fetchInfo)).Cast<PointFeature>().ToList();
-            foreach (var kvp in updateFeatures.ToDictionary(pf => pf.GetFeatureId(ScoutData.FeatureUasIdField) ?? "UNKNOWN" ).Where(kvp => !kvp.Key.Equals("UNKNOWN")))
+            foreach (var kvp in updateFeatures.ToDictionary(pf => pf.GetScoutDataId() ?? "UNKNOWN" ).Where(kvp => !kvp.Key.Equals("UNKNOWN")))
             {
                 PointFeatures[kvp.Key] = kvp.Value;
             }
@@ -91,8 +91,7 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
     {
         var newFeatures = features.Where(f =>
         {
-            var featureId = f.GetFeatureId(ScoutData.FeatureUasIdField);
-            if (featureId is null) return false;
+            var featureId = f.GetScoutDataId();
             return !Features.ContainsKey(featureId);
         });
         return newFeatures;

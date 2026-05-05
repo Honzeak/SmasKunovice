@@ -11,12 +11,22 @@ public interface IAircraftSymbolProvider
     IStyle GetVehicleStyle(SymbolState state);
     IStyle GetDroneStyle(SymbolState state);
 }
-public enum SymbolState {Normal, Selected, Stale}
+
+public enum SymbolState
+{
+    Default,
+    Selected,
+    Stale,
+    DroneAboveLimit,
+}
+
 public class AircraftSymbolProvider(SvgStyleProvider svgStyleProvider) : IAircraftSymbolProvider
 {
-    private readonly int _hexagonIdNormal = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.Blue, SystemColor.Blue);
+    private readonly int _hexagonIdDefault = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.Blue, SystemColor.Blue);
     private readonly int _hexagonIdSelected = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.Yellow, SystemColor.Yellow);
     private readonly int _hexagonIdStale = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.WhiteSmoke, SystemColor.WhiteSmoke);
+    private readonly int _hexagonIdBelowLimit = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.MediumVioletRed, SystemColor.MediumVioletRed);
+
     private const string SvgSymbolFileName = "hexagon-full.svg";
 
     private static SymbolStyle GetBaseStyle() => new()
@@ -49,9 +59,10 @@ public class AircraftSymbolProvider(SvgStyleProvider svgStyleProvider) : IAircra
     {
         var style = state switch
         {
-            SymbolState.Normal => GetBaseStyle(),
+            SymbolState.Default => GetBaseStyle(),
             SymbolState.Selected => GetBaseStyleSelected(),
             SymbolState.Stale => GetStaleStyle(),
+            SymbolState.DroneAboveLimit => GetBaseStyle(), // This is a weird one - apart from scale, these methods do nothing to drone/SVG symbol, and we're not getting this value for non-drone features. I don't like zis class!
             _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
         };
         return style;
@@ -70,9 +81,10 @@ public class AircraftSymbolProvider(SvgStyleProvider svgStyleProvider) : IAircra
         style.SymbolType = SymbolType.Image;
         style.BitmapId = state switch
         {
-            SymbolState.Normal => _hexagonIdNormal,
+            SymbolState.Default => _hexagonIdDefault,
             SymbolState.Selected => _hexagonIdSelected,
             SymbolState.Stale => _hexagonIdStale,
+            SymbolState.DroneAboveLimit => _hexagonIdBelowLimit,
             _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
         };
         style.SymbolScale = state == SymbolState.Selected ? 0.025f : 0.015f;

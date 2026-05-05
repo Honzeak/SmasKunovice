@@ -179,7 +179,12 @@ public record LocationData
     /// <summary>
     /// meter (Ref 29.92 inHg, 1013.24 mb)
     /// </summary>
-    public float? AltitudeBaro { get; init; }
+    public float? AltitudeBaro
+    {
+        get => _altitudeBaro - 114; // Kunovice are 114 m above sea level, and received goe-altitude is often null, so let's use this as geo-altitude
+        init => _altitudeBaro = value;
+    }
+    private readonly float? _altitudeBaro;
 
     /// <summary>
     /// meter (WGS84-HAE)

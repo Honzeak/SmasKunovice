@@ -24,7 +24,7 @@ public class GeoJsonFeaturesProvider
     }
 
 
-    private static List<int> GetExtentFromJson(string geoJsonPath)
+    private static List<double> GetExtentFromJson(string geoJsonPath)
     {
         var json = File.ReadAllText(geoJsonPath);
         using var doc = JsonDocument.Parse(json);
@@ -35,11 +35,11 @@ public class GeoJsonFeaturesProvider
         if (extentElement.ValueKind != JsonValueKind.Array)
             throw new InvalidOperationException("The root 'extent' property is not an array.");
 
-        var extent = new List<int>();
+        var extent = new List<double>();
 
         foreach (var item in extentElement.EnumerateArray())
         {
-            if (item.ValueKind != JsonValueKind.Number || !item.TryGetInt32(out var value))
+            if (item.ValueKind != JsonValueKind.Number || !item.TryGetDouble(out var value))
                 throw new InvalidOperationException("The 'extent' array must contain only integers.");
 
             extent.Add(value);

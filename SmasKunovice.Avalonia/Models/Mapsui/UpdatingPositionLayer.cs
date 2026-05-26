@@ -7,11 +7,9 @@ using System.Threading.Tasks;
 using Mapsui;
 using Mapsui.Fetcher;
 using Mapsui.Layers;
-using Mapsui.Nts.Extensions;
 using Mapsui.Providers;
 using Mapsui.Styles;
 using Mapsui.Styles.Thematics;
-using NetTopologySuite.Index.Strtree;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.ViewModels;
 
@@ -24,47 +22,34 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
     private const string SelectedFeatureField = "selected";
     private const string StaleFeatureField = "stale";
     private const string DroneAboveLimitFeatureField = "droneAboveLimit";
+    private const string InRpaFeatureField = "inRpa";
     private IFeature? _currentSelectedFeature;
     private const int StaleThresholdSeconds = 5;
     private const int InactiveThresholdSeconds = 60;
     private readonly Timer _timer;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
-    private STRtree<IFeature>? _spatialIndex;
     private readonly Regex _verticalLimitValueRegex = new(@"GND - (?<metersValue>\d+) m AGL", RegexOptions.Compiled);
+    private readonly IntersectionDetector _droneGridIntersectionDetector;
+    private readonly IntersectionDetector _rpaIntersectionDetector;
+    private readonly Brush _warningLabelColor = new (new Color(237, 104, 95));
+    private readonly Brush _normalLabelColor = new(Color.WhiteSmoke);
 
     public event EventHandler<IFeature?>? SelectedFeatureChanged;
 
     public UpdatingPositionLayer(IProvider dataSource,
         IAircraftDatabase aircraftDatabase,
         IAircraftSymbolProvider aircraftSymbolProvider,
-        Map map, IEnumerable<IFeature>? gridFeatures = null) : base(dataSource)
+        Map map, IntersectionDetector droneGridIntersectionDetector, IntersectionDetector rpaIntersectionDetector) : base(dataSource)
     {
         _aircraftDatabase = aircraftDatabase;
         _aircraftSymbolProvider = aircraftSymbolProvider;
         map.Info += (sender, e) => ToggleSelected(e.MapInfo?.Feature);
-        if (gridFeatures is not null)
-            ConstructDroneGridStrTree(gridFeatures);
+        _droneGridIntersectionDetector = droneGridIntersectionDetector;
+        _rpaIntersectionDetector = rpaIntersectionDetector;
         IsMapInfoLayer = true;
         Style = CreateStyle();
         _timer = new Timer(_ => UpdateDataAsync(false).GetAwaiter().GetResult(), null,
             TimeSpan.FromSeconds(StaleThresholdSeconds), Timeout.InfiniteTimeSpan);
-    }
-
-    private void ConstructDroneGridStrTree(IEnumerable<IFeature> gridFeatures)
-    {
-        _spatialIndex = new STRtree<IFeature>();
-        foreach (var feature in gridFeatures) // the params don't really matter for Layer type
-        {
-            if (feature.Extent is null)
-            {
-                LogExtensions.LogWarning("Drone grid feature has null extent. Skipping.", this);
-                continue;
-            }
-
-            _spatialIndex.Insert(feature.Extent.ToEnvelope(), feature);
-        }
-
-        _spatialIndex.Build();
     }
 
     private void ToggleSelected(IFeature? feature)
@@ -134,9 +119,11 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         try
         {
             var utcNow = DateTime.UtcNow;
+            var featuresInRpa = new List<PointFeature>();
             foreach (var updatedFeature in updateFeatures)
             {
                 var id = updatedFeature.GetScoutDataId();
+                PointFeature featureToProcess;
                 if (Features.TryGetValue(id, out var existingFeature))
                 {
                     if (IsFeatureInactive(existingFeature, utcNow))
@@ -148,15 +135,27 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
                     existingFeature.Point.X = updatedFeature.Point.X;
                     existingFeature.Point.Y = updatedFeature.Point.Y;
                     existingFeature[ScoutData.FeatureScoutDataField] = updatedFeature.GetScoutData();
-                    SetLabelStyle(existingFeature);
                     SetStaleFeature(existingFeature, utcNow); // Grey out stale features
-                    SetDroneAboveLimit(existingFeature);
+                    featureToProcess = existingFeature;
                 }
                 else
                 {
                     Features[id] = updatedFeature;
-                    SetLabelStyle(updatedFeature);
-                    SetDroneAboveLimit(updatedFeature);
+                    featureToProcess = updatedFeature;
+                }
+
+                SetLabelStyle(featureToProcess);
+                SetDroneAboveLimit(featureToProcess);
+                if (SetInRpa(featureToProcess))
+                    featuresInRpa.Add(featureToProcess);
+            }
+
+            if (featuresInRpa.Count > 1)
+            {
+                var labelStyles = featuresInRpa.Select(f => f.Styles.OfType<LabelStyle>().Single());
+                foreach (var labelStyle in labelStyles)
+                {
+                    labelStyle.BackColor = new Brush(_warningLabelColor);
                 }
             }
 
@@ -169,11 +168,25 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         }
     }
 
+    private bool SetInRpa(PointFeature featureToProcess)
+    {
+        if (_rpaIntersectionDetector.TryGetIntersectFeature(featureToProcess, out var intersectFeature) is true)
+        {
+            featureToProcess[InRpaFeatureField] = true;
+            LogExtensions.LogInfo("Found feature in RPA! Feature ID: {0}", this, featureToProcess.GetScoutDataId());
+            return true;
+        }
+
+        featureToProcess[InRpaFeatureField] = null;
+        return false;
+    }
+
+
     private void SetDroneAboveLimit(PointFeature feature)
     {
-        if (!TryGetIntersectingVerticalLimit(feature, out var verticalLimit)) 
+        if (!TryGetIntersectingVerticalLimit(feature, out var verticalLimit))
             feature[DroneAboveLimitFeatureField] = null;
-        
+
         var altitudeMeters = feature.GetScoutData()?.Odid.Location?.AltitudeBaro;
         feature[DroneAboveLimitFeatureField] = altitudeMeters >= verticalLimit ? true : null; // Drone is dangerous when it's high up
     }
@@ -218,7 +231,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         {
             labelStyle = new LabelStyle
             {
-                BackColor = new Brush(Color.WhiteSmoke),
+                BackColor = _normalLabelColor,
                 VerticalAlignment = LabelStyle.VerticalAlignmentEnum.Center,
                 Offset = new RelativeOffset(0, .9),
                 Opacity = 0.3f, // doesn't seem to work
@@ -232,6 +245,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         }
 
         labelStyle.Text = displayText;
+        labelStyle.BackColor = _normalLabelColor; // reverting from conflict color in case conflict is over
     }
 
     private string GetDisplayText(PointFeature feature)
@@ -260,50 +274,38 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         return displayText;
     }
 
-    private bool TryGetIntersectingVerticalLimit(IFeature feature, out int? verticalLimit)
+    private bool TryGetIntersectingVerticalLimit(PointFeature feature, out int? verticalLimit)
     {
         verticalLimit = null;
-        if (feature.Extent is null || _spatialIndex is null)
+        if (_droneGridIntersectionDetector.TryGetIntersectFeature(feature, out var candidate) is not true)
             return false;
 
-        var candidates = _spatialIndex.Query(feature.Extent.ToEnvelope());
-        if (candidates is null)
-            return false;
-
-        foreach (var candidate in candidates)
+        var verticalLimitString = candidate!["vertical_limit"]?.ToString();
+        if (verticalLimitString is null)
         {
-            if (!candidate.Extent!.Intersects(feature.Extent))
-                continue;
-
-            var verticalLimitString = candidate["vertical_limit"]?.ToString();
-            if (verticalLimitString is null)
-            {
-                LogExtensions.LogWarning("Vertical limit not found on grid feature. Feature ID: {0}.", this,
-                    feature.GetScoutDataId());
-                return false;
-            }
-
-            var match = _verticalLimitValueRegex.Match(verticalLimitString);
-            if (!match.Success)
-            {
-                LogExtensions.LogWarning("Failed to extract vertical limit value from string: {0}.", this,
-                    verticalLimitString);
-                return false;
-            }
-
-            var success = int.TryParse(match.Groups["metersValue"].Value, out var intValue);
-            if (!success)
-            {
-                LogExtensions.LogWarning("Failed to extract vertical limit numerical value from regex match: {0}.",
-                    this, match.Value);
-                return false;
-            }
-
-            verticalLimit = intValue;
-            return true;
+            LogExtensions.LogError("Vertical limit not found on grid feature. Feature ID: {0}.", this,
+                feature.GetScoutDataId());
+            return false;
         }
 
-        return false;
+        var match = _verticalLimitValueRegex.Match(verticalLimitString);
+        if (!match.Success)
+        {
+            LogExtensions.LogError("Failed to extract vertical limit value from string: {0}.", this,
+                verticalLimitString);
+            return false;
+        }
+
+        var success = int.TryParse(match.Groups["metersValue"].Value, out var intValue);
+        if (!success)
+        {
+            LogExtensions.LogError("Failed to extract vertical limit numerical value from regex match: {0}.",
+                this, match.Value);
+            return false;
+        }
+
+        verticalLimit = intValue;
+        return true;
     }
 
     public void SetLabelVisibility(bool visible)

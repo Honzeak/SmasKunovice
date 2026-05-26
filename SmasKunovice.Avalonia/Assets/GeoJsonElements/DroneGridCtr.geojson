@@ -1,7 +1,7 @@
 {
 "type": "FeatureCollection",
 "name": "DroneGridCtr",
-"extent": [-551711, -1201119, -520110, -1164093],
+"extent": [-551711.0, -1201119.0, -520110.0, -1164093.0],
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5514" } },
 "features": [
 { "type": "Feature", "properties": { "ident": "120952", "vertical_limit": "GND - 120 m AGL", "effective_date": "2025-09-01T00:00:00Z", "publication": "GRID_CTR", "data_source": "Řízení letového provozu", "_timestamp": "2025-10-23T08:32:44Z", "_crc": "7B2A52888FD25598" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ -524807.250855993363075, -1172296.182611762778834 ], [ -524202.174002968240529, -1172353.36031022714451 ], [ -524115.044348269409966, -1171430.778636491158977 ], [ -524720.019873345270753, -1171373.610575418686494 ], [ -524807.250855993363075, -1172296.182611762778834 ] ] ] } },

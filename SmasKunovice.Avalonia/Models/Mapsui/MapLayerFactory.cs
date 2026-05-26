@@ -83,10 +83,12 @@ public class MapLayerFactory
         if (!HasClient)
             throw new InvalidOperationException("Unable to create planes point layer without a client");
 
-        var fullAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "DroneGridCtr.geojson"));
-        var featureProvider = new GeoJsonFeaturesProvider(fullAssetPath);
+        var droneGridAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "DroneGridCtr.geojson"));
+        var droneGridIntersectionDetector = new IntersectionDetector(droneGridAssetPath);
+        var rpaAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "Rpa.geojson"));
+        var rpaIntersectionDetector = new IntersectionDetector(rpaAssetPath);
         var aircraftSymbolProvider = new AircraftSymbolProvider(svgStyleProvider);
-        return new UpdatingPositionLayer(_dynamicScoutDataProvider!, aircraftDb, aircraftSymbolProvider, map, featureProvider.Features)
+        return new UpdatingPositionLayer(_dynamicScoutDataProvider!, aircraftDb, aircraftSymbolProvider, map, droneGridIntersectionDetector, rpaIntersectionDetector)
         {
             Name = "Position layer",
         };

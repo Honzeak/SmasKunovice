@@ -2,6 +2,7 @@ using System.IO;
 using System.Linq;
 using Mapsui;
 using Mapsui.Layers;
+using Mapsui.Nts;
 using Mapsui.Nts.Extensions;
 using NetTopologySuite.Index.Strtree;
 using SmasKunovice.Avalonia.Extensions;
@@ -17,14 +18,14 @@ public class IntersectionDetector
     {
         if (!File.Exists(path))
             throw new FileNotFoundException("GeoJson file not found", path);
-        
+
         var droneGridFeatureProvider = new GeoJsonFeaturesProvider(path);
         _spatialIndex = new STRtree<IFeature>();
         foreach (var feature in droneGridFeatureProvider.Features) // the params don't really matter for Layer type
         {
             if (feature.Extent is null)
             {
-                LogExtensions.LogWarning("Drone grid feature has null extent. Skipping.", this);
+                LogExtensions.LogWarning("Intersection detection feature has null extent. Skipping.", this);
                 continue;
             }
 
@@ -37,8 +38,11 @@ public class IntersectionDetector
     public bool TryGetIntersectFeature(PointFeature feature, out IFeature? intersectFeature)
     {
         var candidates = _spatialIndex.Query(feature.Extent.ToEnvelope());
-        intersectFeature = candidates?.FirstOrDefault(candidate => candidate.Extent!.Intersects(feature.Extent));
-        
+        var point = feature.Point.ToPoint();
+        intersectFeature = candidates?
+            .OfType<GeometryFeature>()
+            .FirstOrDefault(candidate => candidate.Geometry is not null && candidate.Geometry.Intersects(point));
+
         return intersectFeature is not null;
     }
 }

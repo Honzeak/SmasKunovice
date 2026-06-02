@@ -22,7 +22,6 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
     private const string SelectedFeatureField = "selected";
     private const string StaleFeatureField = "stale";
     private const string DroneAboveLimitFeatureField = "droneAboveLimit";
-    private const string InRpaFeatureField = "inRpa";
     private IFeature? _currentSelectedFeature;
     private const int StaleThresholdSeconds = 5;
     private const int InactiveThresholdSeconds = 60;
@@ -30,22 +29,27 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly Regex _verticalLimitValueRegex = new(@"GND - (?<metersValue>\d+) m AGL", RegexOptions.Compiled);
     private readonly IntersectionDetector _droneGridIntersectionDetector;
-    private readonly IntersectionDetector _rpaIntersectionDetector;
-    private readonly Brush _warningLabelColor = new (new Color(237, 104, 95));
+    private readonly RpaPresenceConflictDetector _rpaPresenceConflictDetector;
     private readonly Brush _normalLabelColor = new(Color.WhiteSmoke);
+    private readonly Brush _warningLabelColor = new(new Color(255, 222, 40));
+    private readonly Brush _alarmLabelColor = new(new Color(255, 0, 0));
+    private readonly RunwayApproachConflictDetector _runwayApproachConflictDetector;
 
     public event EventHandler<IFeature?>? SelectedFeatureChanged;
 
     public UpdatingPositionLayer(IProvider dataSource,
         IAircraftDatabase aircraftDatabase,
         IAircraftSymbolProvider aircraftSymbolProvider,
-        Map map, IntersectionDetector droneGridIntersectionDetector, IntersectionDetector rpaIntersectionDetector) : base(dataSource)
+        Map map, IntersectionDetector droneGridIntersectionDetector,
+        RpaPresenceConflictDetector rpaPresenceConflictDetector,
+        RunwayApproachConflictDetector runwayApproachConflictDetector) : base(dataSource)
     {
         _aircraftDatabase = aircraftDatabase;
         _aircraftSymbolProvider = aircraftSymbolProvider;
         map.Info += (sender, e) => ToggleSelected(e.MapInfo?.Feature);
         _droneGridIntersectionDetector = droneGridIntersectionDetector;
-        _rpaIntersectionDetector = rpaIntersectionDetector;
+        _rpaPresenceConflictDetector = rpaPresenceConflictDetector;
+        _runwayApproachConflictDetector = runwayApproachConflictDetector;
         IsMapInfoLayer = true;
         Style = CreateStyle();
         _timer = new Timer(_ => UpdateDataAsync(false).GetAwaiter().GetResult(), null,
@@ -119,7 +123,6 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         try
         {
             var utcNow = DateTime.UtcNow;
-            var featuresInRpa = new List<PointFeature>();
             foreach (var updatedFeature in updateFeatures)
             {
                 var id = updatedFeature.GetScoutDataId();
@@ -144,23 +147,36 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
                     featureToProcess = updatedFeature;
                 }
 
-                SetLabelStyle(featureToProcess);
                 SetDroneAboveLimit(featureToProcess);
-                if (SetInRpa(featureToProcess))
-                    featuresInRpa.Add(featureToProcess);
-            }
-
-            if (featuresInRpa.Count > 1)
-            {
-                var labelStyles = featuresInRpa.Select(f => f.Styles.OfType<LabelStyle>().Single());
-                foreach (var labelStyle in labelStyles)
-                {
-                    labelStyle.BackColor = new Brush(_warningLabelColor);
-                }
+                SetLabelStyle(featureToProcess);
+                if (!reprocessing) // If we are just processing new features, we don't have the whole context, so can't determine conflicts
+                    continue;
+                
+                var processRpaResult = _rpaPresenceConflictDetector.ProcessConflictCandidate(featureToProcess);
+                var processApproachResult = _runwayApproachConflictDetector.ProcessConflictCandidate(featureToProcess);
+                if (!processRpaResult && !processApproachResult)
+                    SetLabelColor(featureToProcess, ConflictLevel.None);
             }
 
             if (reprocessing) // a non-reprocessing call shouldn't restart the timer, since we need to touch all features at least every N seconds
+            {
+                foreach (var conflictFeature in _rpaPresenceConflictDetector.GetConflictFeatures())
+                {
+                    SetLabelColor(conflictFeature.Feature, conflictFeature.ConflictLevel);
+                    LogExtensions.LogInfo("Found conflict in RPA for feature ID: {0}, level: {1}", this, conflictFeature.Feature.GetScoutDataId(), conflictFeature.ConflictLevel);
+                }
+
+                foreach (var conflictFeature in _runwayApproachConflictDetector.GetConflictFeatures(_rpaPresenceConflictDetector))
+                {
+                    SetLabelColor(conflictFeature.Feature, conflictFeature.ConflictLevel);
+                    LogExtensions.LogInfo("Found conflict in runway approach for feature ID: {0}, level: {1}", this, conflictFeature.Feature.GetScoutDataId(), conflictFeature.ConflictLevel);
+                }
+
+                _rpaPresenceConflictDetector.Reset();
+                _runwayApproachConflictDetector.Reset();
+
                 RestartTimer();
+            }
         }
         finally
         {
@@ -168,19 +184,17 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         }
     }
 
-    private bool SetInRpa(PointFeature featureToProcess)
+    private void SetLabelColor(PointFeature featureToProcess, ConflictLevel conflictLevel)
     {
-        if (_rpaIntersectionDetector.TryGetIntersectFeature(featureToProcess, out var intersectFeature) is true)
+        var labelStyle = featureToProcess.Styles.OfType<LabelStyle>().Single();
+        labelStyle.BackColor = conflictLevel switch
         {
-            featureToProcess[InRpaFeatureField] = true;
-            LogExtensions.LogInfo("Found feature in RPA! Feature ID: {0}", this, featureToProcess.GetScoutDataId());
-            return true;
-        }
-
-        featureToProcess[InRpaFeatureField] = null;
-        return false;
+            ConflictLevel.None => _normalLabelColor,
+            ConflictLevel.Warning => _warningLabelColor,
+            ConflictLevel.Alarm => _alarmLabelColor,
+            _ => throw new ArgumentOutOfRangeException(nameof(conflictLevel), conflictLevel, null)
+        };
     }
-
 
     private void SetDroneAboveLimit(PointFeature feature)
     {
@@ -245,7 +259,6 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         }
 
         labelStyle.Text = displayText;
-        labelStyle.BackColor = _normalLabelColor; // reverting from conflict color in case conflict is over
     }
 
     private string GetDisplayText(PointFeature feature)

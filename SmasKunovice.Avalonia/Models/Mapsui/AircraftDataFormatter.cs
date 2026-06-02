@@ -1,4 +1,5 @@
 using System;
+using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
@@ -13,7 +14,6 @@ public static class AircraftDataFormatter
 
     public static string GetHeightString(ScoutData scoutData)
     {
-        const double meterToFeetConvertFactor = 3.28084;
         var verticalSpeed = scoutData.Odid?.Location?.SpeedVertical;
         var verticalSpeedSymbol = verticalSpeed switch
         {
@@ -30,7 +30,7 @@ public static class AircraftDataFormatter
         }
         else
         {
-            var feet = (int)(scoutDataAltitude.Value * meterToFeetConvertFactor);
+            var feet = (int)scoutDataAltitude.Value.MeterToFeet();
             heightValue = feet < 5000 ? Math.Max(feet, 0).ToString() : $"FL{feet / 100f:F0}";
         }
 

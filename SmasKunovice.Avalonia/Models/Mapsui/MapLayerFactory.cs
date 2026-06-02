@@ -86,9 +86,12 @@ public class MapLayerFactory
         var droneGridAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "DroneGridCtr.geojson"));
         var droneGridIntersectionDetector = new IntersectionDetector(droneGridAssetPath);
         var rpaAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "Rpa.geojson"));
-        var rpaIntersectionDetector = new IntersectionDetector(rpaAssetPath);
+        var rpaPresenceDetector = new RpaPresenceConflictDetector(rpaAssetPath);
+        var approachZoneAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "ApproachProximityZone.geojson"));
+        var runwayStartPointAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "runwayStartPoint.geojson"));
+        var runwayApproachConflictDetector = new RunwayApproachConflictDetector(runwayStartPointAssetPath, approachZoneAssetPath);
         var aircraftSymbolProvider = new AircraftSymbolProvider(svgStyleProvider);
-        return new UpdatingPositionLayer(_dynamicScoutDataProvider!, aircraftDb, aircraftSymbolProvider, map, droneGridIntersectionDetector, rpaIntersectionDetector)
+        return new UpdatingPositionLayer(_dynamicScoutDataProvider!, aircraftDb, aircraftSymbolProvider, map, droneGridIntersectionDetector, rpaPresenceDetector, runwayApproachConflictDetector)
         {
             Name = "Position layer",
         };

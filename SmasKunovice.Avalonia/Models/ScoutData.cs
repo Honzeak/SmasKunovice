@@ -77,6 +77,26 @@ public record ScoutData : IScoutData
     public int MsgType { get; init; }
 
     public required OdidData Odid { get; init; }
+
+    public bool IsVehicle()
+    {
+        return Odid.BasicId[0].UasId.Equals("49F159", StringComparison.InvariantCultureIgnoreCase) ||
+               Odid.BasicId[0].UasId.Equals("49F158", StringComparison.InvariantCultureIgnoreCase);
+    }
+
+    public bool IsDrone()
+    {
+        return Tech switch
+        {
+            "B4" or "B5" or "WN" or "WB" => true,
+            _ => false
+        };
+    }
+
+    public bool IsAirplane()
+    {
+        return !IsVehicle() && !IsDrone();
+    }
 }
 
 public record OdidData

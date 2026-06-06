@@ -14,6 +14,7 @@ using CommunityToolkit.Mvvm.Input;
 using Mapsui;
 using Mapsui.Layers;
 using Mapsui.Styles;
+using Mapsui.Tiling.Layers;
 using Microsoft.Extensions.Options;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models;
@@ -194,7 +195,7 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
 
     partial void OnDrawZtmMapChanged(bool value)
     {
-        foreach (var ztmLayer in Map.Layers.OfType<ImageLayer>())
+        foreach (var ztmLayer in Map.Layers.OfType<TileLayer>())
         {
             ztmLayer.Enabled = value;
         }
@@ -235,7 +236,7 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
             // Dark grey
             map.BackColor = MapsuiColor.FromString("#033052");
             var layerFactory = new MapLayerFactory(_dronetagClient);
-            AddLayers(map, layerFactory.CreateZtmDynamicLayers(ZtmDatasets.ZTM100, ZtmDatasets.ZTM25));
+            AddLayers(map, MapLayerFactory.CreateZtmDynamicLayers(ZtmDatasets.ZTM100, ZtmDatasets.ZTM25));
             AddLayers(map, layerFactory.CreateAirportElementsLayers(_layerStyleProvider!, out var procedureLayerNames).ToArray());
             foreach (var procedure in CreateProceduresModelList(procedureLayerNames))
             {

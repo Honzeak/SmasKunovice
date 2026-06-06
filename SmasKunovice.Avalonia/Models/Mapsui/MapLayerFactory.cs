@@ -3,23 +3,22 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
+using BruTile;
+using BruTile.Cache;
+using BruTile.Web;
 using Mapsui;
-using Mapsui.ArcGIS;
-using Mapsui.ArcGIS.DynamicProvider;
-using Mapsui.Cache;
-using Mapsui.Extensions.Provider;
 using Mapsui.Layers;
 using Mapsui.Styles;
 using Mapsui.Tiling.Layers;
-using SmasKunovice.Avalonia.Extensions;
+using Extent = BruTile.Extent;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
 public class MapLayerFactory
 {
+    private static readonly Dictionary<string, IPersistentCache<byte[]>?> ZtmTileCache = new();
     private readonly DynamicScoutDataProvider? _dynamicScoutDataProvider;
-    private const string ZtmBaseRestUrl = "https://ags.cuzk.gov.cz/arcgis1/rest/services/ZTM/{{ZTM_DATASET}}/MapServer";
+    private const string ZtmBaseRestUrl = "https://ags.cuzk.gov.cz/arcgis1/rest/services/ZTM/{{ZTM_DATASET}}/MapServer/tile/{z}/{y}/{x}";
     public const string ProcedureLayerPrefix = "proc_";
     private bool HasClient => _dynamicScoutDataProvider is not null;
 
@@ -29,50 +28,64 @@ public class MapLayerFactory
             _dynamicScoutDataProvider = new DynamicScoutDataProvider(client);
     }
 
-    public ILayer[] CreateZtmDynamicLayers(ZtmDatasets ztmDatasetFar, ZtmDatasets ztmDatasetNear)
+    public static ILayer[] CreateZtmDynamicLayers(ZtmDatasets ztmDatasetFar, ZtmDatasets ztmDatasetNear)
     {
-        var farLayer = CreateZtmLayer(ztmDatasetFar, minVisible: 8);
-        var nearLayer = CreateZtmLayer(ztmDatasetNear, maxVisible: 8);
+        var farLayer = CreateZtmTileLayer(ztmDatasetFar, minVisible: 8);
+        var nearLayer = CreateZtmTileLayer(ztmDatasetNear, maxVisible: 8);
         return [farLayer, nearLayer];
     }
 
-    private ImageLayer CreateZtmLayer(ZtmDatasets ztmDataset, double minVisible = 0, double maxVisible = double.MaxValue)
+    private static TileLayer CreateZtmTileLayer(ZtmDatasets ztmDataset, int minVisible = 0, int maxVisible = int.MaxValue)
     {
-        var url = ZtmBaseRestUrl.Replace("{{ZTM_DATASET}}", ztmDataset.ToString());
-        IUrlPersistentCache? defaultCache = null;
-        var capabilitiesHelper = new CapabilitiesHelper(defaultCache);
-
-        var capabilitiesTask = new TaskCompletionSource<ArcGISDynamicCapabilities>();
-        capabilitiesHelper.CapabilitiesReceived += (sender, args) =>
+        if (minVisible > maxVisible || minVisible < 0)
+            throw new ArgumentException("minVisible and maxVisible must be in range [0, int.MaxValue]");
+        
+        // Hard-coded values are from https://ags.cuzk.gov.cz/arcgis1/rest/services/ZTM/ZTM10/MapServer?f=pjson
+        var resolutions = new[]
         {
-            if (sender is ArcGISDynamicCapabilities capabilities)
-            {
-                LogExtensions.LogInfo("Got capabilities", null);
-                capabilitiesTask.TrySetResult(capabilities);
-            }
-            else
-                capabilitiesTask.TrySetException(new InvalidOperationException("Failed to get valid capabilities"));
+            2048.2600965201932,
+            1024.1300482600966,
+            512.0650241300483,
+            256.03251206502415,
+            128.01625603251208,
+            64.008128016256038,
+            32.004064008128019,
+            16.002032004064009,
+            8.0010160020320047,
+            4.0005080010160023,
+            2.0002540005080012,
+            1.0001270002540006,
+            0.50006350012700029,
+            0.25003175006350015,
+        };
+        
+        var schema = new TileSchema
+        {
+            Name = "ZTM10_EPSG5514",
+            Srs = "EPSG:5514",
+            Format = "png",
+            YAxis = YAxis.OSM,
+            Extent = new Extent(-907032.06239999831, -1229928.9814999998, -427819.04259999841, -932316.78950000182),
+            OriginX = -925000.0,
+            OriginY = -920000.0
         };
 
-        LogExtensions.LogInfo(url, null);
-        capabilitiesHelper.GetCapabilities(url, CapabilitiesType.DynamicServiceCapabilities);
-
-        _ = Task.WhenAny(capabilitiesTask.Task, Task.Delay(TimeSpan.FromSeconds(10))).Result;
-        if (capabilitiesTask.Task.IsCompleted == false)
+        for (var i = 0; i < resolutions.Length; i++)
         {
-            var ex = new TimeoutException("Timeout while getting capabilities");
-            LogExtensions.LogFatal(ex, "Timeout while getting capabilities", null);
-            throw ex;
+            schema.Resolutions[i] = new Resolution(i, unitsPerPixel: resolutions[i]);
         }
 
-        // _urlDatasetCache[ztmDataset] = defaultCache!;
-        var capabilities = capabilitiesTask.Task.Result;
-        var provider = new ArcGISDynamicProvider(url, capabilities, null, defaultCache) { CRS = "EPSG:5514" };
-
-        return new ImageLayer(ztmDataset.ToString())
+        IPersistentCache<byte[]>? persistentCache = null;
+        ZtmTileCache[ztmDataset.ToString()] = persistentCache;
+        var tileSource = new HttpTileSource(
+            schema,
+            urlFormatter: ZtmBaseRestUrl.Replace("{{ZTM_DATASET}}", ztmDataset.ToString()),
+            name: ztmDataset.ToString(),
+            persistentCache: persistentCache
+        );
+        return new TileLayer(tileSource)
         {
-            Name = "ZTM layer",
-            DataSource = provider,
+            Name = ztmDataset.ToString(),
             MinVisible = minVisible,
             MaxVisible = maxVisible
         };
@@ -101,7 +114,7 @@ public class MapLayerFactory
     {
         if (!HasClient)
             throw new InvalidOperationException("Unable to create trajectory layer without a client");
-        
+
         var style = new SymbolStyle
         {
             Fill = new Brush(Color.FromString("#c3fc05")),
@@ -121,7 +134,7 @@ public class MapLayerFactory
     {
         if (!HasClient)
             throw new InvalidOperationException("Unable to create speed vector layer without a client");
-        
+
         var style = new VectorStyle
         {
             Line = new Pen
@@ -141,43 +154,25 @@ public class MapLayerFactory
     public IEnumerable<ILayer> CreateAirportElementsLayers(GeoJsonLayerStyleProvider layerStyleProvider, out IReadOnlyList<string> procedureLayerNames)
     {
         var procedureLayerNamesList = new List<string>();
-        var layers = layerStyleProvider.GeoJsonLayerProperties.OrderByDescending(layerConfig => layerConfig.Order).Select(
-            layerConfig =>
+        var layers = layerStyleProvider.GeoJsonLayerProperties.OrderByDescending(layerConfig => layerConfig.Order).Select(layerConfig =>
+        {
+            var layer = new Layer
             {
-                var layer = new Layer
-                {
-                    DataSource = layerConfig.Provider,
-                    Style = layerConfig.Style,
-                    Opacity = layerConfig.Opacity,
-                    Name = layerConfig.Name
-                };
+                DataSource = layerConfig.Provider,
+                Style = layerConfig.Style,
+                Opacity = layerConfig.Opacity,
+                Name = layerConfig.Name
+            };
 
-                if (!layerConfig.Name.StartsWith(ProcedureLayerPrefix)) 
-                    return layer;
-                
-                procedureLayerNamesList.Add(layerConfig.Name[ProcedureLayerPrefix.Length..]);
-                layer.Enabled = false;
+            if (!layerConfig.Name.StartsWith(ProcedureLayerPrefix))
                 return layer;
-            });
+
+            procedureLayerNamesList.Add(layerConfig.Name[ProcedureLayerPrefix.Length..]);
+            layer.Enabled = false;
+            return layer;
+        });
         procedureLayerNames = procedureLayerNamesList;
         return layers;
-    }
-
-    [Obsolete("Agreed to use ARCGis dynamic tiling")]
-    public ILayer CreateGeoTiffLayer()
-    {
-        // var MbTilesFilePath = @"C:\Users\honza\OneDrive\Code\SMAS-Data\Kunovice_tiff\mbTiles\output_file.mbtiles";
-        // var mbTilesTileSource = new MbTilesTileSource(new SQLiteConnectionString(MbTilesFilePath, true));
-        // var mbTilesLayer = new TileLayer(mbTilesTileSource) { Name = "kundovice" };
-        // return mbTilesLayer;
-        var geotif = new GeoTiffProvider(@"C:\Users\honza\OneDrive\Code\SMAS-Data\Kunovice_tiff\0708D.tif",
-            new List<Color>()
-            {
-                Color.Aqua
-            });
-        var gifLayer = new Layer("nig") { DataSource = geotif };
-        var layer = new RasterizingTileLayer(gifLayer);
-        return gifLayer;
     }
 }
 

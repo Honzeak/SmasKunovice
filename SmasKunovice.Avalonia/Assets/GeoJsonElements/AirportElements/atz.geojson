@@ -1,6 +1,7 @@
 {
 "type": "FeatureCollection",
 "name": "atz",
+"order": 6,
 "outline": true,
 "color": "yellow",
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5514" } },

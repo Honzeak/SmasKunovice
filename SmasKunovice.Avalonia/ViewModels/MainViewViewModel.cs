@@ -132,7 +132,7 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
 
         if (ctrLayers.Count != 2 || atzLayers.Count != 2)
         {
-            LogExtensions.LogWarning("Unexpected count of ATZ and CTR layers. Expected two for each, got {0} for CTR and {1} for ATZ", this, ctrLayers.Count, atzLayers.Count);
+            LogExtensions.LogError("Unexpected count of ATZ and CTR layers. Expected two for each, got {0} for CTR and {1} for ATZ", this, ctrLayers.Count, atzLayers.Count);
             return;
         }
 
@@ -141,6 +141,7 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
 
         atzLayers[0].Enabled = value == "CTR"; // ATZ outline layer is enabled when CTR
         atzLayers[1].Enabled = value == "ATZ"; // ATZ diff layer is enabled when ATZ
+        Map.Refresh();
     }
 
     [RelayCommand]

@@ -18,6 +18,10 @@ namespace SmasKunovice.Avalonia.Models.Mapsui;
 
 public class MapLayerFactory
 {
+    private static readonly string RpaAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "Rpa.geojson"));
+    private static readonly string ApproachZoneAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "ApproachProximityZone.geojson"));
+    private static readonly string RunwayStartPointAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "runwayStartPoint.geojson"));
+    private static readonly string DroneGridAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "DroneGridCtr.geojson"));
     private readonly DynamicScoutDataProvider? _dynamicScoutDataProvider;
     private const string ZtmBaseRestUrl = "https://ags.cuzk.gov.cz/arcgis1/rest/services/ZTM/{{ZTM_DATASET}}/MapServer";
     public const string ProcedureLayerPrefix = "proc_";
@@ -58,7 +62,7 @@ public class MapLayerFactory
         capabilitiesHelper.GetCapabilities(url, CapabilitiesType.DynamicServiceCapabilities);
 
         _ = Task.WhenAny(capabilitiesTask.Task, Task.Delay(TimeSpan.FromSeconds(10))).Result;
-        if (capabilitiesTask.Task.IsCompleted == false)
+        if (!capabilitiesTask.Task.IsCompleted)
         {
             var ex = new TimeoutException("Timeout while getting capabilities");
             LogExtensions.LogFatal(ex, "Timeout while getting capabilities", null);
@@ -83,15 +87,11 @@ public class MapLayerFactory
         if (!HasClient)
             throw new InvalidOperationException("Unable to create planes point layer without a client");
 
-        var droneGridAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "DroneGridCtr.geojson"));
-        var droneGridIntersectionDetector = new IntersectionDetector(droneGridAssetPath);
-        var rpaAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "Rpa.geojson"));
-        var rpaPresenceDetector = new RpaPresenceConflictDetector(rpaAssetPath);
-        var approachZoneAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "ApproachProximityZone.geojson"));
-        var runwayStartPointAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "runwayStartPoint.geojson"));
-        var runwayApproachConflictDetector = new RunwayApproachConflictDetector(runwayStartPointAssetPath, approachZoneAssetPath);
-        var aircraftSymbolProvider = new AircraftSymbolProvider(svgStyleProvider);
-        return new UpdatingPositionLayer(_dynamicScoutDataProvider!, aircraftDb, aircraftSymbolProvider, map, droneGridIntersectionDetector, rpaPresenceDetector, runwayApproachConflictDetector)
+        var droneGridIntersectionDetector = new IntersectionDetector(DroneGridAssetPath);
+        var rpaPresenceDetector = new RpaPresenceConflictDetector(RpaAssetPath);
+        var runwayApproachConflictDetector = new RunwayApproachConflictDetector(RunwayStartPointAssetPath, ApproachZoneAssetPath);
+        var targetStyleBuilder = new TargetStyleBuilder(svgStyleProvider);
+        return new UpdatingPositionLayer(_dynamicScoutDataProvider!, aircraftDb, targetStyleBuilder, map, droneGridIntersectionDetector, rpaPresenceDetector, runwayApproachConflictDetector)
         {
             Name = "Position layer",
         };

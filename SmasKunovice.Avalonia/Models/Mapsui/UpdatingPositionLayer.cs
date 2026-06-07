@@ -18,10 +18,9 @@ namespace SmasKunovice.Avalonia.Models.Mapsui;
 public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
 {
     private readonly IAircraftDatabase _aircraftDatabase;
-    private readonly IAircraftSymbolProvider _aircraftSymbolProvider;
+    private readonly TargetStyleBuilder _targetStyleBuilder;
     private const string SelectedFeatureField = "selected";
     private const string StaleFeatureField = "stale";
-    private const string DroneAboveLimitFeatureField = "droneAboveLimit";
     private IFeature? _currentSelectedFeature;
     private const int StaleThresholdSeconds = 5;
     private const int InactiveThresholdSeconds = 60;
@@ -39,13 +38,13 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
 
     public UpdatingPositionLayer(IProvider dataSource,
         IAircraftDatabase aircraftDatabase,
-        IAircraftSymbolProvider aircraftSymbolProvider,
+        TargetStyleBuilder targetStyleBuilder,
         Map map, IntersectionDetector droneGridIntersectionDetector,
         RpaPresenceConflictDetector rpaPresenceConflictDetector,
         RunwayApproachConflictDetector runwayApproachConflictDetector) : base(dataSource)
     {
         _aircraftDatabase = aircraftDatabase;
-        _aircraftSymbolProvider = aircraftSymbolProvider;
+        _targetStyleBuilder = targetStyleBuilder;
         map.Info += (sender, e) => ToggleSelected(e.MapInfo?.Feature);
         _droneGridIntersectionDetector = droneGridIntersectionDetector;
         _rpaPresenceConflictDetector = rpaPresenceConflictDetector;
@@ -85,36 +84,26 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
     {
         return new ThemeStyle(f =>
         {
-            var state = SymbolState.Default;
-            if (f[DroneAboveLimitFeatureField] is true) // If a drone is below limit but is stale, we prefer to display the stale state
-                state = SymbolState.DroneAboveLimit;
+            var scoutData = f.GetScoutData() ?? throw new InvalidOperationException("Feature has no ScoutData");
+            _targetStyleBuilder.Initialize(scoutData);
             if (f[StaleFeatureField] is true)
-                state = SymbolState.Stale;
+                _targetStyleBuilder.WithStale();
 
+            var appliedStyle = _targetStyleBuilder.Build();
             if (f[SelectedFeatureField]?.ToString() == "true")
             {
                 return new StyleCollection
                 {
                     Styles =
                     {
-                        CreateAircraftSymbol(f, SymbolState.Selected),
-                        CreateAircraftSymbol(f, state)
+                        _targetStyleBuilder.Initialize(scoutData).WithSelected().Build(),
+                        appliedStyle
                     }
                 };
             }
 
-            return CreateAircraftSymbol(f, state);
+            return appliedStyle;
         });
-    }
-
-    private IStyle CreateAircraftSymbol(IFeature feature, SymbolState selectedStyle)
-    {
-        var scoutData = feature.GetScoutData();
-        return scoutData?.Tech switch
-        {
-            "B4" or "B5" or "WN" or "WB" => _aircraftSymbolProvider.GetDroneStyle(selectedStyle),
-            _ => _aircraftSymbolProvider.GetAirplaneStyle(selectedStyle)
-        };
     }
 
     protected override async Task ProcessFeaturesAsync(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
@@ -147,9 +136,11 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
                     featureToProcess = updatedFeature;
                 }
 
-                SetDroneAboveLimit(featureToProcess);
                 SetLabelStyle(featureToProcess);
-                if (!reprocessing) // If we are just processing new features, we don't have the whole context, so can't determine conflicts
+                var droneAboveLimitConflictLevel = IsDroneAboveLimit(featureToProcess) ? ConflictLevel.Alarm : ConflictLevel.None;
+                SetLabelColor(featureToProcess, droneAboveLimitConflictLevel);
+                
+                if (!reprocessing) // If we are just processing new features, we don't have the whole context, so can't determine complex conflicts
                     continue;
                 
                 var processRpaResult = _rpaPresenceConflictDetector.ProcessConflictCandidate(featureToProcess);
@@ -158,7 +149,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
                     SetLabelColor(featureToProcess, ConflictLevel.None);
             }
 
-            if (reprocessing) // a non-reprocessing call shouldn't restart the timer, since we need to touch all features at least every N seconds
+            if (reprocessing)
             {
                 foreach (var conflictFeature in _rpaPresenceConflictDetector.GetConflictFeatures())
                 {
@@ -175,6 +166,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
                 _rpaPresenceConflictDetector.Reset();
                 _runwayApproachConflictDetector.Reset();
 
+                // A non-reprocessing call shouldn't restart the timer, since we need to touch all features at least every N seconds
                 RestartTimer();
             }
         }
@@ -196,13 +188,18 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         };
     }
 
-    private void SetDroneAboveLimit(PointFeature feature)
+    private bool IsDroneAboveLimit(PointFeature feature)
     {
+        var scoutData = feature.GetScoutData();
+
+        if (scoutData?.IsDrone() is not true)
+            return false;
+
         if (!TryGetIntersectingVerticalLimit(feature, out var verticalLimit))
-            feature[DroneAboveLimitFeatureField] = null;
+            return false;
 
         var altitudeMeters = feature.GetScoutData()?.Odid.Location?.AltitudeBaro;
-        feature[DroneAboveLimitFeatureField] = altitudeMeters >= verticalLimit ? true : null; // Drone is dangerous when it's high up
+        return altitudeMeters >= verticalLimit; // Drone is dangerous when it's high up
     }
 
     private static bool IsFeatureInactive(PointFeature existingFeature, DateTime utcNow)

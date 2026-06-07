@@ -5,89 +5,80 @@ using SystemColor = System.Drawing.Color;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
-public interface IAircraftSymbolProvider
+public class TargetStyleBuilder(SvgStyleProvider svgStyleProvider)
 {
-    IStyle GetAirplaneStyle(SymbolState state);
-    IStyle GetVehicleStyle(SymbolState state);
-    IStyle GetDroneStyle(SymbolState state);
-}
-
-public enum SymbolState
-{
-    Default,
-    Selected,
-    Stale,
-    DroneAboveLimit,
-}
-
-public class AircraftSymbolProvider(SvgStyleProvider svgStyleProvider) : IAircraftSymbolProvider
-{
+    private const string SvgSymbolFileName = "hexagon-full.svg";
     private readonly int _hexagonIdDefault = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.Blue, SystemColor.Blue);
     private readonly int _hexagonIdSelected = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.Yellow, SystemColor.Yellow);
     private readonly int _hexagonIdStale = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.WhiteSmoke, SystemColor.WhiteSmoke);
-    private readonly int _hexagonIdBelowLimit = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.MediumVioletRed, SystemColor.MediumVioletRed);
+    // private readonly int _hexagonIdBelowLimit = svgStyleProvider.RegisterSvg(SvgSymbolFileName, SystemColor.MediumVioletRed, SystemColor.MediumVioletRed);
+    
+    private SymbolStyle _symbolStyle = new();
+    private ScoutData? _scoutData;
+    private readonly Brush _defaultBrush = new (MapsuiColor.Green);
+    private readonly Brush _selectedBrush = new (MapsuiColor.Yellow);
+    private readonly Brush _staleBrush = new (MapsuiColor.WhiteSmoke);
 
-    private const string SvgSymbolFileName = "hexagon-full.svg";
-
-    private static SymbolStyle GetBaseStyle() => new()
+    public TargetStyleBuilder Initialize(ScoutData scoutData)
     {
-        SymbolScale = 0.25f,
-        // Outline = new Pen(MapsuiColor.Black, 3),
-        Fill = new Brush(MapsuiColor.Green)
-    };
-
-    private static SymbolStyle GetBaseStyleSelected() => new()
-    {
-        SymbolScale = 0.4f,
-        Fill = new Brush(MapsuiColor.Yellow)
-    };
-
-    private static SymbolStyle GetStaleStyle() => new()
-    {
-        SymbolScale = 0.25f,
-        Fill = new Brush(MapsuiColor.WhiteSmoke)
-    };
-
-    public IStyle GetAirplaneStyle(SymbolState state)
-    {
-        var style = GetStateStyle(state);
-        style.SymbolType = SymbolType.Rectangle;
-        return style;
-    }
-
-    private static SymbolStyle GetStateStyle(SymbolState state)
-    {
-        var style = state switch
+        _scoutData = scoutData;
+        _symbolStyle = new SymbolStyle
         {
-            SymbolState.Default => GetBaseStyle(),
-            SymbolState.Selected => GetBaseStyleSelected(),
-            SymbolState.Stale => GetStaleStyle(),
-            SymbolState.DroneAboveLimit => GetBaseStyle(), // This is a weird one - apart from scale, these methods do nothing to drone/SVG symbol, and we're not getting this value for non-drone features. I don't like zis class!
-            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
+            SymbolScale = 0.25f,
+            Fill = _defaultBrush
         };
-        return style;
+        
+        ConfigureSymbolType();
+        return this;
     }
-
-    public IStyle GetVehicleStyle(SymbolState state)
+    
+    private void ConfigureSymbolType()
     {
-        var style = GetStateStyle(state);
-        style.SymbolType = SymbolType.Ellipse;
-        return style;
-    }
-
-    public IStyle GetDroneStyle(SymbolState state)
-    {
-        var style = GetStateStyle(state);
-        style.SymbolType = SymbolType.Image;
-        style.BitmapId = state switch
+        if (_scoutData!.IsDrone())
         {
-            SymbolState.Default => _hexagonIdDefault,
-            SymbolState.Selected => _hexagonIdSelected,
-            SymbolState.Stale => _hexagonIdStale,
-            SymbolState.DroneAboveLimit => _hexagonIdBelowLimit,
-            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
-        };
-        style.SymbolScale = state == SymbolState.Selected ? 0.025f : 0.015f;
-        return style;
+            _symbolStyle.SymbolType = SymbolType.Image;
+            _symbolStyle.BitmapId = _hexagonIdDefault;
+            _symbolStyle.SymbolScale = 0.015f;
+        }
+        else if (_scoutData.IsVehicle())
+            _symbolStyle.SymbolType = SymbolType.Ellipse;
+        else
+            _symbolStyle.SymbolType = SymbolType.Rectangle;
+    }
+
+    public SymbolStyle Build()
+    {
+        CheckInit();
+        _scoutData = null;
+        return _symbolStyle;
+    }
+
+    private void CheckInit()
+    {
+        if (_scoutData is null)
+            throw new InvalidOperationException("Initialize() must be called before using the builder.");
+    }
+
+    public TargetStyleBuilder WithSelected()
+    {
+        CheckInit();
+        _symbolStyle.SymbolScale = _scoutData!.IsDrone() ? 0.025f : 0.4f;
+        if (_scoutData.IsDrone())
+            _symbolStyle.BitmapId = _hexagonIdSelected;
+        else 
+            _symbolStyle.Fill = _selectedBrush;
+        
+        return this;
+    }
+    
+    public TargetStyleBuilder WithStale()
+    {
+        CheckInit();
+        if (_scoutData!.IsDrone())
+            _symbolStyle.BitmapId = _hexagonIdStale;
+        else 
+            _symbolStyle.Fill = _staleBrush;
+
+        return this;
     }
 }

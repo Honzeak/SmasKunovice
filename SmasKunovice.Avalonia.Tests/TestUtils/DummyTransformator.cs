@@ -1,6 +1,6 @@
 using SmasKunovice.Avalonia.Models;
 
-namespace SmasKunovice.Avalonia.Tests;
+namespace SmasKunovice.Avalonia.Tests.TestUtils;
 
 public class DummyTransformator : IScoutDataCoordTransformation
 {

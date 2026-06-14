@@ -23,7 +23,7 @@ public class Wgs84ToKrovakTransformator : IScoutDataCoordTransformation
                 targetCrs);
     }
 
-    public (double lon, double lat) TransformCoords(double longitude, double latitude)
+    private (double lon, double lat) TransformCoords(double longitude, double latitude)
     {
         var coord = _coordinateTransformation.MathTransform.Transform(new Coordinate(longitude, latitude));
 

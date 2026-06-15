@@ -1,8 +1,4 @@
-using Mapsui;
-using Mapsui.Layers;
 using SmasKunovice.Avalonia.Models;
-using SmasKunovice.Avalonia.Models.Mapsui;
-using SmasKunovice.Avalonia.Tests.Mapsui;
 using SmasKunovice.Avalonia.Tests.TestUtils;
 
 namespace SmasKunovice.Avalonia.Tests.Integration;
@@ -31,12 +27,12 @@ public class ScoutDataMqttClientAdapterTests
     // }
     
     [Test]
-    public void ConnectAsync_WithValidOptions_ShouldConnect()
+    public async Task ConnectAsync_WithValidOptions_ShouldConnect()
     {
         var mockOptions = TestHelpers.CreateClientAdapterOptions();
 
         using var dronetagClient = new ScoutDataMqttClientAdapter(new DummyTransformator(), mockOptions);
-        dronetagClient.ConnectAsync().GetAwaiter().GetResult();
+        await dronetagClient.ConnectAsync();
         var messageReceivedEvent = new ManualResetEventSlim(false);
         dronetagClient.MessageReceived += (sender, e) =>
         {

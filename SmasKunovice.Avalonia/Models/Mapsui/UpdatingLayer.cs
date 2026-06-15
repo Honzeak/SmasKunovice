@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using Mapsui;
-using Mapsui.Extensions;
 using Mapsui.Fetcher;
 using Mapsui.Layers;
 using Mapsui.Providers;
@@ -89,9 +87,9 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
         if (fetchUpdates)
         {
             var updateFeatures = (await _dataSource.GetFeaturesAsync(_fetchInfo)).Cast<PointFeature>().ToList();
-            foreach (var kvp in updateFeatures.ToDictionary(pf => pf.GetScoutDataId() ?? "UNKNOWN").Where(kvp => !kvp.Key.Equals("UNKNOWN")))
+            foreach (var pointFeature in updateFeatures)
             {
-                PointFeatures[kvp.Key] = kvp.Value;
+                PointFeatures[pointFeature.GetScoutDataId()] = pointFeature;
             }
 
             await ProcessFeaturesAsync(updateFeatures, false);

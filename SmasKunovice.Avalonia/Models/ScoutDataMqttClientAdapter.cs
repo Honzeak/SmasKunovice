@@ -1,5 +1,9 @@
 using System;
+using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
+using System.Linq;
 using System.Security.Authentication;
 using System.Text;
 using System.Text.Json;
@@ -7,7 +11,6 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using MQTTnet;
-using MQTTnet.Adapter;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models.Config;
 
@@ -18,10 +21,10 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
     private readonly IMqttClient _client;
     private readonly MqttClientOptions _connectOptions;
     private readonly IScoutDataCoordTransformation _transformation;
-    private readonly bool _logReceivedMessages;
     private readonly string _messagesLogPath = string.Empty;
-    private readonly Channel<string> _loggingChannel = Channel.CreateUnbounded<string>();
+    private readonly Channel<byte[]> _loggingChannel = Channel.CreateUnbounded<byte[]>();
     private readonly Task? _loggingTask;
+    private readonly ClientAdapterOptions _adapterOptions;
     private bool _disposed;
 
     public event IDronetagClient.DronetagDataReceivedEventHandler? MessageReceived;
@@ -30,18 +33,17 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
     public ScoutDataMqttClientAdapter(IScoutDataCoordTransformation transformation, IOptions<ClientAdapterOptions> options)
     {
         _transformation = transformation;
-        var adapterOptions = options.Value;
-        _logReceivedMessages = adapterOptions.LogReceivedMessages;
-        if (_logReceivedMessages)
+        _adapterOptions = options.Value;
+        if (_adapterOptions.LogReceivedMessages)
         {
-            _loggingTask = Task.Run(ProcessLogQueue);
             Directory.CreateDirectory("ScoutMessages");
             _messagesLogPath = Path.Combine("ScoutMessages", $"log-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.log");
+            _loggingTask = Task.Run(ProcessLogQueue);
         }
 
         _client = new MqttClientFactory().CreateMqttClient();
         var connectionBuilder = new MqttClientOptionsBuilder()
-            .WithTcpServer(adapterOptions.Host, adapterOptions.Port)
+            .WithTcpServer(_adapterOptions.Host, _adapterOptions.Port)
             .WithTlsOptions(builder =>
                 builder.UseTls()
                     .WithAllowUntrustedCertificates()
@@ -49,12 +51,12 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
                     .WithSslProtocols(SslProtocols.None)
             )
             .WithCleanSession();
-        if (adapterOptions.HasCredentials)
-            connectionBuilder.WithCredentials(adapterOptions.Username, adapterOptions.Password);
+        if (_adapterOptions.HasCredentials)
+            connectionBuilder.WithCredentials(_adapterOptions.Username, _adapterOptions.Password);
 
         _connectOptions = connectionBuilder.Build();
 
-        SetupConnectionEvents(adapterOptions);
+        SetupConnectionEvents(_adapterOptions);
         LogExtensions.LogInfo("Dronetag MQTT client adapter initialized.", this);
     }
 
@@ -97,61 +99,59 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
             return Task.CompletedTask;
         };
 
-        _client.ApplicationMessageReceivedAsync += async e =>
+        _client.ApplicationMessageReceivedAsync += e =>
         {
-            if (e.ApplicationMessage.Topic.Equals(adapterOptions.HeartbeatTopic))
+            try
             {
-                // LogExtensions.LogDebug("Received message on Heartbeat topic.", this);
-                ProcessHeartbeatMessage(e);
+                if (e.ApplicationMessage.Topic.Equals(adapterOptions.HeartbeatTopic))
+                {
+                    // LogExtensions.LogDebug("Received message on Heartbeat topic.", this);
+                    ProcessHeartbeatMessage(e);
+                }
+                else if (e.ApplicationMessage.Topic.Equals(adapterOptions.OdidTopic))
+                {
+                    // LogExtensions.LogDebug("Received message on ODID topic.", this);
+                    ProcessOdidMessage(e);
+                }
+                else
+                {
+                    LogExtensions.LogWarning("Received message on unknown topic.", this);
+                }
+
+                return Task.CompletedTask;
             }
-            else if (e.ApplicationMessage.Topic.Equals(adapterOptions.OdidTopic))
+            catch (Exception exception)
             {
-                // LogExtensions.LogDebug("Received message on ODID topic.", this);
-                await ProcessOdidMessage(e);
-            }
-            else
-            {
-                LogExtensions.LogWarning("Received message on unknown topic.", this);
+                return Task.FromException(exception);
             }
         };
     }
 
-    private void ProcessHeartbeatMessage(
-        MqttApplicationMessageReceivedEventArgs mqttApplicationMessageReceivedEventArgs)
+    private void ProcessHeartbeatMessage(MqttApplicationMessageReceivedEventArgs mqttApplicationMessageReceivedEventArgs)
     {
         // TODO implement heartbeat processing
         HeartbeatReceived?.Invoke(this, Encoding.UTF8.GetString(mqttApplicationMessageReceivedEventArgs.ApplicationMessage.Payload));
         LogExtensions.LogDebug("Received Heartbeat message: {0}", this, mqttApplicationMessageReceivedEventArgs.ApplicationMessage.Payload);
     }
 
-    private async Task ProcessOdidMessage(MqttApplicationMessageReceivedEventArgs eventArgs)
+    private void ProcessOdidMessage(MqttApplicationMessageReceivedEventArgs eventArgs)
     {
         try
         {
-            var message = Encoding.UTF8.GetString(eventArgs.ApplicationMessage.Payload);
-            if (_logReceivedMessages)
-                await LogJsonMessage(message);
+            var payload = eventArgs.ApplicationMessage.Payload;
+            if (payload.IsEmpty)
+                return;
 
-            // Deserialize the JSON payload into the ScoutData object
-            var scoutData = JsonSerializer.Deserialize<ScoutData>(message, ScoutData.SerializerOptions);
-
-            if (scoutData != null)
+            if (_adapterOptions.IsCompressedData)
             {
-                scoutData = _transformation.TransformScoutDataCoords(scoutData);
+                payload = DecompressPayload(payload);
+            }
 
-                // if (scoutData.HasLocation)
-                //     LogExtensions.LogDebug("ODID coords after transform: {0}, {1}", this, scoutData.Odid.Location!.Longitude!, scoutData.Odid.Location.Latitude!);
-                // else
-                // {
-                //     LogExtensions.LogDebug("ODID message didn't have coordinates.", this);
-                // }
-                MessageReceived?.Invoke(this, new ScoutDataReceivedEventArgs { Messages = [scoutData] });
-            }
-            else
-            {
-                LogExtensions.LogError("Failed to deserialize scout data.", this);
-                eventArgs.ProcessingFailed = true;
-            }
+            if (_adapterOptions.LogReceivedMessages)
+                LogJsonMessage(payload.ToArray());
+
+            var scoutDataList = DeserializeScoutData(payload);
+            MessageReceived?.Invoke(this, new ScoutDataReceivedEventArgs { Messages = scoutDataList });
         }
         catch (Exception ex)
         {
@@ -159,10 +159,81 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
         }
     }
 
-    private Task LogJsonMessage(string message)
+    private List<ScoutData> DeserializeScoutData(ReadOnlySequence<byte> payload)
+    {
+        var reader = new Utf8JsonReader(payload);
+        List<ScoutData>? scoutDataList;
+        if (_adapterOptions.IsBatchedData)
+        {
+            scoutDataList = JsonSerializer.Deserialize<List<ScoutData>>(ref reader, ScoutData.SerializerOptions);
+            if (scoutDataList is not null && scoutDataList.Count > 0)
+            {
+                scoutDataList = scoutDataList.Select(scoutData => _transformation.TransformScoutDataCoords(scoutData)).ToList();
+            }
+            else
+            {
+                throw new Exception("Received ODID message with no data.");
+            }
+        }
+        else
+        {
+            var scoutData = JsonSerializer.Deserialize<ScoutData>(ref reader, ScoutData.SerializerOptions);
+            if (scoutData is not null)
+            {
+                scoutDataList = [_transformation.TransformScoutDataCoords(scoutData)];
+            }
+            else
+            {
+                throw new Exception("Received ODID message with no data.");
+            }
+        }
+
+        return scoutDataList;
+    }
+
+    private static ReadOnlySequence<byte> DecompressPayload(ReadOnlySequence<byte> payload)
+    {
+        var compressedLength = (int)payload.Length;
+        var compressedBuffer = ArrayPool<byte>.Shared.Rent(compressedLength);
+        var decompressedBuffer = ArrayPool<byte>.Shared.Rent(Math.Max(compressedLength * 4, 4096));
+        try
+        {
+            payload.CopyTo(compressedBuffer);
+            using var memoryStream = new MemoryStream(compressedBuffer, 0, compressedLength);
+            using var gzipStream = new GZipStream(memoryStream, CompressionMode.Decompress);
+            var totalRead = 0;
+            while (true)
+            {
+                var remaining = decompressedBuffer.Length - totalRead;
+                if (remaining == 0)
+                {
+                    // Dynamic growth: Double the buffer size if the JSON is larger than anticipated
+                    var newBuffer = ArrayPool<byte>.Shared.Rent(decompressedBuffer.Length * 2);
+                    Buffer.BlockCopy(decompressedBuffer, 0, newBuffer, 0, totalRead);
+                    ArrayPool<byte>.Shared.Return(decompressedBuffer);
+                    decompressedBuffer = newBuffer;
+                    remaining = decompressedBuffer.Length - totalRead;
+                }
+
+                var read = gzipStream.Read(decompressedBuffer, totalRead, remaining);
+                if (read == 0)
+                    break; // Fully decompressed
+
+                totalRead += read;
+            }
+
+            return new ReadOnlySequence<byte>(decompressedBuffer, 0, totalRead);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(compressedBuffer);
+            ArrayPool<byte>.Shared.Return(decompressedBuffer);
+        }
+    }
+
+    private void LogJsonMessage(byte[] message)
     {
         _loggingChannel.Writer.TryWrite(message);
-        return Task.CompletedTask;
     }
 
     public async Task ConnectAsync()

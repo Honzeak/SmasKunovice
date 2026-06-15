@@ -13,6 +13,7 @@ public static class TestHelpers
         var configuration = new ConfigurationBuilder()
             .SetBasePath(appSettingsBasePath)
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddJsonFile("appsettings.User.json", optional: false, reloadOnChange: true)
             .AddUserSecrets<App>()
             .Build();
         var clientAdapterOptions = configuration.GetSection(nameof(ClientAdapterOptions)).Get<ClientAdapterOptions>();

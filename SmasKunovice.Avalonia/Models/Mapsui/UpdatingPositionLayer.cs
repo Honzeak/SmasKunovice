@@ -53,7 +53,18 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         _runwayApproachConflictDetector = runwayApproachConflictDetector;
         IsMapInfoLayer = true;
         Style = CreateStyle();
-        _ = RunUpdateLoopAsync(_cts.Token);
+        Task.Run(async () =>
+        {
+            try
+            {
+                await RunUpdateLoopAsync(_cts.Token);
+
+            }
+            catch (Exception e)
+            {
+                LogExtensions.LogError(e, "Error updating position layer");
+            }
+        });
     }
 
     private void OnMapOnInfo(object? sender, MapInfoEventArgs e) => ToggleSelected(e.MapInfo?.Feature);

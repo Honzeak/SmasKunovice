@@ -15,7 +15,7 @@ public record ScoutData : IScoutData
 {
     public const string FeatureUasIdField = "ID";
     public const string FeatureScoutDataField = "ScoutData";
-    public const string TimestampFormat = "yyyy-MM-ddTHH:mm:ss.ffffff";
+    public const string TimestampFormat = "yyyy-MM-ddTHH:mm:ss.ffffffZ";
     public bool HasLocation => Odid.Location?.Latitude is not null && Odid.Location.Longitude is not null;
 
     public bool TryCreatePointFeature(out PointFeature? pointFeature)

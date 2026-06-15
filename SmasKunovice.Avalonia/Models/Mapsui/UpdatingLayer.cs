@@ -28,12 +28,16 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
     {
         _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
         if (_dataSource is IDynamic dynamic)
-            dynamic.DataChanged += (s, e) =>
+            dynamic.DataChanged += async (s, e) =>
             {
-                Catch.Exceptions(async () =>
+                try
                 {
                     await UpdateDataAsync(true);
-                });
+                }
+                catch (Exception exception)
+                {
+                    LogExtensions.LogError(exception, "Error updating layer");
+                }
             };
     }
 

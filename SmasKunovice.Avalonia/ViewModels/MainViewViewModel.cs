@@ -15,10 +15,8 @@ using Mapsui;
 using Mapsui.Layers;
 using Mapsui.Styles;
 using Mapsui.Tiling.Layers;
-using Microsoft.Extensions.Options;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models;
-using SmasKunovice.Avalonia.Models.Config;
 using SmasKunovice.Avalonia.Models.FakeClient;
 using SmasKunovice.Avalonia.Models.Mapsui;
 using SmasKunovice.Avalonia.Views;
@@ -27,7 +25,7 @@ using AvaloniaColor = Avalonia.Media.Color;
 
 namespace SmasKunovice.Avalonia.ViewModels;
 
-public partial class MainViewViewModel() : ViewModelBase, IDisposable
+public partial class MainViewViewModel : ViewModelBase, IDisposable
 {
     public const string IdOverrideFeatureAttribute = "displayIdOverride";
     [ObservableProperty] private Map _map = new();
@@ -45,23 +43,63 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
     [ObservableProperty] private SolidColorBrush _statusBrush = new();
 
     private List<ILayer> _procedureLayers = [];
-    private readonly IDronetagClient? _dronetagClient;
-    private readonly GeoJsonLayerStyleProvider? _layerStyleProvider;
-    private readonly AircraftDatabase? _aircraftDatabase;
-    private readonly SvgStyleProvider? _svgStyleProvider;
-    private UpdatingPositionLayer? _positionLayer;
+    private readonly GeoJsonLayerStyleProvider _layerStyleProvider;
+    private readonly AircraftDatabase _aircraftDatabase;
+    private readonly SvgStyleProvider _svgStyleProvider;
+    private UpdatingPositionLayer _positionLayer = null!;
     private readonly List<ILayer> _managedLayers = [];
     private IFeature? _selectedFeature;
-    private bool HasClient => _dronetagClient is not null;
+    private readonly DynamicScoutDataProvider _dynamicScoutDataProvider;
 
-    public MainViewViewModel(IDronetagClient dronetagClient, IOptions<ApplicationSettings> options) : this()
+    public MainViewViewModel(IDronetagClient dronetagClient)
     {
-        _dronetagClient = dronetagClient;
         _layerStyleProvider = new GeoJsonLayerStyleProvider(AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "AirportElements")));
         _aircraftDatabase = new AircraftDatabase(Directory.EnumerateFiles(AssetProvider.GetFullAssetPath("Database"), "*.csv", SearchOption.TopDirectoryOnly).Single());
         _svgStyleProvider = new SvgStyleProvider(AssetProvider.GetFullAssetPath("Svg"));
         ProcedureList.CollectionChanged += OnProcedureListChanged;
         InitializeStreamingStatus(dronetagClient);
+        _dynamicScoutDataProvider = new DynamicScoutDataProvider(dronetagClient);
+        CreateMap(new MapLayerFactory(_dynamicScoutDataProvider));
+    }
+
+    public async Task InitializeAsync()
+    {
+        await _dynamicScoutDataProvider.ConnectClientAsync();
+        LogExtensions.LogDebug("Initialized ScoutData provider", this);
+    }
+    
+    private void CreateMap(MapLayerFactory layerFactory)
+    {
+        var map = new Map();
+        try
+        {
+            map.CRS = "EPSG:5514";
+            // Dark grey
+            map.BackColor = MapsuiColor.FromString("#033052");
+            AddLayers(map, MapLayerFactory.CreateZtmDynamicLayers(ZtmDatasets.ZTM100, ZtmDatasets.ZTM25));
+            AddLayers(map, layerFactory.CreateAirportElementsLayers(_layerStyleProvider, out var procedureLayerNames).ToArray());
+            foreach (var procedure in CreateProceduresModelList(procedureLayerNames))
+            {
+                ProcedureList.Add(procedure);
+            }
+
+            _procedureLayers = map.Layers.Where(layer => layer.Name.StartsWith(MapLayerFactory.ProcedureLayerPrefix)).ToList();
+            _positionLayer = layerFactory.CreatePlanesPointLayer(_aircraftDatabase, _svgStyleProvider, map);
+            SetFeatureSelectedEvent();
+            var trajectoryLayer = layerFactory.CreateTrajectoryLayer(_positionLayer);
+            TrajectoryPointsCount = trajectoryLayer.ObservableQueueSize;
+            var speedVectorLayer = layerFactory.CreateSpeedVectorLayer(_positionLayer);
+            SpeedVectorMinuteInterval = speedVectorLayer.ObservableMinuteInterval;
+            AddLayers(map, trajectoryLayer, speedVectorLayer, _positionLayer);
+        }
+        catch (Exception e)
+        {
+            LogExtensions.LogError(e, "Failed to initialize map.", this);
+            throw;
+        }
+
+        Map = map;
+        UpdateDrawCtrOrAtz("CTR"); // Need to init this to avoid drawing both CTR and ATZ
     }
 
     private void InitializeStreamingStatus(IDronetagClient dronetagClient)
@@ -72,12 +110,12 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
             ScoutDataMqttClientAdapter => "Live streaming mode",
             _ => throw new ArgumentOutOfRangeException(nameof(dronetagClient))
         };
-        StatusBrush.Color = dronetagClient switch
+        StatusBrush = new SolidColorBrush(dronetagClient switch
         {
             LogfileDronetagClient => AvaloniaColor.Parse("#c4ba2b"),
             ScoutDataMqttClientAdapter => AvaloniaColor.Parse("#429929"),
             _ => throw new ArgumentOutOfRangeException(nameof(dronetagClient))
-        };
+        });
     }
 
     private void OnProcedureListChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -153,12 +191,12 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
         var result = await dialog.ShowDialog<string?>(parent!);
         if (result is null)
             return;
-        
+
         if (!IsFeatureSelected || _selectedFeature is null)
             return;
 
         _selectedFeature[IdOverrideFeatureAttribute] = result;
-        await _positionLayer!.RefreshData();
+        await _positionLayer.RefreshData();
     }
 
     public class DataPropertyRow
@@ -225,57 +263,12 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
 
     partial void OnShowSelectedFeatureLabelChanged(bool value)
     {
-        _positionLayer?.SetLabelVisibility(value);
-    }
-
-    public Map CreateMap() // TODO I would like to try creating the map in the constructor, then we don't need to keep reference to the drone tag client and dispose will be cleaner.
-    {
-        var map = new Map();
-        try
-        {
-            map.CRS = "EPSG:5514";
-            // Dark grey
-            map.BackColor = MapsuiColor.FromString("#033052");
-            var layerFactory = new MapLayerFactory(_dronetagClient);
-            AddLayers(map, MapLayerFactory.CreateZtmDynamicLayers(ZtmDatasets.ZTM100, ZtmDatasets.ZTM25));
-            AddLayers(map, layerFactory.CreateAirportElementsLayers(_layerStyleProvider!, out var procedureLayerNames).ToArray());
-            foreach (var procedure in CreateProceduresModelList(procedureLayerNames))
-            {
-                ProcedureList.Add(procedure);
-            }
-
-            _procedureLayers = map.Layers.Where(layer => layer.Name.StartsWith(MapLayerFactory.ProcedureLayerPrefix)).ToList();
-
-            if (HasClient)
-            {
-                _positionLayer = layerFactory.CreatePlanesPointLayer(_aircraftDatabase!, _svgStyleProvider, map);
-                SetFeatureSelectedEvent();
-                var trajectoryLayer = layerFactory.CreateTrajectoryLayer(_positionLayer);
-                TrajectoryPointsCount = trajectoryLayer.ObservableQueueSize;
-                var speedVectorLayer = layerFactory.CreateSpeedVectorLayer(_positionLayer);
-                SpeedVectorMinuteInterval = speedVectorLayer.ObservableMinuteInterval;
-                AddLayers(map, trajectoryLayer, speedVectorLayer, _positionLayer);
-            }
-            else
-                LogExtensions.LogError("{0} not provided. Creating map without SMAS data.", this,
-                    nameof(IDronetagClient));
-
-            // map.Home = nav => nav.CenterOnAndZoomTo(new MPoint(-539192.3d, -1184647.4d), 8);
-        }
-        catch (Exception e)
-        {
-            LogExtensions.LogError(e, "Failed to initialize map.", this);
-            throw;
-        }
-
-        Map = map;
-        UpdateDrawCtrOrAtz("CTR"); // Need to init this to avoid drawing both CTR and ATZ
-        return Map;
+        _positionLayer.SetLabelVisibility(value);
     }
 
     private void SetFeatureSelectedEvent()
     {
-        _positionLayer!.SelectedFeatureChanged += (sender, feature) =>
+        _positionLayer.SelectedFeatureChanged += (sender, feature) =>
         {
             IsFeatureSelected = feature is not null;
             ShowSelectedFeatureLabel = feature?.Styles.OfType<LabelStyle>().FirstOrDefault()?.Enabled ?? false;
@@ -318,12 +311,20 @@ public partial class MainViewViewModel() : ViewModelBase, IDisposable
 
     public void Dispose()
     {
+        ProcedureList.CollectionChanged -= OnProcedureListChanged;
+
+        foreach (var selectProcedure in ProcedureList)
+        {
+            selectProcedure.PropertyChanged -= OnSelectProcedureChanged;
+        }
+        
         Map.Dispose();
         foreach (var layer in _managedLayers)
         {
             layer.Dispose();
         }
-
+        
+        _dynamicScoutDataProvider.Dispose();
         GC.SuppressFinalize(this);
     }
 }

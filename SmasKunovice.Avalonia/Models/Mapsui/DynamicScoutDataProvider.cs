@@ -10,19 +10,28 @@ using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
-public class DynamicScoutDataProvider: MemoryProvider, IDynamic,  IDisposable
+public class DynamicScoutDataProvider : MemoryProvider, IDynamic, IDisposable
 {
     public event DataChangedEventHandler? DataChanged;
     private readonly IDronetagClient _client;
-    private List<ScoutData> _latestMessageData;
+    private List<ScoutData> _latestMessageData = [];
+    private bool _isConnected;
 
     public DynamicScoutDataProvider(IDronetagClient client)
     {
         _client = client;
-        _latestMessageData = [];
         _client.MessageReceived += ClientOnMessageReceived;
-        Task.Run(() => _client.ConnectAsync()).GetAwaiter().GetResult();
     }
+
+    public async Task ConnectClientAsync()
+    {
+        if (!_isConnected)
+        {
+            await _client.ConnectAsync();
+            _isConnected = true;
+        }
+    }
+
 
     private void ClientOnMessageReceived(object sender, ScoutDataReceivedEventArgs e)
     {
@@ -35,14 +44,20 @@ public class DynamicScoutDataProvider: MemoryProvider, IDynamic,  IDisposable
         DataChanged?.Invoke(this, new DataChangedEventArgs());
     }
 
-    public override Task<IEnumerable<IFeature>> GetFeaturesAsync(FetchInfo fetchInfo)
+    public override async Task<IEnumerable<IFeature>> GetFeaturesAsync(FetchInfo fetchInfo)
     {
+        if (!_isConnected)
+        {
+            LogExtensions.LogWarning("Dronetag client not connected while trying to fetch data.", this);
+            return [];
+        }
+
         var pointFeatures = _latestMessageData.Select(m =>
         {
             m.TryCreatePointFeature(out var pointFeature);
             return pointFeature;
         }).Where(f => f is not null).ToList();
-        return Task.FromResult<IEnumerable<IFeature>>(pointFeatures!);
+        return await Task.FromResult<IEnumerable<IFeature>>(pointFeatures!);
     }
 
     public void Dispose()
@@ -50,11 +65,14 @@ public class DynamicScoutDataProvider: MemoryProvider, IDynamic,  IDisposable
         Dispose(true);
         GC.SuppressFinalize(this);
     }
+
     protected virtual void Dispose(bool disposing)
     {
         if (disposing)
         {
-            _client.Dispose();
+            _client.MessageReceived -= ClientOnMessageReceived;
         }
+
+        _client.Dispose();
     }
 }

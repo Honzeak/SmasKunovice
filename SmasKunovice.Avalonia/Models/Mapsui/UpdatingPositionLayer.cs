@@ -34,6 +34,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
     private readonly RunwayApproachConflictDetector _runwayApproachConflictDetector;
     private readonly Map _map;
     private bool _disposed;
+    private readonly Task _updateLoopTask;
 
     public event EventHandler<IFeature?>? SelectedFeatureChanged;
 
@@ -53,18 +54,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         _runwayApproachConflictDetector = runwayApproachConflictDetector;
         IsMapInfoLayer = true;
         Style = CreateStyle();
-        Task.Run(async () =>
-        {
-            try
-            {
-                await RunUpdateLoopAsync(_cts.Token);
-
-            }
-            catch (Exception e)
-            {
-                LogExtensions.LogError(e, "Error updating position layer");
-            }
-        });
+        _updateLoopTask = Task.Run(() => RunUpdateLoopAsync(_cts.Token)); // Task.Run prevents the task to run on UI thread
     }
 
     private void OnMapOnInfo(object? sender, MapInfoEventArgs e) => ToggleSelected(e.MapInfo?.Feature);
@@ -78,8 +68,15 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
                 await UpdateDataAsync(false);
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+        }
+        catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception e)
+        {
+            LogExtensions.LogError(e, "Error updating position layer");
         }
     }
 
@@ -136,9 +133,11 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
 
     protected override async Task ProcessFeaturesAsync(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
     {
-        await _semaphore.WaitAsync();
+        var semaphoreAcquired = false;
         try
         {
+            await _semaphore.WaitAsync(_cts.Token);
+            semaphoreAcquired = true;
             var utcNow = DateTime.UtcNow;
             foreach (var updatedFeature in updateFeatures)
             {
@@ -177,7 +176,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
                     conflictLevel = ConflictLevel.Alarm;
                     LogExtensions.LogInfo("Found drone height limit conflict for feature ID: {0}, level: {1}", this, featureToProcess.GetScoutDataId(), conflictLevel);
                 }
-                
+
                 SetLabelColor(featureToProcess, conflictLevel);
             }
 
@@ -186,9 +185,13 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
                 ProcessConflictDetectors();
             }
         }
+        catch (OperationCanceledException) when (_cts.IsCancellationRequested)
+        {
+        }
         finally
         {
-            _semaphore.Release();
+            if (semaphoreAcquired)
+                _semaphore.Release();
         }
     }
 
@@ -332,6 +335,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
                 feature.GetScoutDataId());
             return false;
         }
+
         // GND - <num> m AGL
         var dashIndex = verticalLimitString.IndexOf('-');
         var mIndex = verticalLimitString.IndexOf('m');
@@ -345,7 +349,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
 
         var valueSpan = verticalLimitString.AsSpan(dashIndex + 1, mIndex - dashIndex - 1).Trim();
         var parseResult = int.TryParse(valueSpan, out var verticalLimitValue);
-        
+
         if (!parseResult)
         {
             LogExtensions.LogError("Failed to extract vertical limit value from string: {0}.", this, valueSpan.ToString());
@@ -371,6 +375,17 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         {
             _cts.Cancel();
             _timer.Dispose();
+            try
+            {
+                _updateLoopTask.GetAwaiter().GetResult();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+
             _cts.Dispose();
             _semaphore.Dispose();
             _map.Info -= OnMapOnInfo;

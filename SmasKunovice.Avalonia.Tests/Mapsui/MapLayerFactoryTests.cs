@@ -2,6 +2,7 @@ using Mapsui;
 using Mapsui.Styles;
 using Mapsui.Styles.Thematics;
 using Moq;
+using SmasKunovice.Avalonia.Models.FakeClient;
 using SmasKunovice.Avalonia.Models.Mapsui;
 
 namespace SmasKunovice.Avalonia.Tests.Models.Mapsui;
@@ -13,7 +14,7 @@ public class MapLayerFactoryTests
     public void TestCreateAirportElementsLayers()
     {
         // Should load file ApronGuidanceLineMarking.geojson
-        var layer = new MapLayerFactory()
+        var layer = new MapLayerFactory(new DynamicScoutDataProvider(new RandomMessageDronetagClient()))
             .CreateAirportElementsLayers(new GeoJsonLayerStyleProvider($"TestData\\{nameof(MapLayerFactoryTests)}"), out var procedureLayerNames)
             .Single();
         var featureMock = new Mock<IFeature>();

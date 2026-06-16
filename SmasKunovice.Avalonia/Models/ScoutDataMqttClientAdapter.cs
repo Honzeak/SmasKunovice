@@ -21,6 +21,7 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
     private readonly string _messagesLogPath = string.Empty;
     private readonly Channel<string> _loggingChannel = Channel.CreateUnbounded<string>();
     private readonly Task? _loggingTask;
+    private bool _disposed;
 
     public event IDronetagClient.DronetagDataReceivedEventHandler? MessageReceived;
     public event EventHandler<string>? HeartbeatReceived;
@@ -184,8 +185,17 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
 
     public void Dispose()
     {
+        if (_disposed)
+            return;
+        
+        if (_client.IsConnected)
+        {
+            _client.DisconnectAsync().GetAwaiter().GetResult();
+        }
         _loggingChannel.Writer.Complete();
         _loggingTask?.GetAwaiter().GetResult();
         _client.Dispose();
+        _disposed = true;
+        GC.SuppressFinalize(this);
     }
 }

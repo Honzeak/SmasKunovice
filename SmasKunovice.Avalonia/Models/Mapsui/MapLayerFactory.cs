@@ -14,23 +14,15 @@ using Extent = BruTile.Extent;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
-public class MapLayerFactory
+public class MapLayerFactory(DynamicScoutDataProvider dynamicScoutDataProvider)
 {
     private static readonly string RpaAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "Rpa.geojson"));
     private static readonly string ApproachZoneAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "ApproachProximityZone.geojson"));
     private static readonly string RunwayStartPointAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "runwayStartPoint.geojson"));
     private static readonly string DroneGridAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "DroneGridCtr.geojson"));
     private static readonly Dictionary<string, IPersistentCache<byte[]>?> ZtmTileCache = new();
-    private readonly DynamicScoutDataProvider? _dynamicScoutDataProvider;
     private const string ZtmBaseRestUrl = "https://ags.cuzk.gov.cz/arcgis1/rest/services/ZTM/{{ZTM_DATASET}}/MapServer/tile/{z}/{y}/{x}";
     public const string ProcedureLayerPrefix = "proc_";
-    private bool HasClient => _dynamicScoutDataProvider is not null;
-
-    public MapLayerFactory(IDronetagClient? client = null)
-    {
-        if (client is not null)
-            _dynamicScoutDataProvider = new DynamicScoutDataProvider(client);
-    }
 
     public static ILayer[] CreateZtmDynamicLayers(ZtmDatasets ztmDatasetFar, ZtmDatasets ztmDatasetNear)
     {
@@ -97,14 +89,11 @@ public class MapLayerFactory
 
     public UpdatingPositionLayer CreatePlanesPointLayer(AircraftDatabase aircraftDb, SvgStyleProvider svgStyleProvider, Map map)
     {
-        if (!HasClient)
-            throw new InvalidOperationException("Unable to create planes point layer without a client");
-
         var droneGridIntersectionDetector = new IntersectionDetector(DroneGridAssetPath);
         var rpaPresenceDetector = new RpaPresenceConflictDetector(RpaAssetPath);
         var runwayApproachConflictDetector = new RunwayApproachConflictDetector(RunwayStartPointAssetPath, ApproachZoneAssetPath);
         var targetStyleBuilder = new TargetStyleBuilder(svgStyleProvider);
-        return new UpdatingPositionLayer(_dynamicScoutDataProvider!, aircraftDb, targetStyleBuilder, map, droneGridIntersectionDetector, rpaPresenceDetector, runwayApproachConflictDetector)
+        return new UpdatingPositionLayer(dynamicScoutDataProvider, aircraftDb, targetStyleBuilder, map, droneGridIntersectionDetector, rpaPresenceDetector, runwayApproachConflictDetector)
         {
             Name = "Position layer",
         };
@@ -112,9 +101,6 @@ public class MapLayerFactory
 
     public UpdatingTrajectoryLayer CreateTrajectoryLayer(UpdatingPositionLayer positionLayer)
     {
-        if (!HasClient)
-            throw new InvalidOperationException("Unable to create trajectory layer without a client");
-
         var style = new SymbolStyle
         {
             Fill = new Brush(Color.FromString("#c3fc05")),
@@ -123,7 +109,7 @@ public class MapLayerFactory
             SymbolType = SymbolType.Ellipse
         };
 
-        return new UpdatingTrajectoryLayer(_dynamicScoutDataProvider!, positionLayer)
+        return new UpdatingTrajectoryLayer(dynamicScoutDataProvider, positionLayer)
         {
             Name = "Trajectory layer",
             Style = style
@@ -132,9 +118,6 @@ public class MapLayerFactory
 
     public UpdatingSpeedVectorLayer CreateSpeedVectorLayer(UpdatingPositionLayer positionLayer)
     {
-        if (!HasClient)
-            throw new InvalidOperationException("Unable to create speed vector layer without a client");
-
         var style = new VectorStyle
         {
             Line = new Pen
@@ -144,7 +127,7 @@ public class MapLayerFactory
             }
         };
 
-        return new UpdatingSpeedVectorLayer(_dynamicScoutDataProvider!, positionLayer)
+        return new UpdatingSpeedVectorLayer(dynamicScoutDataProvider, positionLayer)
         {
             Name = "Speed vector layer",
             Style = style

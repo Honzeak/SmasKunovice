@@ -9,13 +9,14 @@ public partial class MainView : UserControl
     public MainView()
     {
         InitializeComponent();
-        // DataContext = new MainViewViewModel();
-        // MapControl.Map = ((MainViewViewModel)DataContext).Map;
     }
 
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-        if (DataContext is MainViewViewModel vm) MapControl.Map = vm.CreateMap();
+        if (DataContext is not MainViewViewModel viewModel)
+            return;
+        
+        MapControl.Map = viewModel.Map;
     }
 }

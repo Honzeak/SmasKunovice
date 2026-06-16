@@ -1,5 +1,6 @@
 using System.Linq;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
@@ -29,13 +30,14 @@ public partial class App : Application
         var configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true) // Load appsettings.json
             .AddJsonFile("appsettings.User.json", optional: false, reloadOnChange: true) // Load appsettings.User.json")
-            .AddUserSecrets<App>(optional:true)
+            .AddUserSecrets<App>(optional: true)
             .Build();
-        
+
         var services = ConfigureServices(configuration);
         _serviceProvider = services.BuildServiceProvider();
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
             // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
             // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
             DisableAvaloniaDataAnnotationValidation();
@@ -44,10 +46,13 @@ public partial class App : Application
             {
                 DataContext = new MainWindowViewModel(mainViewViewModel),
             };
-            desktop.Exit += (s,e) =>
+            _ = mainViewViewModel.InitializeAsync();
+            desktop.Exit += (s, e) =>
             {
+                LogExtensions.LogInfo("Application exit started.", this);
                 _serviceProvider?.Dispose();
-                mainViewViewModel.Dispose();
+                LogExtensions.LogInfo("Service provider disposed.", this);
+                _serviceProvider = null;
             };
         }
 
@@ -65,11 +70,11 @@ public partial class App : Application
             var options = sp.GetRequiredService<IOptions<ClientAdapterOptions>>();
             if (string.IsNullOrEmpty(options.Value.ClientSourceLogFilePath))
             {
-                LogExtensions.LogInfo("Initializing MQTT client.",this);
+                LogExtensions.LogInfo("Initializing MQTT client.", this);
                 return new ScoutDataMqttClientAdapter(sp.GetRequiredService<IScoutDataCoordTransformation>(), options);
             }
-            
-            LogExtensions.LogInfo("Initializing log file client.",this);
+
+            LogExtensions.LogInfo("Initializing log file client.", this);
             return new LogfileDronetagClient(options, sp.GetRequiredService<IScoutDataCoordTransformation>());
         });
         services.AddSingleton<MainViewViewModel>();

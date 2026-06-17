@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Text.Json;
 using Mapsui.Layers;
+using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models.JsonConverters;
 
 namespace SmasKunovice.Avalonia.Models;
@@ -15,7 +16,8 @@ public record ScoutData : IScoutData
 {
     public const string FeatureUasIdField = "ID";
     public const string FeatureScoutDataField = "ScoutData";
-    public const string TimestampFormat = "yyyy-MM-ddTHH:mm:ss.ffffffZ";
+    public const string TimestampFormat = "yyyy-MM-ddTHH:mm:ss.ffffff";
+    public const string TimestampFormatNew = "yyyy-MM-ddTHH:mm:ss.ffffffZ";
     public bool HasLocation => Odid.Location?.Latitude is not null && Odid.Location.Longitude is not null;
 
     public bool TryCreatePointFeature(out PointFeature? pointFeature)
@@ -33,13 +35,6 @@ public record ScoutData : IScoutData
     public string GetUasId()
     {
         return Odid.BasicId[0].UasId;
-    }
-
-    public DateTime? GetTimestamp()
-    {
-        var updateTimeStampString = Odid.Location?.Timestamp;
-        if (updateTimeStampString is null) return null;
-        return DateTime.ParseExact(updateTimeStampString, TimestampFormat, NumberFormatInfo.InvariantInfo);
     }
 
     public static JsonSerializerOptions? SerializerOptions { get; } = new()
@@ -157,10 +152,31 @@ public record LocationData
         _latitude = latitude;
     }
 
+    public DateTime? GetTimestamp()
+    {
+        if (_timestamp is null)
+            return null;
+        if (_timestampFormat is null)
+        {
+            LogExtensions.LogError("Unknown timestamp format. Cannot parse into DateTime ({0})", this, _timestamp);
+            return null;
+        }
+
+        if (DateTime.TryParseExact(_timestamp, _timestampFormat, NumberFormatInfo.InvariantInfo, DateTimeStyles.None, out var dateTime)) 
+            return dateTime;
+        
+        LogExtensions.LogError("Failed to parse timestamp ({0}) into DateTime format ({1})", this, _timestamp, _timestampFormat);
+        return null;
+    }
+
     public void SetTimestamp(DateTime timestamp)
     {
-        _timestamp = timestamp.ToString(ScoutData.TimestampFormat, NumberFormatInfo.InvariantInfo);
+        if (_timestampFormat is null)
+            throw new InvalidOperationException("Setting timestamp without prior property initialization is not allowed due to unknown timestamp format.");
+
+        _timestamp = timestamp.ToString(_timestampFormat, NumberFormatInfo.InvariantInfo);
     }
+
     /// <summary>
     /// UNDECLARED = 0, GROUND = 1, AIRBORNE = 2, EMERGENCY = 3, REMOTE_ID_SYSTEM_FAILURE = 4
     /// </summary>
@@ -185,14 +201,22 @@ public record LocationData
     /// <summary>
     /// -180-+180; 7 decimal places
     /// </summary>
-    public float? Longitude { get => _longitude; init => _longitude = value; }
+    public float? Longitude
+    {
+        get => _longitude;
+        init => _longitude = value;
+    }
 
     private float? _longitude;
 
     /// <summary>
     /// -90- +90; 7 decimal places
     /// </summary>
-    public float? Latitude { get => _latitude; init => _latitude = value; }
+    public float? Latitude
+    {
+        get => _latitude;
+        init => _latitude = value;
+    }
 
     private float? _latitude;
 
@@ -204,6 +228,7 @@ public record LocationData
         get => _altitudeBaro - 114; // Kunovice are 114 m above sea level, and received goe-altitude is often null, so let's use this as geo-altitude
         init => _altitudeBaro = value;
     }
+
     private readonly float? _altitudeBaro;
 
     /// <summary>
@@ -252,9 +277,24 @@ public record LocationData
     /// <summary>
     /// date-time in ISO 8601 format; UTC, maximal resolution 1/10 of second
     /// </summary>
-    public string? Timestamp { get => _timestamp; init => _timestamp = value; }
+    public string? Timestamp
+    {
+        get => _timestamp;
+        init
+        {
+            _timestampFormat = value switch
+            {
+                _ when DateTime.TryParseExact(value, ScoutData.TimestampFormatNew, NumberFormatInfo.InvariantInfo, DateTimeStyles.None, out _) => ScoutData.TimestampFormatNew,
+                _ when DateTime.TryParseExact(value, ScoutData.TimestampFormat, NumberFormatInfo.InvariantInfo, DateTimeStyles.None, out _) => ScoutData.TimestampFormat,
+                _ => null,
+            };
+            
+            _timestamp = value;
+        }
+    }
 
     private string? _timestamp;
+    private string? _timestampFormat;
 }
 
 public record SelfIdData

@@ -88,4 +88,86 @@ public class ScoutDataTests : TestBase
         Assert.That(pointFeature[ScoutData.FeatureScoutDataField], Is.EqualTo(scoutData));
         
     }
+    
+    [TestCase("2026-06-18T12:34:56.123456Z", true)]
+    [TestCase("2026-06-18T12:34:56.123456", false)]
+    public void GetTimestamp_WithSupportedTimestampFormats_ReturnsParsedDateTime(string timestamp, bool isUtc)
+    {
+        var scoutData = new ScoutData
+        {
+            Odid = new OdidData
+            {
+                BasicId = [new BasicIdData { UasId = "Letadylko1" }],
+                Location = new LocationData
+                {
+                    Timestamp = timestamp
+                }
+            }
+        };
+
+        var result = scoutData.Odid.Location.GetTimestamp();
+
+        var expectedDateTime = new DateTime(2026, 6, 18, 12, 34, 56, 123).AddTicks(4560);
+        Assert.That(result, Is.Not.Null);
+        if (isUtc)
+            result = result.Value.ToUniversalTime();
+        Assert.That(result, Is.EqualTo(expectedDateTime));
+    }
+
+    [Test]
+    public void GetTimestamp_WhenLocationIsNull_ReturnsNull()
+    {
+        var scoutData = new ScoutData
+        {
+            Odid = new OdidData
+            {
+                BasicId = [new BasicIdData { UasId = "Letadylko1" }],
+                Location = null
+            }
+        };
+
+        var result = scoutData.Odid.Location?.GetTimestamp();
+
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public void GetTimestamp_WhenTimestampIsNull_ReturnsNull()
+    {
+        var scoutData = new ScoutData
+        {
+            Odid = new OdidData
+            {
+                BasicId = [new BasicIdData { UasId = "Letadylko1" }],
+                Location = new LocationData
+                {
+                    Timestamp = null
+                }
+            }
+        };
+
+        var result = scoutData.Odid.Location.GetTimestamp();
+
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public void GetTimestamp_WhenTimestampHasInvalidFormat_ReturnsNull()
+    {
+        var scoutData = new ScoutData
+        {
+            Odid = new OdidData
+            {
+                BasicId = [new BasicIdData { UasId = "Letadylko1" }],
+                Location = new LocationData
+                {
+                    Timestamp = "invalid timestamp"
+                }
+            }
+        };
+
+        var result = scoutData.Odid.Location.GetTimestamp();
+
+        Assert.That(result, Is.Null);
+    }
 }

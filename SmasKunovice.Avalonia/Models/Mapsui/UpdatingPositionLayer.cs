@@ -241,7 +241,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
 
     private static bool IsFeatureInactive(PointFeature existingFeature, DateTime utcNow)
     {
-        var updateTimeStamp = existingFeature.GetScoutData()?.GetTimestamp();
+        var updateTimeStamp = existingFeature.GetScoutData()?.Odid.Location?.GetTimestamp();
         if (updateTimeStamp is null) // if the feature doesn't have a timestamp, we will update it to stale later
             return false;
 
@@ -250,7 +250,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
 
     private static void SetStaleFeature(PointFeature feature, DateTime utcNow)
     {
-        var updateTimeStamp = feature.GetScoutData()?.GetTimestamp();
+        var updateTimeStamp = feature.GetScoutData()?.Odid.Location?.GetTimestamp();
         if (updateTimeStamp is null)
         {
             feature[StaleFeatureField] = true; // if the feature doesn't have a timestamp, we consider it stale

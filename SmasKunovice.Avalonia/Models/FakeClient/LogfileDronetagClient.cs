@@ -49,7 +49,7 @@ public class LogfileDronetagClient : FakeDronetagClient
 
             await foreach (var message in messages)
             {
-                var messageTimestamp = message?.GetTimestamp();
+                var messageTimestamp = message?.Odid.Location?.GetTimestamp();
                 if (message is null || messageTimestamp is null) continue;
                 if (startTime is null)
                 {

@@ -225,6 +225,7 @@ public record LocationData
     /// </summary>
     public float? AltitudeBaro
     {
+        // TODO check if there is a better way to determine aircraft on the ground (analye logs?)
         get => _altitudeBaro - 114; // Kunovice are 114 m above sea level, and received goe-altitude is often null, so let's use this as geo-altitude
         init => _altitudeBaro = value;
     }

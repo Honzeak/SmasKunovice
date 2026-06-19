@@ -15,9 +15,9 @@ public class LogfileDronetagClient : FakeDronetagClient
     private readonly IScoutDataCoordTransformation _transformation;
     private readonly string _sourceLogFilePath;
 
-    private Task? _publishTask;
     private JsonArrayWrapperStream? _stream;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
+    private bool _disposed;
 
     public LogfileDronetagClient(IOptions<ClientAdapterOptions> options, IScoutDataCoordTransformation transformation)
     {
@@ -34,7 +34,7 @@ public class LogfileDronetagClient : FakeDronetagClient
     public override async Task ConnectAsync()
     {
         _stream = new JsonArrayWrapperStream(File.OpenRead(_sourceLogFilePath));
-        _publishTask = PublishMessagesAsync(_stream);
+        _ = PublishMessagesAsync(_stream);
         await base.ConnectAsync();
     }
 
@@ -80,6 +80,8 @@ public class LogfileDronetagClient : FakeDronetagClient
     
     protected override void Dispose(bool disposing)
     {
+        if (_disposed) return;
+        _disposed = true;
         if (disposing)
         {
             _cancellationTokenSource.Cancel();

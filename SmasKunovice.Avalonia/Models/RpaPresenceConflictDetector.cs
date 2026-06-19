@@ -33,6 +33,9 @@ public class RpaPresenceConflictDetector
         if (!_rpaIntersectionDetector.TryGetIntersectFeature(feature, out _))
             return false;
 
+        if (feature.GetScoutData()?.Odid.Location?.AltitudeBaro > 0)
+            return false;
+            
         _featuresInRpa.Add(feature);
         return true;
     }

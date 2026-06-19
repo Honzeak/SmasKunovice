@@ -9,13 +9,6 @@ namespace SmasKunovice.Avalonia.Models;
 
 public class RpaPresenceConflictDetector
 {
-    private bool IsConflict =>
-        _featuresInRpa.Any(f =>
-        {
-            var scoutData = f.GetScoutData();
-            return scoutData is not null && !scoutData.IsVehicle();
-        }) && _featuresInRpa.Count > 1;
-
     public bool IsRpaPresence => _featuresInRpa.Count > 0;
     private readonly List<PointFeature> _featuresInRpa = [];
     private readonly IntersectionDetector _rpaIntersectionDetector;
@@ -39,10 +32,15 @@ public class RpaPresenceConflictDetector
         _featuresInRpa.Add(feature);
         return true;
     }
+    
+    private bool IsConflict()
+    {
+        return _featuresInRpa.Count(f => f.GetScoutData()?.IsVehicle() == false) >= 2;
+    }
 
     public IEnumerable<ConflictFeature> GetConflictFeatures()
     {
-        return _featuresInRpa.Select(f => new ConflictFeature(f, IsConflict ? ConflictLevel.Alarm : ConflictLevel.None));
+        return _featuresInRpa.Select(f => new ConflictFeature(f, IsConflict() ? ConflictLevel.Alarm : ConflictLevel.None));
     }
 
     public void Reset()

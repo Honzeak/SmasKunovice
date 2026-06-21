@@ -1,5 +1,6 @@
 using System.Text.Json;
 using SmasKunovice.Avalonia.Models;
+using SmasKunovice.Avalonia.Models.Mapsui;
 
 namespace SmasKunovice.Avalonia.Tests;
 
@@ -23,6 +24,21 @@ public class IntersectionDetectorTests : TestBase
 
         var intersectResult = intersectionDetector.TryGetIntersectFeature(pointFeature!, out var intersectionFeature);
         Assert.That(intersectResult, Is.False);
+    }
+
+    [Test]
+    public void TestStruct() // Sanity check
+    {
+      const ConflictLevel none = ConflictLevel.None;
+      const ConflictLevel warning = ConflictLevel.Warning;
+      const ConflictLevel alarm = ConflictLevel.Alarm;
+
+      Assert.That(none, Is.LessThan(warning));
+      Assert.That(none, Is.LessThan(alarm));
+      Assert.That(warning, Is.LessThan(alarm));
+      Assert.That(warning, Is.GreaterThan(none));
+      Assert.That(alarm, Is.GreaterThan(none));
+      Assert.That(alarm, Is.GreaterThan(warning));
     }
 
     private const string ScoutDataPointJson = """

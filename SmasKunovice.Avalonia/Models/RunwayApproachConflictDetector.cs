@@ -17,6 +17,7 @@ public class RunwayApproachConflictDetector
     private readonly List<ConflictFeature> _conflictFeatures = [];
     private readonly Coordinate _runwayStartPoint;
     private readonly IntersectionDetector _approachZoneDetector;
+    private ConflictLevel _maxConflictLevel = ConflictLevel.None;
 
     public RunwayApproachConflictDetector(string runwayStartPointAssetPath, string approachZoneAssetPath)
     {
@@ -73,7 +74,11 @@ public class RunwayApproachConflictDetector
             return false;
         
         LogExtensions.LogInfo("Adding approach conflict candidate with ID: {0}", this, feature.GetScoutDataId());
-        _conflictFeatures.Add(new ConflictFeature(feature, timeToTargetSeconds > AlarmThresholdSeconds ? ConflictLevel.Warning : ConflictLevel.Alarm));
+        var conflictLevel = timeToTargetSeconds > AlarmThresholdSeconds ? ConflictLevel.Warning : ConflictLevel.Alarm;
+        if (conflictLevel > _maxConflictLevel)
+            _maxConflictLevel = conflictLevel;
+        
+        _conflictFeatures.Add(new ConflictFeature(feature, conflictLevel));
         return true;
     }
 
@@ -84,12 +89,15 @@ public class RunwayApproachConflictDetector
             foreach (var conflictFeature in _conflictFeatures)
                 conflictFeature.ConflictLevel = ConflictLevel.None;
         }
+        else
+            detector.SetConflict(_maxConflictLevel); // If there is an approach conflict, we want to set conflict for RPA features as well.
         
         return _conflictFeatures;
     }
     
     public void Reset()
     {
+        _maxConflictLevel = ConflictLevel.None;
         _conflictFeatures.Clear();
     }
     

@@ -197,16 +197,17 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
 
     private void ProcessConflictDetectors()
     {
-        foreach (var conflictFeature in _rpaPresenceConflictDetector.GetConflictFeatures())
-        {
-            SetLabelColor(conflictFeature.Feature, conflictFeature.ConflictLevel);
-            LogExtensions.LogInfo("Found conflict in RPA for feature ID: {0}, level: {1}", this, conflictFeature.Feature.GetScoutDataId(), conflictFeature.ConflictLevel);
-        }
-
+        // Runway approach detector additionally sets conflict for RPA candidates as well, so needs to be processed first.
         foreach (var conflictFeature in _runwayApproachConflictDetector.GetConflictFeatures(_rpaPresenceConflictDetector))
         {
             SetLabelColor(conflictFeature.Feature, conflictFeature.ConflictLevel);
             LogExtensions.LogInfo("Found conflict in runway approach for feature ID: {0}, level: {1}", this, conflictFeature.Feature.GetScoutDataId(), conflictFeature.ConflictLevel);
+        }
+        
+        foreach (var conflictFeature in _rpaPresenceConflictDetector.GetConflictFeatures())
+        {
+            SetLabelColor(conflictFeature.Feature, conflictFeature.ConflictLevel);
+            LogExtensions.LogInfo("Found conflict in RPA for feature ID: {0}, level: {1}", this, conflictFeature.Feature.GetScoutDataId(), conflictFeature.ConflictLevel);
         }
 
         _rpaPresenceConflictDetector.Reset();

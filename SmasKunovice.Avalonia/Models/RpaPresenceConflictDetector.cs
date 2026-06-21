@@ -12,6 +12,8 @@ public class RpaPresenceConflictDetector
     public bool IsRpaPresence => _featuresInRpa.Count > 0;
     private readonly List<PointFeature> _featuresInRpa = [];
     private readonly IntersectionDetector _rpaIntersectionDetector;
+    private bool _isConflictExternal;
+    private ConflictLevel _externalConflictLevel;
 
     public RpaPresenceConflictDetector(string rpaAssetPath)
     {
@@ -28,23 +30,34 @@ public class RpaPresenceConflictDetector
 
         if (feature.GetScoutData()?.Odid.Location?.AltitudeBaro > 0)
             return false;
-            
+
         _featuresInRpa.Add(feature);
         return true;
     }
-    
-    private bool IsConflict()
+
+    private ConflictLevel GetConflictLevel()
     {
-        return _featuresInRpa.Count(f => f.GetScoutData()?.IsVehicle() == false) >= 2;
+        if (_featuresInRpa.Count(f => f.GetScoutData()?.IsVehicle() == false) >= 2)
+            return ConflictLevel.Alarm;
+
+        return _isConflictExternal ? _externalConflictLevel : ConflictLevel.None;
     }
 
     public IEnumerable<ConflictFeature> GetConflictFeatures()
     {
-        return _featuresInRpa.Select(f => new ConflictFeature(f, IsConflict() ? ConflictLevel.Alarm : ConflictLevel.None));
+        return _featuresInRpa.Select(f => new ConflictFeature(f, GetConflictLevel()));
     }
 
     public void Reset()
     {
+        _isConflictExternal = false;
+        _externalConflictLevel = ConflictLevel.None;
         _featuresInRpa.Clear();
+    }
+
+    public void SetConflict(ConflictLevel conflictLevel)
+    {
+        _isConflictExternal = true;
+        _externalConflictLevel = conflictLevel;
     }
 }

@@ -14,7 +14,7 @@ using Extent = BruTile.Extent;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
-public class MapLayerFactory(DynamicScoutDataProvider dynamicScoutDataProvider)
+public class MapLayerFactory(DynamicScoutDataProvider dynamicScoutDataProvider, IErrorDialogService errorDialogService)
 {
     private static readonly string RpaAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "Rpa.geojson"));
     private static readonly string ApproachZoneAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "ApproachProximityZone.geojson"));
@@ -93,7 +93,7 @@ public class MapLayerFactory(DynamicScoutDataProvider dynamicScoutDataProvider)
         var rpaPresenceDetector = new RpaPresenceConflictDetector(RpaAssetPath);
         var runwayApproachConflictDetector = new RunwayApproachConflictDetector(RunwayStartPointAssetPath, ApproachZoneAssetPath);
         var targetStyleBuilder = new TargetStyleBuilder(svgStyleProvider);
-        return new UpdatingPositionLayer(dynamicScoutDataProvider, aircraftDb, targetStyleBuilder, map, droneGridIntersectionDetector, rpaPresenceDetector, runwayApproachConflictDetector)
+        return new UpdatingPositionLayer(dynamicScoutDataProvider, aircraftDb, targetStyleBuilder, map, droneGridIntersectionDetector, rpaPresenceDetector, runwayApproachConflictDetector, errorDialogService)
         {
             Name = "Position layer",
         };
@@ -109,7 +109,7 @@ public class MapLayerFactory(DynamicScoutDataProvider dynamicScoutDataProvider)
             SymbolType = SymbolType.Ellipse
         };
 
-        return new UpdatingTrajectoryLayer(dynamicScoutDataProvider, positionLayer)
+        return new UpdatingTrajectoryLayer(dynamicScoutDataProvider, errorDialogService, positionLayer)
         {
             Name = "Trajectory layer",
             Style = style
@@ -127,7 +127,7 @@ public class MapLayerFactory(DynamicScoutDataProvider dynamicScoutDataProvider)
             }
         };
 
-        return new UpdatingSpeedVectorLayer(dynamicScoutDataProvider, positionLayer)
+        return new UpdatingSpeedVectorLayer(dynamicScoutDataProvider, errorDialogService, positionLayer)
         {
             Name = "Speed vector layer",
             Style = style

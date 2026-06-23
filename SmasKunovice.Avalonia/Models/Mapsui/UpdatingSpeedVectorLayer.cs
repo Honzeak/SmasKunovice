@@ -23,7 +23,7 @@ public class UpdatingSpeedVectorLayer : UpdatingLayer<GeometryFeature>
         }
     };
 
-    public UpdatingSpeedVectorLayer(IProvider provider, UpdatingPositionLayer? positionLayer = null, int observableMinuteInterval = 5) : base(provider)
+    public UpdatingSpeedVectorLayer(IProvider provider, IErrorDialogService errorDialogService, UpdatingPositionLayer? positionLayer = null, int observableMinuteInterval = 5) : base(provider, errorDialogService)
     {
         _observableMinuteInterval = observableMinuteInterval;
         if (positionLayer is not null)

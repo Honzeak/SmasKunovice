@@ -43,7 +43,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         TargetStyleBuilder targetStyleBuilder,
         Map map, IntersectionDetector droneGridIntersectionDetector,
         RpaPresenceConflictDetector rpaPresenceConflictDetector,
-        RunwayApproachConflictDetector runwayApproachConflictDetector) : base(dataSource)
+        RunwayApproachConflictDetector runwayApproachConflictDetector, IErrorDialogService errorDialogService) : base(dataSource, errorDialogService)
     {
         _aircraftDatabase = aircraftDatabase;
         _targetStyleBuilder = targetStyleBuilder;
@@ -77,6 +77,8 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         catch (Exception e)
         {
             LogExtensions.LogError(e, "Error updating position layer");
+            Dispose();
+            await _errorDialogService.ShowErrorDialogAsync("Error updating position layer", e);
         }
     }
 
@@ -203,7 +205,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
             SetLabelColor(conflictFeature.Feature, conflictFeature.ConflictLevel);
             LogExtensions.LogInfo("Found conflict in runway approach for feature ID: {0}, level: {1}", this, conflictFeature.Feature.GetScoutDataId(), conflictFeature.ConflictLevel);
         }
-        
+
         foreach (var conflictFeature in _rpaPresenceConflictDetector.GetConflictFeatures())
         {
             SetLabelColor(conflictFeature.Feature, conflictFeature.ConflictLevel);

@@ -7,6 +7,7 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using MQTTnet;
+using MQTTnet.Adapter;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models.Config;
 
@@ -137,7 +138,7 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
             if (scoutData != null)
             {
                 scoutData = _transformation.TransformScoutDataCoords(scoutData);
-                
+
                 // if (scoutData.HasLocation)
                 //     LogExtensions.LogDebug("ODID coords after transform: {0}, {1}", this, scoutData.Odid.Location!.Longitude!, scoutData.Odid.Location.Latitude!);
                 // else
@@ -168,30 +169,32 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
     {
         if (_client.IsConnected)
             return;
-        
-        MqttClientConnectResult result;
-        try
-        {
-            result = await _client.ConnectAsync(_connectOptions);
-        }
-        catch (Exception e)
-        {
-            LogExtensions.LogError(e, "MQTT client connection failed", this);
-            throw;
-        }
 
-        LogExtensions.LogInfo("MQTT client connection result code: {0}", this, result.ResultCode);
+        var result = await _client.ConnectAsync(_connectOptions);
+        switch (result.ResultCode)
+        {
+            case MqttClientConnectResultCode.Success:
+                LogExtensions.LogInfo("MQTT client connected.", this);
+                break;
+            case MqttClientConnectResultCode.NotAuthorized:
+                LogExtensions.LogError("Invalid credentials provided for MQTT client connection.", this);
+                throw new InvalidOperationException("Invalid credentials provided for MQTT client connection.");
+            default:
+                LogExtensions.LogError("MQTT client connection failed with result code: {0}", this, result.ResultCode);
+                throw new InvalidOperationException($"MQTT client connection failed with result code: {result.ResultCode}");
+        }
     }
 
     public void Dispose()
     {
         if (_disposed)
             return;
-        
+
         if (_client.IsConnected)
         {
             _client.DisconnectAsync().GetAwaiter().GetResult();
         }
+
         _loggingChannel.Writer.Complete();
         _loggingTask?.GetAwaiter().GetResult();
         _client.Dispose();

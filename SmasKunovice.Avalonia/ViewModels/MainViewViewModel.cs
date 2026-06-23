@@ -46,12 +46,13 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
     private readonly GeoJsonLayerStyleProvider _layerStyleProvider;
     private readonly AircraftDatabase _aircraftDatabase;
     private readonly SvgStyleProvider _svgStyleProvider;
-    private UpdatingPositionLayer _positionLayer = null!;
+    private UpdatingPositionLayer? _positionLayer;
     private readonly List<ILayer> _managedLayers = [];
     private IFeature? _selectedFeature;
     private readonly DynamicScoutDataProvider _dynamicScoutDataProvider;
+    private readonly IErrorDialogService _errorDialogService;
 
-    public MainViewViewModel(IDronetagClient dronetagClient)
+    public MainViewViewModel(IDronetagClient dronetagClient, IErrorDialogService errorDialogService)
     {
         _layerStyleProvider = new GeoJsonLayerStyleProvider(AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "AirportElements")));
         _aircraftDatabase = new AircraftDatabase(Directory.EnumerateFiles(AssetProvider.GetFullAssetPath("Database"), "*.csv", SearchOption.TopDirectoryOnly).Single());
@@ -59,13 +60,22 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
         ProcedureList.CollectionChanged += OnProcedureListChanged;
         InitializeStreamingStatus(dronetagClient);
         _dynamicScoutDataProvider = new DynamicScoutDataProvider(dronetagClient);
-        CreateMap(new MapLayerFactory(_dynamicScoutDataProvider));
+        _errorDialogService = errorDialogService;
+        CreateMap(new MapLayerFactory(_dynamicScoutDataProvider, _errorDialogService));
     }
 
     public async Task InitializeAsync()
     {
-        await _dynamicScoutDataProvider.ConnectClientAsync();
-        LogExtensions.LogDebug("Initialized ScoutData provider", this);
+        try
+        {
+            await _dynamicScoutDataProvider.ConnectClientAsync();
+            LogExtensions.LogDebug("Initialized ScoutData provider", this);
+        }
+        catch (Exception e)
+        {
+            LogExtensions.LogError(e, "Error connecting to Dronetag client", this);
+            await _errorDialogService.ShowErrorDialogAsync("Error connecting to Dronetag client", e);
+        }
     }
     
     private void CreateMap(MapLayerFactory layerFactory)
@@ -95,7 +105,7 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
         catch (Exception e)
         {
             LogExtensions.LogError(e, "Failed to initialize map.", this);
-            throw;
+            _ = _errorDialogService.ShowErrorDialogAsync("Failed to initialize map.", e);
         }
 
         Map = map;
@@ -196,7 +206,10 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
             return;
 
         _selectedFeature[IdOverrideFeatureAttribute] = result;
-        await _positionLayer.RefreshData();
+        if (_positionLayer is not null)
+            await _positionLayer.RefreshData();
+        else
+            LogExtensions.LogError("Position layer is null. Unable to refresh data.", this);
     }
 
     public class DataPropertyRow
@@ -263,11 +276,14 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
 
     partial void OnShowSelectedFeatureLabelChanged(bool value)
     {
-        _positionLayer.SetLabelVisibility(value);
+        _positionLayer?.SetLabelVisibility(value);
     }
 
     private void SetFeatureSelectedEvent()
     {
+        if (_positionLayer is null)
+            return;
+        
         _positionLayer.SelectedFeatureChanged += (sender, feature) =>
         {
             IsFeatureSelected = feature is not null;

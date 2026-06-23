@@ -1,9 +1,13 @@
+using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
+using Mapsui.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -19,6 +23,7 @@ namespace SmasKunovice.Avalonia;
 public partial class App : Application
 {
     private ServiceProvider? _serviceProvider;
+    private readonly IErrorDialogService _errorDialogService = new ErrorDialogService();
 
     public override void Initialize()
     {
@@ -27,6 +32,8 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        SetupExceptionHandling();
+
         var configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true) // Load appsettings.json
             .AddJsonFile("appsettings.User.json", optional: false, reloadOnChange: true) // Load appsettings.User.json")
@@ -59,6 +66,61 @@ public partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
+    private void SetupExceptionHandling()
+    {
+        Logger.LogDelegate += (level, message, exception) =>
+        {
+            switch (level)
+            {
+                case LogLevel.Error:
+                if (exception is not null)    
+                    LogExtensions.LogError(exception, "Mapsui processing error.", this);
+                else
+                    LogExtensions.LogError($"Mapsui processing error: {message}", this);
+                // This is safe to run out-of-band; our service marshals back to UI Thread internally
+                Dispatcher.UIThread.Post(() => _errorDialogService.ShowErrorDialogAsync(
+                    "Mapsui Processing Error",
+                    exception
+                ));
+                    break;
+                case LogLevel.Warning:
+                    LogExtensions.LogWarning($"Mapsui warning: {message}", this);
+                    break;
+                case LogLevel.Information:
+                    LogExtensions.LogInfo($"Mapsui information: {message}", this);
+                    break;
+                case LogLevel.Debug:
+                    LogExtensions.LogDebug($"Mapsui debug: {message}", this);
+                    break;
+                case LogLevel.Trace:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(level), level, null);
+            }
+        };
+
+        // 2. Trap Avalonia UI Dispatcher UI Thread Crashes
+        Dispatcher.UIThread.UnhandledException += (sender, args) =>
+        {
+            // Instructs Avalonia to recover from the crash state and continue running
+            args.Handled = true;
+            _ = _errorDialogService.ShowErrorDialogAsync( "UI Render Thread Exception", args.Exception );
+        };
+
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            Dispatcher.UIThread.Post(() => _errorDialogService.ShowErrorDialogAsync("Background Thread Fault", args.Exception));
+            args.SetObserved();
+        };
+        
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            if (args.ExceptionObject is not Exception ex) return;
+
+            LogExtensions.LogFatal(ex, "Critical core crash - terminating.", this);
+        };
+    }
+
     private ServiceCollection ConfigureServices(IConfigurationRoot configuration)
     {
         var services = new ServiceCollection();
@@ -77,6 +139,7 @@ public partial class App : Application
             LogExtensions.LogInfo("Initializing log file client.", this);
             return new LogfileDronetagClient(options, sp.GetRequiredService<IScoutDataCoordTransformation>());
         });
+        services.AddSingleton<IErrorDialogService>(_ => _errorDialogService);
         services.AddSingleton<MainViewViewModel>();
         return services;
     }

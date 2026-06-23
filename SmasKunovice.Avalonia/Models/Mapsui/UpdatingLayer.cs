@@ -22,29 +22,39 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
 {
     public event EventHandler<string>? FeatureRemoved;
     private readonly IProvider _dataSource;
+    protected readonly IErrorDialogService _errorDialogService;
     private FetchInfo? _fetchInfo;
+    private bool _disposed;
 
-    protected UpdatingLayer(IProvider dataSource)
+    protected UpdatingLayer(IProvider dataSource, IErrorDialogService errorDialogService)
     {
+        _errorDialogService = errorDialogService ?? throw new ArgumentNullException(nameof(errorDialogService));
         _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
         if (_dataSource is IDynamic dynamic)
-            dynamic.DataChanged += async (s, e) =>
-            {
-                try
-                {
-                    await UpdateDataAsync(true);
-                }
-                catch (Exception exception)
-                {
-                    LogExtensions.LogError(exception, "Error updating layer");
-                }
-            };
+            dynamic.DataChanged += OnDataSourceDataChanged;
+    }
+
+    private async void OnDataSourceDataChanged(object? sender, EventArgs e)
+    {
+        if (_disposed)
+            return;
+
+        try
+        {
+            await UpdateDataAsync(true);
+        }
+        catch (Exception exception)
+        {
+            LogExtensions.LogError(exception, "Error updating layer");
+            Dispose();
+            await _errorDialogService.ShowErrorDialogAsync("Error updating layer", exception);
+        }
     }
 
     protected Dictionary<string, TFeature> Features { get; } = new();
     private Dictionary<string, PointFeature> PointFeatures { get; } = new();
     public override MRect? Extent => _dataSource.GetExtent();
-    
+
     protected abstract Task ProcessFeaturesAsync(IEnumerable<PointFeature> updateFeatures, bool reprocessing);
     protected abstract IEnumerable<IFeature> GetInterfaceFeatures();
 
@@ -55,6 +65,7 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
     {
         await UpdateDataAsync(false);
     }
+
     public void RefreshData(FetchInfo fetchInfo)
     {
         _fetchInfo = fetchInfo;
@@ -78,7 +89,7 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
         if (fetchUpdates)
         {
             var updateFeatures = (await _dataSource.GetFeaturesAsync(_fetchInfo)).Cast<PointFeature>().ToList();
-            foreach (var kvp in updateFeatures.ToDictionary(pf => pf.GetScoutDataId() ?? "UNKNOWN" ).Where(kvp => !kvp.Key.Equals("UNKNOWN")))
+            foreach (var kvp in updateFeatures.ToDictionary(pf => pf.GetScoutDataId() ?? "UNKNOWN").Where(kvp => !kvp.Key.Equals("UNKNOWN")))
             {
                 PointFeatures[kvp.Key] = kvp.Value;
             }
@@ -87,7 +98,7 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
         }
         else
             await ProcessFeaturesAsync(PointFeatures.Values, true);
-        
+
         OnDataChanged(new DataChangedEventArgs(Name));
     }
 
@@ -163,4 +174,22 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
     // /// Gets the current number of features in the layer.
     // /// </summary>
     // public int FeatureCount => _features.Count;
+    protected override void Dispose(bool disposing)
+    {
+        if (_disposed)
+            return;
+
+        if (disposing)
+        {
+            if (_dataSource is IDynamic dynamic)
+                dynamic.DataChanged -= OnDataSourceDataChanged;
+
+            Features.Clear();
+            PointFeatures.Clear();
+            FeatureRemoved = null;
+        }
+
+        _disposed = true;
+        base.Dispose(disposing);
+    }
 }

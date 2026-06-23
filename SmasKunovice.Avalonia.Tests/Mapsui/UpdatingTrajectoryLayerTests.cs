@@ -2,6 +2,7 @@ using Mapsui;
 using Mapsui.Layers;
 using SmasKunovice.Avalonia.Models;
 using SmasKunovice.Avalonia.Models.Mapsui;
+using SmasKunovice.Avalonia.Tests.TestUtils;
 
 namespace SmasKunovice.Avalonia.Tests.Mapsui
 {
@@ -77,7 +78,7 @@ namespace SmasKunovice.Avalonia.Tests.Mapsui
         {
             var fakeClient = new TestDroneTagClient();
             var dataProvider = new DynamicScoutDataProvider(fakeClient);
-            var layer = new UpdatingTrajectoryLayer(dataProvider);
+            var layer = new UpdatingTrajectoryLayer(dataProvider, new DummyErrorDialogService());
             layer.RefreshData(new FetchInfo(new MSection(TestDroneTagClient.GetExtent(), 1)));
             return (fakeClient, layer);
         }

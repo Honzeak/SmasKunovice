@@ -26,7 +26,7 @@ public class UpdatingTrajectoryLayer : UpdatingLayer<LinkedList<PointFeature>>
 
     private int _observableQueueSize = 1;
 
-    public UpdatingTrajectoryLayer(IProvider dataSource, UpdatingPositionLayer? positionLayer = null) : base(dataSource)
+    public UpdatingTrajectoryLayer(IProvider dataSource, IErrorDialogService errorDialogService, UpdatingPositionLayer? positionLayer = null) : base(dataSource, errorDialogService)
     {
         if (positionLayer is not null)
             positionLayer.FeatureRemoved += (sender, s) => RemoveFeature(s);

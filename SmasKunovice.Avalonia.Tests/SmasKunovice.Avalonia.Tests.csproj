@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
@@ -39,6 +39,10 @@
     <ItemGroup>
       <Content Include="..\SmasKunovice.Avalonia\appsettings.json">
         <Link>TestData\appsettings.json</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Include="..\SmasKunovice.Avalonia\appsettings.User.json">
+        <Link>TestData\appsettings.User.json</Link>
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
       <Content Include="..\SmasKunovice.Avalonia\Assets\GeoJsonElements\AirportElements\waypoints.geojson">

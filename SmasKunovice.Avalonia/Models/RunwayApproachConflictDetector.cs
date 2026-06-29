@@ -14,11 +14,12 @@ public class RunwayApproachConflictDetector
 {
     private const double WarningThresholdSeconds = 30;
     private const double AlarmThresholdSeconds = 15;
+    private const string Description = "Runway approach conflict";
     private readonly List<ConflictFeature> _conflictFeatures = [];
     private readonly Coordinate _runwayStartPoint;
     private readonly IntersectionDetector _approachZoneDetector;
     private ConflictLevel _maxConflictLevel = ConflictLevel.None;
-
+    
     public RunwayApproachConflictDetector(string runwayStartPointAssetPath, string approachZoneAssetPath)
     {
         if (!File.Exists(runwayStartPointAssetPath))
@@ -78,19 +79,19 @@ public class RunwayApproachConflictDetector
         if (conflictLevel > _maxConflictLevel)
             _maxConflictLevel = conflictLevel;
         
-        _conflictFeatures.Add(new ConflictFeature(feature, conflictLevel));
+        _conflictFeatures.Add(new ConflictFeature(feature, conflictLevel, Description));
         return true;
     }
 
-    public IEnumerable<ConflictFeature> GetConflictFeatures(RpaPresenceConflictDetector detector)
+    public IEnumerable<ConflictFeature> GetConflictFeatures(RpaPresenceConflictDetector rpaDetector)
     {
-        if (!detector.IsRpaPresence)
+        if (!rpaDetector.IsRpaPresence)
         {
             foreach (var conflictFeature in _conflictFeatures)
-                conflictFeature.ConflictLevel = ConflictLevel.None;
+                conflictFeature.ResetConflictLevel();
         }
         else
-            detector.SetConflict(_maxConflictLevel); // If there is an approach conflict, we want to set conflict for RPA features as well.
+            rpaDetector.SetConflict(_maxConflictLevel); // If there is an approach conflict, we want to set conflict for RPA features as well.
         
         return _conflictFeatures;
     }

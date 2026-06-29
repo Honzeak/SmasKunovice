@@ -9,8 +9,10 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using DynamicData;
 using Mapsui;
 using Mapsui.Layers;
 using Mapsui.Styles;
@@ -38,6 +40,7 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private List<int> _trajectoryPointsViewValues = [1, 10, 100, 500];
     [ObservableProperty] private List<int> _speedVectorMinuteIntervalViewValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 30];
     [ObservableProperty] private ObservableCollection<SelectProcedure> _procedureList = [];
+    [ObservableProperty] private ObservableCollection<ConflictNotification> _conflictNotifications = [];
     [ObservableProperty] private bool _drawCtrOrAtz = true;
     [ObservableProperty] private string _streamingStatusMessage = string.Empty;
     [ObservableProperty] private SolidColorBrush _statusBrush = new();
@@ -77,7 +80,7 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
             await _errorDialogService.ShowErrorDialogAsync("Error connecting to Dronetag client", e);
         }
     }
-    
+
     private void CreateMap(MapLayerFactory layerFactory)
     {
         var map = new Map();
@@ -96,6 +99,7 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
             _procedureLayers = map.Layers.Where(layer => layer.Name.StartsWith(MapLayerFactory.ProcedureLayerPrefix)).ToList();
             _positionLayer = layerFactory.CreatePlanesPointLayer(_aircraftDatabase, _svgStyleProvider, map);
             SetFeatureSelectedEvent();
+            SetConflictChangedEvents();
             var trajectoryLayer = layerFactory.CreateTrajectoryLayer(_positionLayer);
             TrajectoryPointsCount = trajectoryLayer.ObservableQueueSize;
             var speedVectorLayer = layerFactory.CreateSpeedVectorLayer(_positionLayer);
@@ -279,11 +283,32 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
         _positionLayer?.SetLabelVisibility(value);
     }
 
+
+    private void SetConflictChangedEvents()
+    {
+        if (_positionLayer is null)
+            return;
+
+        _positionLayer.NewConflict += (sender, conflictFeature) =>
+        {
+            Dispatcher.UIThread.Post(() => ConflictNotifications.Add(new ConflictNotification(conflictFeature)));
+        };
+
+        _positionLayer.ResolvedConflictsForAircraft += (sender, removeId) =>
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                var toRemove = ConflictNotifications.Where(cn => cn.AircraftId.Equals(removeId));
+                ConflictNotifications.RemoveMany(toRemove);
+            });
+        };
+    }
+
     private void SetFeatureSelectedEvent()
     {
         if (_positionLayer is null)
             return;
-        
+
         _positionLayer.SelectedFeatureChanged += (sender, feature) =>
         {
             IsFeatureSelected = feature is not null;
@@ -292,16 +317,8 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
             if (feature is not null)
             {
                 _selectedFeature = feature;
-                var scoutData = feature.GetScoutData();
-                if (scoutData is not null)
-                {
-                    var uasId = scoutData.GetUasId();
-                    NonNullProperties = GetNonNullProperties(_aircraftDatabase?.GetByIcao24(uasId));
-                }
-                else
-                {
-                    NonNullProperties.Clear();
-                }
+                var scoutDataId = feature.GetScoutDataId();
+                NonNullProperties = GetNonNullProperties(_aircraftDatabase.GetByIcao24(scoutDataId));
             }
             else
             {
@@ -333,13 +350,13 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
         {
             selectProcedure.PropertyChanged -= OnSelectProcedureChanged;
         }
-        
+
         Map.Dispose();
         foreach (var layer in _managedLayers)
         {
             layer.Dispose();
         }
-        
+
         _dynamicScoutDataProvider.Dispose();
         GC.SuppressFinalize(this);
     }

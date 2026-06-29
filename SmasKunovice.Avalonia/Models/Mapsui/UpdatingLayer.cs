@@ -34,9 +34,6 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
 
     private async void OnDataSourceDataChanged(object? sender, EventArgs e)
     {
-        if (_disposed)
-            return;
-
         try
         {
             await UpdateDataAsync(true);

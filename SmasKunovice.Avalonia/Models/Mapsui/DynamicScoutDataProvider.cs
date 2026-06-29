@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Mapsui;
 using Mapsui.Fetcher;
@@ -16,6 +17,9 @@ public class DynamicScoutDataProvider : MemoryProvider, IDynamic, IDisposable
     private readonly IDronetagClient _client;
     private List<ScoutData> _latestMessageData = [];
     private bool _isConnected;
+    private SemaphoreSlim _connectSemaphore = new(1, 1);
+    private bool _disposed;
+    private FetchInfo _defaultFetchInfo = new(new MSection(new MRect(0,0,0,0), 0));
 
     public DynamicScoutDataProvider(IDronetagClient client)
     {
@@ -25,10 +29,18 @@ public class DynamicScoutDataProvider : MemoryProvider, IDynamic, IDisposable
 
     public async Task ConnectClientAsync()
     {
-        if (!_isConnected)
+        if (_isConnected || _disposed)
+            return;
+        
+        await _connectSemaphore.WaitAsync();
+        try
         {
             await _client.ConnectAsync();
             _isConnected = true;
+        }
+        finally
+        {
+            _connectSemaphore.Release();
         }
     }
 
@@ -44,6 +56,11 @@ public class DynamicScoutDataProvider : MemoryProvider, IDynamic, IDisposable
         DataChanged?.Invoke(this, new DataChangedEventArgs());
     }
 
+    public async Task<IEnumerable<IFeature>> GetFeaturesAsync()
+    {
+        return await GetFeaturesAsync(_defaultFetchInfo);
+    }
+    
     public override async Task<IEnumerable<IFeature>> GetFeaturesAsync(FetchInfo fetchInfo)
     {
         if (!_isConnected)
@@ -68,11 +85,12 @@ public class DynamicScoutDataProvider : MemoryProvider, IDynamic, IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (disposing)
-        {
-            _client.MessageReceived -= ClientOnMessageReceived;
-        }
-
+        if (!disposing)
+            return;
+        
+        _client.MessageReceived -= ClientOnMessageReceived;
+        _connectSemaphore.Dispose();
         _client.Dispose();
+        _disposed = true;
     }
 }

@@ -89,7 +89,7 @@ public class MapLayerFactory(DynamicScoutDataProvider dynamicScoutDataProvider, 
 
     public UpdatingPositionLayer CreatePlanesPointLayer(AircraftDatabase aircraftDb, SvgStyleProvider svgStyleProvider, Map map)
     {
-        var droneGridIntersectionDetector = new IntersectionDetector(DroneGridAssetPath);
+        var droneGridIntersectionDetector = new DroneGridIntersectionDetector(DroneGridAssetPath);
         var rpaPresenceDetector = new RpaPresenceConflictDetector(RpaAssetPath);
         var runwayApproachConflictDetector = new RunwayApproachConflictDetector(RunwayStartPointAssetPath, ApproachZoneAssetPath);
         var targetStyleBuilder = new TargetStyleBuilder(svgStyleProvider);

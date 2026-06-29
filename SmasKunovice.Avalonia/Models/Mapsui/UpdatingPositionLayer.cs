@@ -3,6 +3,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DynamicData;
 using Mapsui;
 using Mapsui.Fetcher;
 using Mapsui.Layers;
@@ -26,22 +27,26 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
     private readonly PeriodicTimer _timer = new(TimeSpan.FromSeconds(StaleThresholdSeconds));
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly CancellationTokenSource _cts = new();
-    private readonly IntersectionDetector _droneGridIntersectionDetector;
     private readonly RpaPresenceConflictDetector _rpaPresenceConflictDetector;
+    private readonly RunwayApproachConflictDetector _runwayApproachConflictDetector;
+    private readonly DroneGridIntersectionDetector _droneGridIntersectionDetector;
     private readonly Brush _normalLabelColor = new(Color.WhiteSmoke);
     private readonly Brush _warningLabelColor = new(new Color(255, 222, 40));
     private readonly Brush _alarmLabelColor = new(new Color(255, 0, 0));
-    private readonly RunwayApproachConflictDetector _runwayApproachConflictDetector;
     private readonly Map _map;
     private bool _disposed;
     private readonly Task _updateLoopTask;
+    private readonly List<ConflictFeature> _activeConflicts = [];
+    private readonly List<string> _noConflictCandidates = [];
 
     public event EventHandler<IFeature?>? SelectedFeatureChanged;
+    public event EventHandler<ConflictFeature>? NewConflict;
+    public event EventHandler<string>? ResolvedConflictsForAircraft;
 
     public UpdatingPositionLayer(IProvider dataSource,
         IAircraftDatabase aircraftDatabase,
         TargetStyleBuilder targetStyleBuilder,
-        Map map, IntersectionDetector droneGridIntersectionDetector,
+        Map map, DroneGridIntersectionDetector droneGridIntersectionDetector,
         RpaPresenceConflictDetector rpaPresenceConflictDetector,
         RunwayApproachConflictDetector runwayApproachConflictDetector, IErrorDialogService errorDialogService) : base(dataSource, errorDialogService)
     {
@@ -143,43 +148,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
             var utcNow = DateTime.UtcNow;
             foreach (var updatedFeature in updateFeatures)
             {
-                var id = updatedFeature.GetScoutDataId();
-                PointFeature featureToProcess;
-                if (Features.TryGetValue(id, out var existingFeature))
-                {
-                    if (IsFeatureInactive(existingFeature, utcNow))
-                    {
-                        RemoveFeature(id);
-                        continue;
-                    }
-
-                    existingFeature.Point.X = updatedFeature.Point.X;
-                    existingFeature.Point.Y = updatedFeature.Point.Y;
-                    existingFeature[ScoutData.FeatureScoutDataField] = updatedFeature.GetScoutData();
-                    SetStaleFeature(existingFeature, utcNow); // Grey out stale features
-                    featureToProcess = existingFeature;
-                }
-                else
-                {
-                    Features[id] = updatedFeature;
-                    featureToProcess = updatedFeature;
-                }
-
-                EnsureLabelStyle(featureToProcess);
-
-                if (!reprocessing) // If we are just processing new features, we don't have the whole context, so can't determine conflicts
-                    continue;
-
-                var conflictLevel = ConflictLevel.None;
-                _rpaPresenceConflictDetector.ProcessConflictCandidate(featureToProcess);
-                _runwayApproachConflictDetector.ProcessConflictCandidate(featureToProcess);
-                if (IsDroneAboveLimit(featureToProcess))
-                {
-                    conflictLevel = ConflictLevel.Alarm;
-                    LogExtensions.LogInfo("Found drone height limit conflict for feature ID: {0}, level: {1}", this, featureToProcess.GetScoutDataId(), conflictLevel);
-                }
-
-                SetLabelColor(featureToProcess, conflictLevel);
+                ProcessFeatureUpdates(reprocessing, updatedFeature, utcNow);
             }
 
             if (reprocessing)
@@ -197,21 +166,85 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         }
     }
 
+    private void ProcessFeatureUpdates(bool reprocessing, PointFeature updatedFeature, DateTime utcNow)
+    {
+        var id = updatedFeature.GetScoutDataId();
+        PointFeature featureToProcess;
+        if (Features.TryGetValue(id, out var existingFeature))
+        {
+            if (IsFeatureInactive(existingFeature, utcNow))
+            {
+                RemoveFeature(id);
+                return;
+            }
+
+            existingFeature.Point.X = updatedFeature.Point.X;
+            existingFeature.Point.Y = updatedFeature.Point.Y;
+            existingFeature[ScoutData.FeatureScoutDataField] = updatedFeature.GetScoutData();
+            SetStaleFeature(existingFeature, utcNow); // Grey out stale features
+            featureToProcess = existingFeature;
+        }
+        else
+        {
+            Features[id] = updatedFeature;
+            featureToProcess = updatedFeature;
+        }
+
+        EnsureLabelStyle(featureToProcess);
+
+        if (!reprocessing) // If we are just processing new features, we don't have the whole context, so can't determine conflicts
+            return;
+
+        if (_droneGridIntersectionDetector.IsDroneAboveLimit(featureToProcess))
+        {
+            LogExtensions.LogInfo("Found drone height limit conflict for feature ID: {0}, level: {1}", this, featureToProcess.GetScoutDataId(), ConflictLevel.Alarm);
+            var conflictFeature = new ConflictFeature(featureToProcess, ConflictLevel.Alarm, "Drone above limit");
+            _activeConflicts.Add(conflictFeature);
+            NewConflict?.Invoke(this, conflictFeature);
+            SetLabelColor(featureToProcess, ConflictLevel.Alarm);
+        }
+        else if (!_rpaPresenceConflictDetector.ProcessConflictCandidate(featureToProcess) && !_runwayApproachConflictDetector.ProcessConflictCandidate(featureToProcess))
+            _noConflictCandidates.Add(id);
+    }
+
     private void ProcessConflictDetectors()
     {
         // Runway approach detector additionally sets conflict for RPA candidates as well, so needs to be processed first.
         foreach (var conflictFeature in _runwayApproachConflictDetector.GetConflictFeatures(_rpaPresenceConflictDetector))
         {
-            SetLabelColor(conflictFeature.Feature, conflictFeature.ConflictLevel);
+            if (!_activeConflicts.Contains(conflictFeature))
+            {
+                _activeConflicts.Add(conflictFeature);
+                SetLabelColor(conflictFeature.Feature, conflictFeature.ConflictLevel);
+                if (conflictFeature.ConflictLevel is ConflictLevel.None)
+                    NewConflict?.Invoke(this, conflictFeature);
+            }
+            
             LogExtensions.LogInfo("Found conflict in runway approach for feature ID: {0}, level: {1}", this, conflictFeature.Feature.GetScoutDataId(), conflictFeature.ConflictLevel);
         }
 
         foreach (var conflictFeature in _rpaPresenceConflictDetector.GetConflictFeatures())
         {
-            SetLabelColor(conflictFeature.Feature, conflictFeature.ConflictLevel);
+            if (!_activeConflicts.Contains(conflictFeature))
+            {
+                _activeConflicts.Add(conflictFeature);
+                SetLabelColor(conflictFeature.Feature, conflictFeature.ConflictLevel);
+                if (conflictFeature.ConflictLevel is not ConflictLevel.None)
+                    NewConflict?.Invoke(this, conflictFeature);
+            }
+            
             LogExtensions.LogInfo("Found conflict in RPA for feature ID: {0}, level: {1}", this, conflictFeature.Feature.GetScoutDataId(), conflictFeature.ConflictLevel);
         }
 
+        foreach (var noConflictCandidateId in _noConflictCandidates)
+        {
+            var toRemove = _activeConflicts.Where(cf => cf.Feature.GetScoutDataId() == noConflictCandidateId);
+            _activeConflicts.RemoveMany(toRemove);
+            ResolvedConflictsForAircraft?.Invoke(this, noConflictCandidateId);
+            SetLabelColor(Features[noConflictCandidateId], ConflictLevel.None);
+        }
+        
+        _noConflictCandidates.Clear();
         _rpaPresenceConflictDetector.Reset();
         _runwayApproachConflictDetector.Reset();
     }
@@ -226,20 +259,6 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
             ConflictLevel.Alarm => _alarmLabelColor,
             _ => throw new ArgumentOutOfRangeException(nameof(conflictLevel), conflictLevel, null)
         };
-    }
-
-    private bool IsDroneAboveLimit(PointFeature feature)
-    {
-        var scoutData = feature.GetScoutData();
-
-        if (scoutData?.IsDrone() is not true)
-            return false;
-
-        if (!TryGetIntersectingVerticalLimit(feature, out var verticalLimit))
-            return false;
-
-        var altitudeMeters = feature.GetScoutData()?.Odid.Location?.AltitudeBaro;
-        return altitudeMeters >= verticalLimit; // Drone is dangerous when it's high up
     }
 
     private static bool IsFeatureInactive(PointFeature existingFeature, DateTime utcNow)
@@ -323,44 +342,6 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
                           $"{speedString}";
 
         return displayText;
-    }
-
-    private bool TryGetIntersectingVerticalLimit(PointFeature feature, out int? verticalLimit)
-    {
-        verticalLimit = null;
-        if (_droneGridIntersectionDetector.TryGetIntersectFeature(feature, out var candidate) is not true)
-            return false;
-
-        var verticalLimitString = candidate!["vertical_limit"]?.ToString();
-        if (verticalLimitString is null)
-        {
-            LogExtensions.LogError("Vertical limit not found on grid feature. Feature ID: {0}.", this,
-                feature.GetScoutDataId());
-            return false;
-        }
-
-        // GND - <num> m AGL
-        var dashIndex = verticalLimitString.IndexOf('-');
-        var mIndex = verticalLimitString.IndexOf('m');
-
-        if (dashIndex == -1 || mIndex == -1 || mIndex <= dashIndex)
-        {
-            LogExtensions.LogError("Vertical limit string is not in expected format. Feature ID: {0}.", this,
-                feature.GetScoutDataId());
-            return false;
-        }
-
-        var valueSpan = verticalLimitString.AsSpan(dashIndex + 1, mIndex - dashIndex - 1).Trim();
-        var parseResult = int.TryParse(valueSpan, out var verticalLimitValue);
-
-        if (!parseResult)
-        {
-            LogExtensions.LogError("Failed to extract vertical limit value from string: {0}.", this, valueSpan.ToString());
-            return false;
-        }
-
-        verticalLimit = verticalLimitValue;
-        return true;
     }
 
     public void SetLabelVisibility(bool visible)

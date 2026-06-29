@@ -14,6 +14,7 @@ public class RpaPresenceConflictDetector
     private readonly IntersectionDetector _rpaIntersectionDetector;
     private bool _isConflictExternal;
     private ConflictLevel _externalConflictLevel;
+    private const string Description = "RPA presence";
 
     public RpaPresenceConflictDetector(string rpaAssetPath)
     {
@@ -45,7 +46,7 @@ public class RpaPresenceConflictDetector
 
     public IEnumerable<ConflictFeature> GetConflictFeatures()
     {
-        return _featuresInRpa.Select(f => new ConflictFeature(f, GetConflictLevel()));
+        return _featuresInRpa.Select(f => new ConflictFeature(f, GetConflictLevel(), Description));
     }
 
     public void Reset()

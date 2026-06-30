@@ -20,13 +20,13 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
 {
     public event EventHandler<string>? FeatureRemoved;
     private readonly IProvider _dataSource;
-    protected readonly IErrorDialogService _errorDialogService;
+    protected readonly IErrorDialogService ErrorDialogService;
     private FetchInfo? _fetchInfo;
     private bool _disposed;
 
     protected UpdatingLayer(IProvider dataSource, IErrorDialogService errorDialogService)
     {
-        _errorDialogService = errorDialogService ?? throw new ArgumentNullException(nameof(errorDialogService));
+        ErrorDialogService = errorDialogService ?? throw new ArgumentNullException(nameof(errorDialogService));
         _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
         if (_dataSource is IDynamic dynamic)
             dynamic.DataChanged += OnDataSourceDataChanged;
@@ -42,7 +42,7 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
         {
             LogExtensions.LogError(exception, "Error updating layer");
             Dispose();
-            await _errorDialogService.ShowErrorDialogAsync("Error updating layer", exception);
+            await ErrorDialogService.ShowErrorDialogAsync("Error updating layer", exception);
         }
     }
 
@@ -144,7 +144,7 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
         });
     }
 
-    protected bool RemoveFeature(string featureId)
+    protected virtual bool RemoveFeature(string featureId)
     {
         var removed = Features.Remove(featureId);
         if (!removed)

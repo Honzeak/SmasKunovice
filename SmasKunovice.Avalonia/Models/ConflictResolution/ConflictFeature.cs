@@ -1,9 +1,8 @@
 using System;
 using Mapsui.Layers;
 using SmasKunovice.Avalonia.Extensions;
-using SmasKunovice.Avalonia.Models.Mapsui;
 
-namespace SmasKunovice.Avalonia.Models;
+namespace SmasKunovice.Avalonia.Models.ConflictResolution;
 
 public class ConflictFeature(PointFeature feature, ConflictLevel conflictLevel, string description) : IEquatable<ConflictFeature>
 {

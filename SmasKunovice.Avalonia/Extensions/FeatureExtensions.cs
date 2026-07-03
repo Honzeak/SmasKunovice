@@ -1,6 +1,6 @@
 using System;
 using Mapsui;
-using SmasKunovice.Avalonia.Models;
+using SmasKunovice.Avalonia.Models.Dronetag;
 
 namespace SmasKunovice.Avalonia.Extensions;
 

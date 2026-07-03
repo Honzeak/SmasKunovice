@@ -10,6 +10,7 @@ using Mapsui;
 using Mapsui.Layers;
 using Mapsui.Styles;
 using Mapsui.Tiling.Layers;
+using SmasKunovice.Avalonia.Models.ConflictResolution;
 using Extent = BruTile.Extent;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;

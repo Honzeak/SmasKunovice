@@ -1,4 +1,5 @@
 using SmasKunovice.Avalonia.Models;
+using SmasKunovice.Avalonia.Models.Dronetag;
 using SmasKunovice.Avalonia.Tests.TestUtils;
 
 namespace SmasKunovice.Avalonia.Tests.Integration;

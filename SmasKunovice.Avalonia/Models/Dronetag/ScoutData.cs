@@ -5,7 +5,7 @@ using Mapsui.Layers;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models.JsonConverters;
 
-namespace SmasKunovice.Avalonia.Models;
+namespace SmasKunovice.Avalonia.Models.Dronetag;
 
 public interface IScoutData
 {

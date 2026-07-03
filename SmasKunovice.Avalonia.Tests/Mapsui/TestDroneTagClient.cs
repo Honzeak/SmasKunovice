@@ -1,5 +1,5 @@
 using Mapsui;
-using SmasKunovice.Avalonia.Models;
+using SmasKunovice.Avalonia.Models.Dronetag;
 using SmasKunovice.Avalonia.Models.FakeClient;
 
 namespace SmasKunovice.Avalonia.Tests.Mapsui;

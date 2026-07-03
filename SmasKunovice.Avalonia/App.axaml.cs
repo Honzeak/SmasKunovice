@@ -14,6 +14,7 @@ using Microsoft.Extensions.Options;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models;
 using SmasKunovice.Avalonia.Models.Config;
+using SmasKunovice.Avalonia.Models.Dronetag;
 using SmasKunovice.Avalonia.Models.FakeClient;
 using SmasKunovice.Avalonia.ViewModels;
 using SmasKunovice.Avalonia.Views;

@@ -8,7 +8,7 @@ using NetTopologySuite.Geometries;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models.Mapsui;
 
-namespace SmasKunovice.Avalonia.Models;
+namespace SmasKunovice.Avalonia.Models.ConflictResolution;
 
 public class RunwayApproachConflictDetector
 {

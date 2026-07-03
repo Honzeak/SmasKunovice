@@ -11,6 +11,8 @@ using Mapsui.Providers;
 using Mapsui.Styles;
 using Mapsui.Styles.Thematics;
 using SmasKunovice.Avalonia.Extensions;
+using SmasKunovice.Avalonia.Models.ConflictResolution;
+using SmasKunovice.Avalonia.Models.Dronetag;
 using SmasKunovice.Avalonia.ViewModels;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;

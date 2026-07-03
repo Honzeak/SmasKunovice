@@ -1,6 +1,7 @@
 using System.Text.Json;
 using SmasKunovice.Avalonia.Models;
-using SmasKunovice.Avalonia.Models.Mapsui;
+using SmasKunovice.Avalonia.Models.ConflictResolution;
+using SmasKunovice.Avalonia.Models.Dronetag;
 
 namespace SmasKunovice.Avalonia.Tests;
 

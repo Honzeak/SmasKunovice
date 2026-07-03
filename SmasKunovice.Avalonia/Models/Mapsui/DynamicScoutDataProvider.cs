@@ -7,6 +7,7 @@ using Mapsui.Fetcher;
 using Mapsui.Layers;
 using Mapsui.Providers;
 using SmasKunovice.Avalonia.Extensions;
+using SmasKunovice.Avalonia.Models.Dronetag;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 

@@ -3,9 +3,8 @@ using System.IO;
 using System.Linq;
 using Mapsui.Layers;
 using SmasKunovice.Avalonia.Extensions;
-using SmasKunovice.Avalonia.Models.Mapsui;
 
-namespace SmasKunovice.Avalonia.Models;
+namespace SmasKunovice.Avalonia.Models.ConflictResolution;
 
 public class RpaPresenceConflictDetector
 {

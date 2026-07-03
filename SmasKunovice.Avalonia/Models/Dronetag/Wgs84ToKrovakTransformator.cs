@@ -4,7 +4,7 @@ using GeoAPI.Geometries;
 using ProjNet.CoordinateSystems;
 using ProjNet.CoordinateSystems.Transformations;
 
-namespace SmasKunovice.Avalonia.Models;
+namespace SmasKunovice.Avalonia.Models.Dronetag;
 
 public class Wgs84ToKrovakTransformator : IScoutDataCoordTransformation
 {

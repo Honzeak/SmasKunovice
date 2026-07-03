@@ -14,7 +14,7 @@ using MQTTnet;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models.Config;
 
-namespace SmasKunovice.Avalonia.Models;
+namespace SmasKunovice.Avalonia.Models.Dronetag;
 
 public class ScoutDataMqttClientAdapter : IDronetagClient
 {

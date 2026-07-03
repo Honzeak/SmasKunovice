@@ -1,4 +1,4 @@
-using SmasKunovice.Avalonia.Models;
+using SmasKunovice.Avalonia.Models.Dronetag;
 using SmasKunovice.Avalonia.Models.Mapsui;
 
 namespace SmasKunovice.Avalonia.Tests;

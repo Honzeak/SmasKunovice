@@ -1,4 +1,4 @@
-namespace SmasKunovice.Avalonia.Models.Mapsui;
+namespace SmasKunovice.Avalonia.Models.ConflictResolution;
 
 public enum ConflictLevel
 {

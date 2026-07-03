@@ -1,5 +1,6 @@
 using System;
 using Mapsui.Styles;
+using SmasKunovice.Avalonia.Models.Dronetag;
 using MapsuiColor = Mapsui.Styles.Color;
 using SystemColor = System.Drawing.Color;
 

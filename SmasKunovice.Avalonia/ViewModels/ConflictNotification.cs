@@ -1,8 +1,7 @@
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using SmasKunovice.Avalonia.Extensions;
-using SmasKunovice.Avalonia.Models;
-using SmasKunovice.Avalonia.Models.Mapsui;
+using SmasKunovice.Avalonia.Models.ConflictResolution;
 
 namespace SmasKunovice.Avalonia.ViewModels;
 

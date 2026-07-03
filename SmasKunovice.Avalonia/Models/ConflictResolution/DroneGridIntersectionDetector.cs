@@ -2,7 +2,7 @@ using System;
 using Mapsui.Layers;
 using SmasKunovice.Avalonia.Extensions;
 
-namespace SmasKunovice.Avalonia.Models.Mapsui;
+namespace SmasKunovice.Avalonia.Models.ConflictResolution;
 
 public class DroneGridIntersectionDetector(string path) : IntersectionDetector(path)
 {

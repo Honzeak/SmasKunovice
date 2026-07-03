@@ -2,10 +2,10 @@ using Mapsui;
 using Mapsui.Fetcher;
 using Mapsui.Layers;
 using Moq;
-using SmasKunovice.Avalonia.Models;
+using SmasKunovice.Avalonia.Models.Dronetag;
 using SmasKunovice.Avalonia.Models.Mapsui;
 
-namespace SmasKunovice.Avalonia.Tests.Models.Mapsui
+namespace SmasKunovice.Avalonia.Tests.Mapsui
 {
     [TestFixture]
     public class DynamicScoutDataProviderTests : TestBase

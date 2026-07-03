@@ -19,6 +19,7 @@ using Mapsui.Styles;
 using Mapsui.Tiling.Layers;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models;
+using SmasKunovice.Avalonia.Models.Dronetag;
 using SmasKunovice.Avalonia.Models.FakeClient;
 using SmasKunovice.Avalonia.Models.Mapsui;
 using SmasKunovice.Avalonia.Views;

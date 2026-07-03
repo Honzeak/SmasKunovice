@@ -1,6 +1,6 @@
 using Mapsui;
 using Mapsui.Layers;
-using SmasKunovice.Avalonia.Models;
+using SmasKunovice.Avalonia.Models.Dronetag;
 using SmasKunovice.Avalonia.Models.Mapsui;
 using SmasKunovice.Avalonia.Tests.TestUtils;
 

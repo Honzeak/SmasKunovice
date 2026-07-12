@@ -37,7 +37,9 @@ public partial class App : Application
         var configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true) // Load appsettings.json
             .AddJsonFile("appsettings.User.json", optional: false, reloadOnChange: true) // Load appsettings.User.json")
+#if DEBUG
             .AddUserSecrets<App>(optional: true)
+#endif
             .Build();
 
         var services = ConfigureServices(configuration);

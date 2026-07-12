@@ -81,12 +81,12 @@ namespace SmasKunovice.Avalonia.Tests.Mapsui
             var drone2Feature = (PointFeature)featuresList[1];
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(drone1Feature[ScoutData.FeatureScoutDataField], Is.Not.Null.And.InstanceOf<ScoutData>());
-                Assert.That(drone2Feature[ScoutData.FeatureScoutDataField], Is.Not.Null.And.InstanceOf<ScoutData>());
+                Assert.That(drone1Feature[FeatureAttributes.ScoutData], Is.Not.Null.And.InstanceOf<ScoutData>());
+                Assert.That(drone2Feature[FeatureAttributes.ScoutData], Is.Not.Null.And.InstanceOf<ScoutData>());
             }
 
-            var message1 = (ScoutData)drone1Feature[ScoutData.FeatureScoutDataField]!;
-            var message2 = (ScoutData)drone2Feature[ScoutData.FeatureScoutDataField]!;
+            var message1 = (ScoutData)drone1Feature[FeatureAttributes.ScoutData]!;
+            var message2 = (ScoutData)drone2Feature[FeatureAttributes.ScoutData]!;
             Assert.That(message1, Is.Not.Null);
             Assert.That(message2, Is.Not.Null);
             
@@ -210,11 +210,11 @@ namespace SmasKunovice.Avalonia.Tests.Mapsui
             Assert.That(firstFeatures, Has.All.InstanceOf<PointFeature>());
             Assert.That(secondFeatures, Has.All.InstanceOf<PointFeature>());
 
-            var droneTagMessage = firstFeatures[0][ScoutData.FeatureScoutDataField] as ScoutData;
+            var droneTagMessage = firstFeatures[0][FeatureAttributes.ScoutData] as ScoutData;
             Assert.That(droneTagMessage, Is.Not.Null);
             Assert.That(droneTagMessage.Odid.BasicId[0].UasId, Is.EqualTo("Drone1"));
 
-            droneTagMessage = secondFeatures[0][ScoutData.FeatureScoutDataField] as ScoutData;
+            droneTagMessage = secondFeatures[0][FeatureAttributes.ScoutData] as ScoutData;
             Assert.That(droneTagMessage, Is.Not.Null);
             Assert.That(droneTagMessage.Odid.Location, Is.Not.Null);
             Assert.That(droneTagMessage.Odid.Location.Latitude, Is.EqualTo(-538100));

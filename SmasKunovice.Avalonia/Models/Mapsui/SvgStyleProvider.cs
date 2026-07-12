@@ -19,7 +19,7 @@ public class SvgStyleProvider
         _basePath = basePath;
     }
 
-    public int RegisterSvg(string svgFileName, System.Drawing.Color? fillColor = null,
+    public virtual int RegisterSvg(string svgFileName, System.Drawing.Color? fillColor = null,
         System.Drawing.Color? strokeColor = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(svgFileName);

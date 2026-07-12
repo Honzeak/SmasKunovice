@@ -19,6 +19,7 @@ using Mapsui.Styles;
 using Mapsui.Tiling.Layers;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models;
+using SmasKunovice.Avalonia.Models.ConflictResolution;
 using SmasKunovice.Avalonia.Models.Dronetag;
 using SmasKunovice.Avalonia.Models.FakeClient;
 using SmasKunovice.Avalonia.Models.Mapsui;
@@ -30,7 +31,6 @@ namespace SmasKunovice.Avalonia.ViewModels;
 
 public partial class MainViewViewModel : ViewModelBase, IDisposable
 {
-    public const string IdOverrideFeatureAttribute = "displayIdOverride";
     [ObservableProperty] private Map _map = new();
     [ObservableProperty] private int _trajectoryPointsCount;
     [ObservableProperty] private int _speedVectorMinuteInterval;
@@ -41,7 +41,7 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private List<int> _trajectoryPointsViewValues = [1, 10, 100, 500];
     [ObservableProperty] private List<int> _speedVectorMinuteIntervalViewValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 30];
     [ObservableProperty] private ObservableCollection<SelectProcedure> _procedureList = [];
-    [ObservableProperty] private ObservableCollection<ConflictNotification> _conflictNotifications = [];
+    [ObservableProperty] private ConflictNotificationCollection _conflictNotifications = new();
     [ObservableProperty] private bool _drawCtrOrAtz = true;
     [ObservableProperty] private string _streamingStatusMessage = string.Empty;
     [ObservableProperty] private SolidColorBrush _statusBrush = new();
@@ -55,6 +55,7 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
     private IFeature? _selectedFeature;
     private readonly DynamicScoutDataProvider _dynamicScoutDataProvider;
     private readonly IErrorDialogService _errorDialogService;
+    private readonly IConflictDetectionService _conflictDetectionService;
 
     public MainViewViewModel(IDronetagClient dronetagClient, IErrorDialogService errorDialogService)
     {
@@ -65,7 +66,12 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
         InitializeStreamingStatus(dronetagClient);
         _dynamicScoutDataProvider = new DynamicScoutDataProvider(dronetagClient);
         _errorDialogService = errorDialogService;
-        CreateMap(new MapLayerFactory(_dynamicScoutDataProvider, _errorDialogService));
+        _conflictDetectionService = new ConflictDetectionService(
+            _dynamicScoutDataProvider, _errorDialogService, 
+            ConflictDetectorFactory.CreateForDroneGrid(),
+            ConflictDetectorFactory.CreateForRpaPresence(),
+            ConflictDetectorFactory.CreateForRunwayApproach());
+        CreateMap(new MapLayerFactory(_dynamicScoutDataProvider, _errorDialogService, _conflictDetectionService));
     }
 
     public async Task InitializeAsync()
@@ -74,6 +80,8 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
         {
             await _dynamicScoutDataProvider.ConnectClientAsync();
             LogExtensions.LogDebug("Initialized ScoutData provider", this);
+            await _conflictDetectionService.InitializeAsync();
+            LogExtensions.LogDebug("Initialized ConflictDetectionService", this);
         }
         catch (Exception e)
         {
@@ -210,7 +218,7 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
         if (!IsFeatureSelected || _selectedFeature is null)
             return;
 
-        _selectedFeature[IdOverrideFeatureAttribute] = result;
+        _selectedFeature[FeatureAttributes.IdOverride] = result;
         if (_positionLayer is not null)
             await _positionLayer.RefreshData();
         else
@@ -287,15 +295,8 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
 
     private void SetConflictChangedEvents()
     {
-        if (_positionLayer is null)
-            return;
-
-        _positionLayer.NewConflict += (sender, conflictFeature) =>
-        {
-            Dispatcher.UIThread.Post(() => ConflictNotifications.Add(new ConflictNotification(conflictFeature)));
-        };
-
-        _positionLayer.ResolvedConflictsForAircraft += (sender, removeId) =>
+        _conflictDetectionService.ConflictUpdate += (sender, conflictUpdates) => HandleConflictUpdate(conflictUpdates); 
+        _conflictDetectionService.FeatureRemoved += (sender, removeId) =>
         {
             Dispatcher.UIThread.Post(() =>
             {
@@ -303,6 +304,44 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
                 ConflictNotifications.RemoveMany(toRemove);
             });
         };
+    }
+
+    private void HandleConflictUpdate(ConflictsUpdateEventArgs conflictUpdates)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (conflictUpdates.IsEnumerable)
+            {
+                foreach (var feature in conflictUpdates.Added)
+                    ConflictNotifications.Add(new ConflictNotification(feature, conflictUpdates.ConflictType, conflictUpdates.ConflictLevel));
+                foreach (var feature in conflictUpdates.Modified)
+                {
+                    ConflictNotifications.UpdateConflictNotification(feature, conflictUpdates.ConflictType, conflictUpdates.ConflictLevel);
+                }
+
+                foreach (var feature in conflictUpdates.Removed)
+                {
+                    ConflictNotifications.RemoveConflictNotification(feature, conflictUpdates.ConflictType);
+                }
+            }
+            else
+            {
+                switch (conflictUpdates.UpdateResult)
+                {
+                    case ConflictUpdateResult.Added:
+                        ConflictNotifications.Add(new ConflictNotification(conflictUpdates.Feature, conflictUpdates.ConflictType, conflictUpdates.ConflictLevel));
+                        break;
+                    case ConflictUpdateResult.Modified:
+                        ConflictNotifications.UpdateConflictNotification(conflictUpdates.Feature, conflictUpdates.ConflictType, conflictUpdates.ConflictLevel);
+                        break;
+                    case ConflictUpdateResult.Removed:
+                        ConflictNotifications.RemoveConflictNotification(conflictUpdates.Feature, conflictUpdates.ConflictType);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+        });
     }
 
     private void SetFeatureSelectedEvent()
@@ -358,6 +397,7 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
             layer.Dispose();
         }
 
+        _conflictDetectionService.Dispose();
         _dynamicScoutDataProvider.Dispose();
         GC.SuppressFinalize(this);
     }

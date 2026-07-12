@@ -65,7 +65,7 @@ namespace SmasKunovice.Avalonia.Tests.Mapsui
             return firstMessages.All(firstMessage =>
                 features.Any(feature =>
                     // Compare ID field
-                    Equals(feature[ScoutData.FeatureUasIdField], firstMessage[ScoutData.FeatureUasIdField]) &&
+                    Equals(feature[FeatureAttributes.ScoutData], firstMessage[FeatureAttributes.ScoutData]) &&
                     // Compare X coordinate (with tolerance for floating point comparison)
                     Math.Abs(feature.Point.X - firstMessage.Point.X) < 1e-10 &&
                     // Compare Y coordinate (with tolerance for floating point comparison)

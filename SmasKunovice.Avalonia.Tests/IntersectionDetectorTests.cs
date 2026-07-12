@@ -2,6 +2,7 @@ using System.Text.Json;
 using SmasKunovice.Avalonia.Models;
 using SmasKunovice.Avalonia.Models.ConflictResolution;
 using SmasKunovice.Avalonia.Models.Dronetag;
+using SmasKunovice.Avalonia.Models.Mapsui;
 
 namespace SmasKunovice.Avalonia.Tests;
 
@@ -15,7 +16,7 @@ public class IntersectionDetectorTests : TestBase
         var transform = new Wgs84ToKrovakTransformator();
         message = transform.TransformScoutDataCoords(message!);
         var approachZoneFilePath = Path.Combine(TestContext.CurrentContext.TestDirectory, "TestData", "ApproachProximityZone.geojson");
-        var intersectionDetector = new IntersectionDetector(approachZoneFilePath);
+        var intersectionDetector = ConflictDetectorFactory.CreateIntersectionDetector(approachZoneFilePath);
         if (message is null)
             Assert.Fail();
         

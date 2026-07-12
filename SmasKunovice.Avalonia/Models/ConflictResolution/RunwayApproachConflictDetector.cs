@@ -1,105 +1,71 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 using Mapsui.Layers;
-using Mapsui.Nts;
 using NetTopologySuite.Geometries;
 using SmasKunovice.Avalonia.Extensions;
-using SmasKunovice.Avalonia.Models.Mapsui;
 
 namespace SmasKunovice.Avalonia.Models.ConflictResolution;
 
-public class RunwayApproachConflictDetector
+public class RunwayApproachConflictDetector(Coordinate runwayStartPoint, IntersectionDetector approachZoneDetector)
 {
     private const double WarningThresholdSeconds = 30;
     private const double AlarmThresholdSeconds = 15;
-    private const string Description = "Runway approach conflict";
-    private readonly List<ConflictFeature> _conflictFeatures = [];
-    private readonly Coordinate _runwayStartPoint;
-    private readonly IntersectionDetector _approachZoneDetector;
-    private ConflictLevel _maxConflictLevel = ConflictLevel.None;
-    
-    public RunwayApproachConflictDetector(string runwayStartPointAssetPath, string approachZoneAssetPath)
-    {
-        if (!File.Exists(runwayStartPointAssetPath))
-            throw new FileNotFoundException("Asset file not found", runwayStartPointAssetPath);
-        if (!File.Exists(approachZoneAssetPath))
-            throw new FileNotFoundException("Asset file not found", approachZoneAssetPath);
-        
-        var geometryFeature = new GeoJsonFeaturesProvider(runwayStartPointAssetPath).Features.Cast<GeometryFeature>().Single();
-        if (geometryFeature.Geometry is null)
-            throw new InvalidOperationException("Failed to find runway start point geometry");
-            
-        _runwayStartPoint = geometryFeature.Geometry.Coordinate;
-        _approachZoneDetector = new IntersectionDetector(approachZoneAssetPath);
-    }
 
-    public bool ProcessConflictCandidate(PointFeature feature)
+    public bool IsInConflictZone(PointFeature feature)
     {
         var scoutData = feature.GetScoutData();
-        var heading = scoutData?.Odid.Location?.Direction;
-        var height = scoutData?.Odid.Location?.AltitudeBaro;
+        var heading = scoutData.Odid.Location?.Direction;
+        var height = scoutData.Odid.Location?.AltitudeBaro;
 
         if (heading is null || height is null)
         {
-            LogExtensions.LogWarning("Missing heading or height data when calculating conflict for feature ID: {0}", this, scoutData?.GetUasId() ?? "UNKNOWN");
+            LogExtensions.LogWarning("Missing heading or height data when calculating conflict for feature ID: {0}", this, scoutData.GetUasId());
             return false;
         }
 
-        if (height.Value.MeterToFeet() > 1600)
+        if (height.Value.MeterToFeet() > 1600 || heading is < 105 or > 295 || !approachZoneDetector.TryGetIntersectFeature(feature, out _))
             return false;
 
-        if (heading is < 105 or > 295)
-            return false;
-        
-        if (!_approachZoneDetector.TryGetIntersectFeature(feature, out _))
-            return false;
+        var timeToTargetSeconds = CalculateTemporalDistanceSeconds(feature);
+        if (timeToTargetSeconds >= 0)
+            return timeToTargetSeconds <= WarningThresholdSeconds;
 
-        var velocity = scoutData?.Odid.Location?.SpeedHorizontal;
+        LogExtensions.LogWarning("Missing or invalid horizontal velocity when calculating conflict for feature ID: {0}", this, feature.GetScoutDataId());
+        return false;
+    }
+
+    private double CalculateTemporalDistanceSeconds(PointFeature feature)
+    {
+        var velocity = feature.GetScoutData().Odid.Location?.SpeedHorizontal;
         // Prevent division by zero or negative time
         if (velocity is null or <= 0)
-        {
-            LogExtensions.LogWarning("Missing or invalid horizontal velocity ({0}) when calculating conflict for feature ID: {0}", this, velocity.ToString() ?? "N/A", scoutData?.GetUasId() ?? "UNKNOWN");
-            return false;
-        }
+            return -1;
 
-        var deltaX = _runwayStartPoint.X - feature.Point.X;
-        var deltaY = _runwayStartPoint.Y - feature.Point.Y;
+        var deltaX = runwayStartPoint.X - feature.Point.X;
+        var deltaY = runwayStartPoint.Y - feature.Point.Y;
 
         // Simple Pythagorean theorem works natively for EPSG:5514
         var distanceMeters = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
 
         var timeToTargetSeconds = distanceMeters / velocity.Value;
-        if (timeToTargetSeconds > WarningThresholdSeconds)
-            return false;
-        
-        LogExtensions.LogInfo("Adding approach conflict candidate with ID: {0}", this, feature.GetScoutDataId());
-        var conflictLevel = timeToTargetSeconds > AlarmThresholdSeconds ? ConflictLevel.Warning : ConflictLevel.Alarm;
-        if (conflictLevel > _maxConflictLevel)
-            _maxConflictLevel = conflictLevel;
-        
-        _conflictFeatures.Add(new ConflictFeature(feature, conflictLevel, Description));
-        return true;
+        return timeToTargetSeconds;
     }
 
-    public IEnumerable<ConflictFeature> GetConflictFeatures(RpaPresenceConflictDetector rpaDetector)
+    public ConflictLevel GetConflictLevel(PointFeature feature)
     {
-        if (!rpaDetector.IsRpaPresence)
+        var temporalDistanceSeconds = CalculateTemporalDistanceSeconds(feature);
+        if (temporalDistanceSeconds < 0)
         {
-            foreach (var conflictFeature in _conflictFeatures)
-                conflictFeature.ResetConflictLevel();
+            LogExtensions.LogWarning("Missing or invalid horizontal velocity when calculating conflict for feature ID: {0}", this, feature.GetScoutDataId());
+            return ConflictLevel.None;
         }
-        else
-            rpaDetector.SetConflict(_maxConflictLevel); // If there is an approach conflict, we want to set conflict for RPA features as well.
+
+        if (temporalDistanceSeconds > WarningThresholdSeconds)
+        {
+            LogExtensions.LogWarning("Expected to calculate temporal distance ({0} seconds) smaller than warning threshold for feature ID: {1}", this, temporalDistanceSeconds, feature.GetScoutDataId());
+            return ConflictLevel.None;
+        }
         
-        return _conflictFeatures;
+        return temporalDistanceSeconds > AlarmThresholdSeconds ? ConflictLevel.Warning : ConflictLevel.Alarm;
     }
-    
-    public void Reset()
-    {
-        _maxConflictLevel = ConflictLevel.None;
-        _conflictFeatures.Clear();
-    }
-    
 }

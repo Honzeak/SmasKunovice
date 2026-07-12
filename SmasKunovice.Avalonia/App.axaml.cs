@@ -46,16 +46,28 @@ public partial class App : Application
         _serviceProvider = services.BuildServiceProvider();
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
+            desktop.ShutdownMode = ShutdownMode.OnLastWindowClose;
             // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
             // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
             DisableAvaloniaDataAnnotationValidation();
-            var mainViewViewModel = _serviceProvider.GetRequiredService<MainViewViewModel>();
-            desktop.MainWindow = new MainWindow
+            try
             {
-                DataContext = new MainWindowViewModel(mainViewViewModel),
-            };
-            _ = mainViewViewModel.InitializeAsync();
+                var mainViewViewModel = _serviceProvider.GetRequiredService<MainViewViewModel>();
+                desktop.MainWindow = new MainWindow
+                {
+                    DataContext = new MainWindowViewModel(mainViewViewModel),
+                };
+                _ = mainViewViewModel.InitializeAsync();
+            }
+            catch (Exception ex)
+            {
+                Dispatcher.UIThread.Post(async () =>
+                {
+                    await _errorDialogService.ShowErrorDialogAsync("Failed to initialize application.", ex);
+                    desktop.Shutdown(1);
+                });
+            }
+
             desktop.Exit += (s, e) =>
             {
                 LogExtensions.LogInfo("Application exit started.", this);
@@ -75,15 +87,15 @@ public partial class App : Application
             switch (level)
             {
                 case LogLevel.Error:
-                if (exception is not null)    
-                    LogExtensions.LogError(exception, "Mapsui processing error.", this);
-                else
-                    LogExtensions.LogError($"Mapsui processing error: {message}", this);
-                // This is safe to run out-of-band; our service marshals back to UI Thread internally
-                Dispatcher.UIThread.Post(() => _errorDialogService.ShowErrorDialogAsync(
-                    "Mapsui Processing Error",
-                    exception
-                ));
+                    if (exception is not null)
+                        LogExtensions.LogError(exception, "Mapsui processing error.", this);
+                    else
+                        LogExtensions.LogError($"Mapsui processing error: {message}", this);
+                    // This is safe to run out-of-band; our service marshals back to UI Thread internally
+                    Dispatcher.UIThread.Post(() => _errorDialogService.ShowErrorDialogAsync(
+                        "Mapsui Processing Error",
+                        exception
+                    ));
                     break;
                 case LogLevel.Warning:
                     LogExtensions.LogWarning($"Mapsui warning: {message}", this);
@@ -106,7 +118,7 @@ public partial class App : Application
         {
             // Instructs Avalonia to recover from the crash state and continue running
             args.Handled = true;
-            _ = _errorDialogService.ShowErrorDialogAsync( "UI Render Thread Exception", args.Exception );
+            _ = _errorDialogService.ShowErrorDialogAsync("UI Render Thread Exception", args.Exception);
         };
 
         TaskScheduler.UnobservedTaskException += (_, args) =>
@@ -114,7 +126,7 @@ public partial class App : Application
             Dispatcher.UIThread.Post(() => _errorDialogService.ShowErrorDialogAsync("Background Thread Fault", args.Exception));
             args.SetObserved();
         };
-        
+
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
             if (args.ExceptionObject is not Exception ex) return;

@@ -23,7 +23,10 @@ public class ErrorDialogService : IErrorDialogService
             }
             else
             {
+                var taskCompletionSource = new TaskCompletionSource();
+                window.Closed += (s, e) => taskCompletionSource.SetResult();
                 window.Show();
+                await taskCompletionSource.Task;
             }
         });
     }

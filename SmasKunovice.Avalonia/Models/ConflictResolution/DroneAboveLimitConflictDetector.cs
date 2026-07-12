@@ -4,26 +4,24 @@ using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.ConflictResolution;
 
-public class DroneGridIntersectionDetector(string path) : IntersectionDetector(path)
+public class DroneAboveLimitConflictDetector(IntersectionDetector droneGridIntersectionDetector)
 {
-    public bool IsDroneAboveLimit(PointFeature feature)
+    public bool IsInConflictZone(PointFeature feature)
     {
-        var scoutData = feature.GetScoutData();
-
-        if (scoutData?.IsDrone() is not true)
+        if (feature.GetScoutData().IsDrone() is not true)
             return false;
 
         if (!TryGetIntersectingVerticalLimit(feature, out var verticalLimit))
             return false;
 
-        var altitudeMeters = feature.GetScoutData()?.Odid.Location?.AltitudeBaro;
+        var altitudeMeters = feature.GetScoutData().Odid.Location?.AltitudeBaro;
         return altitudeMeters >= verticalLimit; // Drone is dangerous when it's high up
     }
 
     private bool TryGetIntersectingVerticalLimit(PointFeature feature, out int? verticalLimit)
     {
         verticalLimit = null;
-        if (TryGetIntersectFeature(feature, out var candidate) is not true)
+        if (droneGridIntersectionDetector.TryGetIntersectFeature(feature, out var candidate) is not true)
             return false;
 
         var verticalLimitString = candidate!["vertical_limit"]?.ToString();

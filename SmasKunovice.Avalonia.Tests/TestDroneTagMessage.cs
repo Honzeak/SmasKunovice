@@ -1,5 +1,6 @@
 using Mapsui.Layers;
 using SmasKunovice.Avalonia.Models.Dronetag;
+using SmasKunovice.Avalonia.Models.Mapsui;
 
 namespace SmasKunovice.Avalonia.Tests;
 
@@ -15,8 +16,8 @@ public record TestDroneTagMessage(
     public bool TryCreatePointFeature(out PointFeature? pointFeature)
     {
         pointFeature = new PointFeature(Latitude, Longitude);
-        pointFeature[ScoutData.FeatureUasIdField] = Id;
-        pointFeature[ScoutData.FeatureScoutDataField] = this;
+        pointFeature[FeatureAttributes.UasId] = Id;
+        pointFeature[FeatureAttributes.ScoutData] = this;
         return true;
     }
 }

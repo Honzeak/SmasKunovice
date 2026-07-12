@@ -8,6 +8,7 @@ using BruTile.Cache;
 using BruTile.Web;
 using Mapsui;
 using Mapsui.Layers;
+using Mapsui.Providers;
 using Mapsui.Styles;
 using Mapsui.Tiling.Layers;
 using SmasKunovice.Avalonia.Models.ConflictResolution;
@@ -15,12 +16,8 @@ using Extent = BruTile.Extent;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
-public class MapLayerFactory(DynamicScoutDataProvider dynamicScoutDataProvider, IErrorDialogService errorDialogService)
+public class MapLayerFactory(IProvider dynamicScoutDataProvider, IErrorDialogService errorDialogService, IConflictDetectionService conflictDetectionService)
 {
-    private static readonly string RpaAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "Rpa.geojson"));
-    private static readonly string ApproachZoneAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "ApproachProximityZone.geojson"));
-    private static readonly string RunwayStartPointAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "runwayStartPoint.geojson"));
-    private static readonly string DroneGridAssetPath = AssetProvider.GetFullAssetPath(Path.Combine("GeoJsonElements", "DroneGridCtr.geojson"));
     private static readonly Dictionary<string, IPersistentCache<byte[]>?> ZtmTileCache = new();
     private const string ZtmBaseRestUrl = "https://ags.cuzk.gov.cz/arcgis1/rest/services/ZTM/{{ZTM_DATASET}}/MapServer/tile/{z}/{y}/{x}";
     public const string ProcedureLayerPrefix = "proc_";
@@ -90,11 +87,8 @@ public class MapLayerFactory(DynamicScoutDataProvider dynamicScoutDataProvider, 
 
     public UpdatingPositionLayer CreatePlanesPointLayer(AircraftDatabase aircraftDb, SvgStyleProvider svgStyleProvider, Map map)
     {
-        var droneGridIntersectionDetector = new DroneGridIntersectionDetector(DroneGridAssetPath);
-        var rpaPresenceDetector = new RpaPresenceConflictDetector(RpaAssetPath);
-        var runwayApproachConflictDetector = new RunwayApproachConflictDetector(RunwayStartPointAssetPath, ApproachZoneAssetPath);
         var targetStyleBuilder = new TargetStyleBuilder(svgStyleProvider);
-        return new UpdatingPositionLayer(dynamicScoutDataProvider, aircraftDb, targetStyleBuilder, map, droneGridIntersectionDetector, rpaPresenceDetector, runwayApproachConflictDetector, errorDialogService)
+        return new UpdatingPositionLayer(dynamicScoutDataProvider, aircraftDb, targetStyleBuilder, map, errorDialogService, conflictDetectionService)
         {
             Name = "Position layer",
         };

@@ -48,8 +48,8 @@ public class UpdatingSpeedVectorLayer : UpdatingLayer<GeometryFeature>
             var coordAy = pointFeature.Point.Y;
             var featureId = pointFeature.GetScoutDataId();
             var scoutData = pointFeature.GetScoutData();
-            var heading = scoutData?.Odid?.Location?.Direction;
-            var speed = scoutData?.Odid?.Location?.SpeedHorizontal;
+            var heading = scoutData.Odid.Location?.Direction;
+            var speed = scoutData.Odid.Location?.SpeedHorizontal;
             if (heading is null || speed is null)
             {
                 LogExtensions.LogError("Horizontal speed and heading not found in feature. Cannot create speed vector.", this);

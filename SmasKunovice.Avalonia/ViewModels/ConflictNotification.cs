@@ -1,30 +1,42 @@
+using System;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Mapsui.Layers;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models.ConflictResolution;
 
 namespace SmasKunovice.Avalonia.ViewModels;
 
-public partial class ConflictNotification(ConflictFeature conflictFeature) : ObservableObject
+public partial class ConflictNotification(PointFeature feature, ConflictType conflictType, ConflictLevel conflictLevel) : ObservableObject
 {
     private static readonly SolidColorBrush WarningBrush = new(Color.Parse("#FFEB3B")); // Yellow
     private static readonly SolidColorBrush AlarmBrush = new(Color.Parse("#F44336")); // Red
     private static readonly SolidColorBrush GreyBrush = new(Color.Parse("#5B5B5B")); // Grey
+
+
+    public readonly string UasId = feature.GetScoutDataId();
+    public ConflictType ConflictType { get; set; } = conflictType;
     
-     
-    [NotifyPropertyChangedFor(nameof(ConflictBrush))]
-    [ObservableProperty] private bool _isMuted = conflictFeature.IsMuted;
-    
-    [NotifyPropertyChangedFor(nameof(ConflictBrush))]
-    [ObservableProperty] private ConflictLevel _conflictLevel = conflictFeature.ConflictLevel;
-    
-    [ObservableProperty] private string _aircraftId = conflictFeature.Feature.GetScoutDataId();
-    [ObservableProperty] private string _conflictMessage = conflictFeature.Description;
-    
+    [NotifyPropertyChangedFor(nameof(ConflictBrush))] [ObservableProperty]
+    private bool _isMuted;
+
+    [NotifyPropertyChangedFor(nameof(ConflictBrush))] [ObservableProperty]
+    private ConflictLevel _conflictLevel = conflictLevel;
+
+    [ObservableProperty] private string _aircraftId = feature.GetAircraftDisplayId();
+
+    [ObservableProperty] private string _conflictMessage = conflictType switch
+    {
+        ConflictType.RunwayApproach => "Runway approach",
+        ConflictType.RpaPresence => "RPA presence",
+        ConflictType.DroneAboveLimit => "Drone above limit",
+        _ => throw new ArgumentOutOfRangeException(nameof(conflictType), conflictType, null)
+    };
+
     public SolidColorBrush ConflictBrush => ConflictLevel switch
     {
         ConflictLevel.Alarm when !IsMuted => AlarmBrush,
-        ConflictLevel.Warning when !IsMuted=> WarningBrush,
+        ConflictLevel.Warning when !IsMuted => WarningBrush,
         _ => GreyBrush
     };
 }

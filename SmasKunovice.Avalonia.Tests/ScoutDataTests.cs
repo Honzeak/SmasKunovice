@@ -1,5 +1,6 @@
 using System.Text.Json;
 using SmasKunovice.Avalonia.Models.Dronetag;
+using SmasKunovice.Avalonia.Models.Mapsui;
 using SmasKunovice.Avalonia.Tests.TestUtils;
 
 namespace SmasKunovice.Avalonia.Tests;
@@ -84,8 +85,8 @@ public class ScoutDataTests : TestBase
         Assert.That(pointFeature, Is.Not.Null);
         Assert.That(pointFeature.Point.Y, Is.EqualTo(latitude));
         Assert.That(pointFeature.Point.X, Is.EqualTo(longitude));
-        Assert.That(pointFeature[ScoutData.FeatureUasIdField], Is.EqualTo(id));
-        Assert.That(pointFeature[ScoutData.FeatureScoutDataField], Is.EqualTo(scoutData));
+        Assert.That(pointFeature[FeatureAttributes.UasId], Is.EqualTo(id));
+        Assert.That(pointFeature[FeatureAttributes.ScoutData], Is.EqualTo(scoutData));
         
     }
     

@@ -4,6 +4,7 @@ using System.Text.Json;
 using Mapsui.Layers;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models.JsonConverters;
+using SmasKunovice.Avalonia.Models.Mapsui;
 
 namespace SmasKunovice.Avalonia.Models.Dronetag;
 
@@ -14,8 +15,6 @@ public interface IScoutData
 
 public record ScoutData : IScoutData
 {
-    public const string FeatureUasIdField = "ID";
-    public const string FeatureScoutDataField = "ScoutData";
     public const string TimestampFormat = "yyyy-MM-ddTHH:mm:ss.ffffff";
     public const string TimestampFormatNew = "yyyy-MM-ddTHH:mm:ss.ffffffZ";
     public bool HasLocation => Odid.Location?.Latitude is not null && Odid.Location.Longitude is not null;
@@ -27,8 +26,8 @@ public record ScoutData : IScoutData
             return false;
 
         pointFeature = new PointFeature((double)Odid.Location.Longitude, (double)Odid.Location.Latitude);
-        pointFeature[FeatureUasIdField] = Odid.BasicId[0].UasId;
-        pointFeature[FeatureScoutDataField] = this;
+        pointFeature[FeatureAttributes.UasId] = Odid.BasicId[0].UasId;
+        pointFeature[FeatureAttributes.ScoutData] = this;
         return true;
     }
 

@@ -39,7 +39,6 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         _targetStyleBuilder = targetStyleBuilder;
         _map = map;
         _map.Info += OnMapOnInfo;
-        // TODO subscribe to conflict events
         _conflictDetectionService = conflictDetectionService;
         IsMapInfoLayer = true;
         Style = CreateStyle();
@@ -139,9 +138,12 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         return base.RemoveFeature(featureId);
     }
 
-    private void SetLabelColor(PointFeature featureToProcess, ConflictLevel conflictLevel)
+    public void SetLabelConflictLevel(string uasId, ConflictLevel conflictLevel)
     {
-        var labelStyle = featureToProcess.Styles.OfType<LabelStyle>().Single();
+        if (!Features.TryGetValue(uasId, out var feature))
+            return;
+
+        var labelStyle = GetOrCreateLabelStyle(feature);
         labelStyle.BackColor = conflictLevel switch
         {
             ConflictLevel.None => _normalLabelColor,
@@ -149,6 +151,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
             ConflictLevel.Alarm => _alarmLabelColor,
             _ => throw new ArgumentOutOfRangeException(nameof(conflictLevel), conflictLevel, null)
         };
+        OnDataChanged(new DataChangedEventArgs());
     }
 
     private static bool IsFeatureInactive(PointFeature existingFeature, DateTime utcNow)
@@ -180,24 +183,11 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
 
     private void UpdateLabel(PointFeature feature)
     {
-        var style = GetLabelStyle(feature);
-        if (style is null)
-        {
-            style = new LabelStyle
-            {
-                BackColor = _normalLabelColor,
-                VerticalAlignment = LabelStyle.VerticalAlignmentEnum.Center,
-                Offset = new RelativeOffset(0, .9),
-                Opacity = 0.3f, // doesn't seem to work
-                Font = new Font() { Size = 9, FontFamily = "Arial" },
-            };
-            feature.Styles.Add(style);
-        }
-
+        var style = GetOrCreateLabelStyle(feature);
         style.Text = GetDisplayText(feature);
     }
 
-    private static LabelStyle? GetLabelStyle(PointFeature feature)
+    private LabelStyle GetOrCreateLabelStyle(PointFeature feature)
     {
         foreach (var style in feature.Styles)
         {
@@ -205,7 +195,17 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
                 return labelStyle;
         }
 
-        return null;
+        var returnStyle = new LabelStyle
+        {
+            BackColor = _normalLabelColor,
+            VerticalAlignment = LabelStyle.VerticalAlignmentEnum.Center,
+            Offset = new RelativeOffset(0, .9),
+            Opacity = 0.3f, // doesn't seem to work
+            Font = new Font { Size = 9, FontFamily = "Arial" },
+        };
+
+        feature.Styles.Add(returnStyle);
+        return returnStyle;
     }
 
     private static string GetDisplayText(PointFeature feature)

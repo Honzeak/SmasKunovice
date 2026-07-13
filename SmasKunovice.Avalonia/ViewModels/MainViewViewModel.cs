@@ -292,18 +292,69 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
         _positionLayer?.SetLabelVisibility(value);
     }
 
-
     private void SetConflictChangedEvents()
     {
         _conflictDetectionService.ConflictUpdate += (sender, conflictUpdates) => HandleConflictUpdate(conflictUpdates); 
-        _conflictDetectionService.FeatureRemoved += (sender, removeId) =>
+        _positionLayer?.FeatureRemoved += (sender, removeId) =>
         {
             Dispatcher.UIThread.Post(() =>
             {
-                var toRemove = ConflictNotifications.Where(cn => cn.AircraftId.Equals(removeId));
+                var toRemove = ConflictNotifications.Where(cn => cn.UasId.Equals(removeId)).ToList();
+                foreach (var notification in toRemove)
+                {
+                    notification.PropertyChanged -= OnConflictNotificationPropertyChanged;
+                }
+
                 ConflictNotifications.RemoveMany(toRemove);
+                UpdateLabelConflictLevel(removeId);
             });
         };
+    }
+
+    private void AddConflictNotification(ConflictNotification notification)
+    {
+        notification.PropertyChanged += OnConflictNotificationPropertyChanged;
+        ConflictNotifications.Add(notification);
+        UpdateLabelConflictLevel(notification.UasId);
+    }
+
+    private void RemoveConflictNotification(PointFeature feature, ConflictType conflictType)
+    {
+        var notification = ConflictNotifications.FirstOrDefault(cn =>
+            cn.UasId == feature.GetScoutDataId() &&
+            cn.ConflictType == conflictType);
+
+        if (notification is null)
+            return;
+
+        notification.PropertyChanged -= OnConflictNotificationPropertyChanged;
+        ConflictNotifications.Remove(notification);
+        UpdateLabelConflictLevel(notification.UasId);
+    }
+
+    private void OnConflictNotificationPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(ConflictNotification.IsMuted) &&
+            e.PropertyName != nameof(ConflictNotification.ConflictLevel))
+        {
+            return;
+        }
+
+        if (sender is not ConflictNotification notification)
+            return;
+
+        UpdateLabelConflictLevel(notification.UasId);
+    }
+
+    private void UpdateLabelConflictLevel(string uasId)
+    {
+        var conflictLevel = ConflictNotifications
+            .Where(notification => notification.UasId == uasId && !notification.IsMuted)
+            .Select(notification => notification.ConflictLevel)
+            .DefaultIfEmpty(ConflictLevel.None)
+            .Max();
+
+        _positionLayer?.SetLabelConflictLevel(uasId, conflictLevel);
     }
 
     private void HandleConflictUpdate(ConflictsUpdateEventArgs conflictUpdates)
@@ -313,29 +364,34 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
             if (conflictUpdates.IsEnumerable)
             {
                 foreach (var feature in conflictUpdates.Added)
-                    ConflictNotifications.Add(new ConflictNotification(feature, conflictUpdates.ConflictType, conflictUpdates.ConflictLevel));
+                    AddConflictNotification(new ConflictNotification(feature, conflictUpdates.ConflictType, conflictUpdates.ConflictLevel));
+
                 foreach (var feature in conflictUpdates.Modified)
                 {
+                    // TODO move this outside the collection for consistency, let's do this after splitting the view models
                     ConflictNotifications.UpdateConflictNotification(feature, conflictUpdates.ConflictType, conflictUpdates.ConflictLevel);
+                    UpdateLabelConflictLevel(feature.GetScoutDataId());
                 }
 
                 foreach (var feature in conflictUpdates.Removed)
                 {
-                    ConflictNotifications.RemoveConflictNotification(feature, conflictUpdates.ConflictType);
+                    RemoveConflictNotification(feature, conflictUpdates.ConflictType);
                 }
             }
             else
             {
+                // Result.Unchanged and null should not appear here
                 switch (conflictUpdates.UpdateResult)
                 {
                     case ConflictUpdateResult.Added:
-                        ConflictNotifications.Add(new ConflictNotification(conflictUpdates.Feature, conflictUpdates.ConflictType, conflictUpdates.ConflictLevel));
+                        AddConflictNotification(new ConflictNotification(conflictUpdates.Feature, conflictUpdates.ConflictType, conflictUpdates.ConflictLevel));
                         break;
                     case ConflictUpdateResult.Modified:
                         ConflictNotifications.UpdateConflictNotification(conflictUpdates.Feature, conflictUpdates.ConflictType, conflictUpdates.ConflictLevel);
+                        UpdateLabelConflictLevel(conflictUpdates.Feature.GetScoutDataId());
                         break;
                     case ConflictUpdateResult.Removed:
-                        ConflictNotifications.RemoveConflictNotification(conflictUpdates.Feature, conflictUpdates.ConflictType);
+                        RemoveConflictNotification(conflictUpdates.Feature, conflictUpdates.ConflictType);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -376,12 +432,12 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
         }
     }
 
-
     private ObservableCollection<SelectProcedure> CreateProceduresModelList(IEnumerable<string> procedureLayerNames)
     {
         return new ObservableCollection<SelectProcedure>(procedureLayerNames.Select(name => new SelectProcedure(name)));
     }
 
+    // TODO add dispose of newly added events
     public void Dispose()
     {
         ProcedureList.CollectionChanged -= OnProcedureListChanged;

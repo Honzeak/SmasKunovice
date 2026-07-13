@@ -14,13 +14,4 @@ public class ConflictNotificationCollection : ObservableCollection<ConflictNotif
 
         notification?.ConflictLevel = conflictLevel;
     }
-
-    public void RemoveConflictNotification(PointFeature feature, ConflictType conflictType)
-    {
-        var notification = this.FirstOrDefault(notification => notification.UasId == feature.GetScoutDataId() && notification.ConflictType == conflictType);
-        if (notification is null)
-            return;
-
-        Remove(notification);
-    }
 }

@@ -13,7 +13,6 @@ namespace SmasKunovice.Avalonia.Models.ConflictResolution;
 public interface IConflictDetectionService : IDisposable
 {
     event EventHandler<ConflictsUpdateEventArgs>? ConflictUpdate;
-    event EventHandler<string>? FeatureRemoved;
     Task InitializeAsync();
     void RemoveFeature(string featureId);
 }
@@ -32,7 +31,6 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
     private SemaphoreSlim _semaphore = new(1);
 
     public event EventHandler<ConflictsUpdateEventArgs>? ConflictUpdate;
-    public event EventHandler<string>? FeatureRemoved;
 
     public async Task InitializeAsync()
     {
@@ -204,7 +202,6 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
         _rpaConflictZoneFeatures.Remove(featureId, out _);
         _droneConflictZoneFeatures.Remove(featureId, out _);
         _conflictRepository.RemoveById(featureId);
-        FeatureRemoved?.Invoke(this, featureId);
     }
 
     public void Dispose()

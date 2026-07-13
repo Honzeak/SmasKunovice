@@ -40,7 +40,7 @@ public class UpdatingSpeedVectorLayer : UpdatingLayer<GeometryFeature>
         }
     }
 
-    protected override Task ProcessFeaturesAsync(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
+    protected override void ProcessFeatures(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
     {
         foreach (var pointFeature in updateFeatures)
         {
@@ -59,7 +59,6 @@ public class UpdatingSpeedVectorLayer : UpdatingLayer<GeometryFeature>
             
             Features[featureId] = CreateSpeedVectorFeature(coordAx, coordAy, heading.Value, speed.Value);
         }
-        return Task.CompletedTask;
     }
 
     private GeometryFeature CreateSpeedVectorFeature(double coordAx, double coordAy, int headingDegrees, float speedMps)

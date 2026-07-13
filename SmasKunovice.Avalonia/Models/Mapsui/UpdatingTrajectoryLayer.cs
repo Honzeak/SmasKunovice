@@ -32,10 +32,10 @@ public class UpdatingTrajectoryLayer : UpdatingLayer<LinkedList<PointFeature>>
             positionLayer.FeatureRemoved += (sender, s) => RemoveFeature(s);
     }
 
-    protected override Task ProcessFeaturesAsync(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
+    protected override void ProcessFeatures(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
     {
         if (reprocessing) // We don't want to amend data when reprocessing, just change number of returned points on the interface
-            return Task.CompletedTask;
+            return;
         
         foreach (var updateFeature in updateFeatures)
         {
@@ -55,8 +55,6 @@ public class UpdatingTrajectoryLayer : UpdatingLayer<LinkedList<PointFeature>>
                 foundLog.AddFirst(updateFeature);
             }
         }
-        
-        return Task.CompletedTask;
     }
 
     protected override IEnumerable<IFeature> GetInterfaceFeatures()

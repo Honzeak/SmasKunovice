@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System;
 using System.Linq;
-using System.Threading.Tasks;
 using Mapsui;
 using Mapsui.Fetcher;
 using Mapsui.Layers;
@@ -10,7 +9,6 @@ using Mapsui.Styles;
 using Mapsui.Styles.Thematics;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models.ConflictResolution;
-using SmasKunovice.Avalonia.Models.Dronetag;
 
 namespace SmasKunovice.Avalonia.Models.Mapsui;
 
@@ -100,21 +98,12 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
         });
     }
 
-    protected override Task ProcessFeaturesAsync(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
+    protected override void ProcessFeatures(IEnumerable<PointFeature> updateFeatures, bool reprocessing)
     {
-        try
+        var utcNow = DateTime.UtcNow;
+        foreach (var updatedFeature in updateFeatures)
         {
-            var utcNow = DateTime.UtcNow;
-            foreach (var updatedFeature in updateFeatures)
-            {
-                ProcessFeatureUpdates(updatedFeature, utcNow);
-            }
-
-            return Task.CompletedTask;
-        }
-        catch (Exception exception)
-        {
-            return Task.FromException(exception);
+            ProcessFeatureUpdates(updatedFeature, utcNow);
         }
     }
 

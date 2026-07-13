@@ -50,7 +50,7 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
     private Dictionary<string, PointFeature> PointFeatures { get; } = new();
     public override MRect? Extent => _dataSource.GetExtent();
 
-    protected abstract Task ProcessFeaturesAsync(IEnumerable<PointFeature> updateFeatures, bool reprocessing);
+    protected abstract void ProcessFeatures(IEnumerable<PointFeature> updateFeatures, bool reprocessing);
     protected abstract IEnumerable<IFeature> GetInterfaceFeatures();
 
     /// <summary>
@@ -89,10 +89,10 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
                 PointFeatures[pointFeature.GetScoutDataId()] = pointFeature;
             }
 
-            await ProcessFeaturesAsync(updateFeatures, false);
+            ProcessFeatures(updateFeatures, false);
         }
         else
-            await ProcessFeaturesAsync(PointFeatures.Values, true);
+            ProcessFeatures(PointFeatures.Values, true);
 
         OnDataChanged(new DataChangedEventArgs(Name));
     }

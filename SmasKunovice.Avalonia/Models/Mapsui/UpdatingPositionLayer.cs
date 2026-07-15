@@ -117,6 +117,7 @@ public class UpdatingPositionLayer : UpdatingLayer<PointFeature>
                 return;
             }
 
+            existingFeature[FeatureAttributes.PreviousPosition] = new MPoint(existingFeature.Point);
             existingFeature.Point.X = updatedFeature.Point.X;
             existingFeature.Point.Y = updatedFeature.Point.Y;
             existingFeature[FeatureAttributes.ScoutData] = updatedFeature.GetScoutData();

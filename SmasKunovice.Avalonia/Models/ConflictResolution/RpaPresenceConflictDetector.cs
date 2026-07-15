@@ -11,6 +11,6 @@ public class RpaPresenceConflictDetector(IntersectionDetector rpaIntersectionDet
         if (!rpaIntersectionDetector.TryGetIntersectFeature(feature, out _))
             return false;
 
-        return feature.GetScoutData().Odid.Location?.AltitudeBaro <= 0; // TODO rework logic to tell if target is grounded
+        return feature.GetScoutData().Odid.Location?.IsGrounded ?? false;
     }
 }

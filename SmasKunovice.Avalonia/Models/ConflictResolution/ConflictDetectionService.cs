@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Mapsui;
 using Mapsui.Layers;
 using SmasKunovice.Avalonia.Extensions;
 using SmasKunovice.Avalonia.Models.Mapsui;
@@ -19,7 +20,8 @@ public interface IConflictDetectionService : IDisposable
 
 public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider, IErrorDialogService dialogService, DroneAboveLimitConflictDetector droneDetector, RpaPresenceConflictDetector rpaDetector, RunwayApproachConflictDetector approachDetector) : IConflictDetectionService
 {
-    private const long UpdateIntervalSeconds = 3;
+    private const int UpdateIntervalSeconds = 3;
+    private const int TakeoffThresholdMs = 11; // ~40 km/h TODO check if we agree on this value
     private bool _disposed;
     private readonly ConflictRepository _conflictRepository = new();
     private readonly ConcurrentDictionary<string, PointFeature> _rpaConflictZoneFeatures = new();
@@ -28,7 +30,7 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
     private bool _isInitialized;
     private readonly PeriodicTimer _timer = new(TimeSpan.FromSeconds(UpdateIntervalSeconds));
     private readonly CancellationTokenSource _cts = new();
-    private SemaphoreSlim _semaphore = new(1);
+    private readonly SemaphoreSlim _semaphore = new(1);
 
     public event EventHandler<ConflictsUpdateEventArgs>? ConflictUpdate;
 
@@ -38,7 +40,7 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
             return;
 
         _isInitialized = true;
-        await scoutDataProvider.ConnectClientAsync(); // TODO this may not be required, UpdateLayer doesn't have this
+        await scoutDataProvider.ConnectClientAsync();
         scoutDataProvider.DataChanged += OnProviderDataChanged;
         _ = Task.Run(PeriodicConflictUpdateAsync);
     }
@@ -101,16 +103,47 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
     private void ProcessRpaConflicts()
     {
         var conflictLevel = ConflictLevel.None;
-        if (!_rpaConflictZoneFeatures.IsEmpty
-            && _rpaConflictZoneFeatures.Count >= 2
-            && _rpaConflictZoneFeatures.Any(kvp => !kvp.Value.GetScoutData().IsVehicle()))
+
+        // TODO check if this implementation is correct
+        // TODO not atomical comparison!
+        if (_rpaConflictZoneFeatures.Count >= 2 &&
+            _rpaConflictZoneFeatures.Any(kvp => !kvp.Value.GetScoutData().IsVehicle()))
         {
-            conflictLevel = ConflictLevel.Alarm;
+            if (_rpaConflictZoneFeatures.Count > 2)
+            {
+                conflictLevel = ConflictLevel.Alarm;
+            }
+            else
+            {
+                var firstFeature = _rpaConflictZoneFeatures.First().Value;
+                var secondFeature = _rpaConflictZoneFeatures.Last().Value;
+
+                conflictLevel = IsFeatureDistanceIncreasing(firstFeature, secondFeature)
+                    ? ConflictLevel.None
+                    : ConflictLevel.Alarm;
+            }
         }
-        
+
         foreach (var (uasId, feature) in _rpaConflictZoneFeatures)
         {
             UpdateConflictAndRaiseEvent(feature, ConflictType.RpaPresence, conflictLevel);
+        }
+    }
+
+    private static bool IsFeatureDistanceIncreasing(PointFeature pointA, PointFeature pointB)
+    {
+        if (pointA[FeatureAttributes.PreviousPosition] is MPoint pointAPrev && pointB[FeatureAttributes.PreviousPosition] is MPoint pointBPrev)
+            return CalculateDistance(pointAPrev, pointBPrev) < CalculateDistance(pointA.Point, pointB.Point);
+
+        LogExtensions.LogWarning("Unable to determine previous positions when resolving RPA conflicts");
+        return false;
+
+        float CalculateDistance(MPoint p0, MPoint p1)
+        {
+            var deltaX = p1.X - p0.X;
+            var deltaY = p1.Y - p0.Y;
+
+            return (float)Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
         }
     }
 
@@ -142,7 +175,7 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
     private void ProcessApproachConflicts()
     {
         var maxConflictLevel = ConflictLevel.None;
-        if (_rpaConflictZoneFeatures.IsEmpty)
+        if (_rpaConflictZoneFeatures.IsEmpty || _rpaConflictZoneFeatures.Any(IsNotTakeoffFeature))
         {
             UpdateConflictsAndRaiseEvent(_approachConflictZoneFeatures, ConflictType.RunwayApproach, ConflictLevel.None);
             return;
@@ -156,6 +189,14 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
         }
 
         UpdateConflictsAndRaiseEvent(_rpaConflictZoneFeatures, ConflictType.RunwayApproach, maxConflictLevel);
+    }
+
+    private static bool IsNotTakeoffFeature(KeyValuePair<string, PointFeature> arg)
+    {
+        var pointFeature = arg.Value;
+        var scoutData = pointFeature.GetScoutData();
+        var speed = scoutData.Odid.Location?.SpeedHorizontal;
+        return scoutData.Odid.Location?.IsGrounded is true || speed < TakeoffThresholdMs || scoutData.Odid.Location?.Direction is < 140 or > 260; // TODO this heading check for 02C will be different
     }
 
 

@@ -176,6 +176,8 @@ public record LocationData
         _timestamp = timestamp.ToString(_timestampFormat, NumberFormatInfo.InvariantInfo);
     }
 
+    public bool IsGrounded => Status == 1 || AltitudeBaro <= 5; // TODO verify if this logic is usable
+
     /// <summary>
     /// UNDECLARED = 0, GROUND = 1, AIRBORNE = 2, EMERGENCY = 3, REMOTE_ID_SYSTEM_FAILURE = 4
     /// </summary>
@@ -224,7 +226,7 @@ public record LocationData
     /// </summary>
     public float? AltitudeBaro
     {
-        // TODO check if there is a better way to determine aircraft on the ground (analye logs?)
+        // TODO gather appropriate logs and analyse altitude 
         get => _altitudeBaro - 114; // Kunovice are 114 m above sea level, and received goe-altitude is often null, so let's use this as geo-altitude
         init => _altitudeBaro = value;
     }

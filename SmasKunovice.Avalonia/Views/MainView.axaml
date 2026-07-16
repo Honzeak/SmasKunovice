@@ -100,8 +100,8 @@
                     Grid.Row="1"
                     Grid.Column="1"
                     HorizontalAlignment="Left"
-                    ItemsSource="{Binding SpeedVectorMinuteIntervalViewValues}"
-                    SelectedItem="{Binding SpeedVectorMinuteInterval}" />
+                    ItemsSource="{Binding SpeedVectorMinutesViewValues}"
+                    SelectedItem="{Binding SpeedVectorMinutes}" />
             </Grid>
             <TextBlock
                 Grid.Row="1"

@@ -32,16 +32,16 @@ namespace SmasKunovice.Avalonia.ViewModels;
 public partial class MainViewViewModel : ViewModelBase, IDisposable
 {
     [ObservableProperty] private Map _map = new();
-    [ObservableProperty] private int _trajectoryPointsCount;
-    [ObservableProperty] private int _speedVectorMinuteInterval;
     [ObservableProperty] private bool _drawZtmMap = true;
     [ObservableProperty] private bool _isFeatureSelected;
     [ObservableProperty] private bool _showSelectedFeatureLabel;
     [ObservableProperty] private ObservableCollection<DataPropertyRow> _nonNullProperties = [];
+    [ObservableProperty] private int _trajectoryPointsCount;
     [ObservableProperty] private List<int> _trajectoryPointsViewValues = [1, 10, 100, 500];
-    [ObservableProperty] private List<int> _speedVectorMinuteIntervalViewValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 30];
+    [ObservableProperty] private int _speedVectorMinutes;
+    [ObservableProperty] private List<int> _speedVectorMinutesViewValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 30];
     [ObservableProperty] private ObservableCollection<SelectProcedure> _procedureList = [];
-    [ObservableProperty] private ConflictNotificationCollection _conflictNotifications = new();
+    [ObservableProperty] private ConflictNotificationCollection _conflictNotifications = [];
     [ObservableProperty] private bool _drawCtrOrAtz = true;
     [ObservableProperty] private string _streamingStatusMessage = string.Empty;
     [ObservableProperty] private SolidColorBrush _statusBrush = new();
@@ -113,11 +113,8 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
             _positionLayer = layerFactory.CreatePlanesPointLayer(_aircraftDatabase, _svgStyleProvider, map);
             SetFeatureSelectedEvent();
             SetConflictChangedEvents();
-            var trajectoryLayer = layerFactory.CreateTrajectoryLayer(_positionLayer);
-            TrajectoryPointsCount = trajectoryLayer.ObservableQueueSize;
-            var speedVectorLayer = layerFactory.CreateSpeedVectorLayer(_positionLayer);
-            SpeedVectorMinuteInterval = speedVectorLayer.ObservableMinuteInterval;
-            AddLayers(map, trajectoryLayer, speedVectorLayer, _positionLayer);
+            TrajectoryPointsCount = layerFactory.CreateTrajectoryLayer(_positionLayer).ObservableQueueSize;
+            AddLayers(map, layerFactory.CreateTrajectoryLayer(_positionLayer), layerFactory.CreateSpeedVectorLayer(_positionLayer), _positionLayer);
         }
         catch (Exception e)
         {
@@ -126,7 +123,11 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
         }
 
         Map = map;
-        UpdateDrawCtrOrAtz("CTR"); // Need to init this to avoid drawing both CTR and ATZ
+        
+        // Initialize UI values
+        SpeedVectorMinutes = SpeedVectorMinutesViewValues[1];
+        TrajectoryPointsCount = TrajectoryPointsViewValues[1];
+        UpdateDrawCtrOrAtz("CTR"); 
     }
 
     private void InitializeStreamingStatus(IDronetagClient dronetagClient)
@@ -270,11 +271,11 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
         }
     }
 
-    partial void OnSpeedVectorMinuteIntervalChanged(int value)
+    partial void OnSpeedVectorMinutesChanged(int value)
     {
         var layer = Map.Layers.OfType<UpdatingSpeedVectorLayer>().SingleOrDefault();
         if (layer is not null)
-            layer.ObservableMinuteInterval = value;
+            layer.SpeedVectorMinutes = value;
         else
             LogExtensions.LogWarning(
                 "Could not find UpdatingSpeedVectorLayer. Please ensure that the client is properly configured.", this);

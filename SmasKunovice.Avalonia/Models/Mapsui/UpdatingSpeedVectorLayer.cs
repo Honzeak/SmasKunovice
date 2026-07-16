@@ -13,7 +13,7 @@ namespace SmasKunovice.Avalonia.Models.Mapsui;
 
 public class UpdatingSpeedVectorLayer : UpdatingLayer<GeometryFeature>
 {
-    private int _observableMinuteInterval;
+    private int _speedVectorMinutes;
     private readonly VectorStyle _solidVectorStyle = new() 
     { 
         Line = new Pen
@@ -23,19 +23,19 @@ public class UpdatingSpeedVectorLayer : UpdatingLayer<GeometryFeature>
         }
     };
 
-    public UpdatingSpeedVectorLayer(IProvider provider, IErrorDialogService errorDialogService, UpdatingPositionLayer? positionLayer = null, int observableMinuteInterval = 5) : base(provider, errorDialogService)
+    public UpdatingSpeedVectorLayer(IProvider provider, IErrorDialogService errorDialogService, UpdatingPositionLayer? positionLayer = null, int speedVectorMinutes = 5) : base(provider, errorDialogService)
     {
-        _observableMinuteInterval = observableMinuteInterval;
+        _speedVectorMinutes = speedVectorMinutes;
         if (positionLayer is not null)
             positionLayer.FeatureRemoved += (sender, s) => RemoveFeature(s);
     }
 
-    public int ObservableMinuteInterval
+    public int SpeedVectorMinutes
     {
-        get => _observableMinuteInterval;
+        get => _speedVectorMinutes;
         set
         {
-            _observableMinuteInterval = Math.Max(0, value);
+            _speedVectorMinutes = Math.Max(0, value);
             UpdateDataAsync(false).GetAwaiter().GetResult();
         }
     }
@@ -81,7 +81,7 @@ public class UpdatingSpeedVectorLayer : UpdatingLayer<GeometryFeature>
         
         // Calculate segment and gap lengths
         // Each interval gets a segment and a gap, except the last one which is just a segment
-        var segmentLength = totalDistance / _observableMinuteInterval;
+        var segmentLength = totalDistance / _speedVectorMinutes;
         var gapRatio = 0.15; // 15% gap, 85% segment
         var actualSegmentLength = segmentLength * (1 - gapRatio);
         
@@ -92,7 +92,7 @@ public class UpdatingSpeedVectorLayer : UpdatingLayer<GeometryFeature>
         var lineStrings = new List<LineString>();
         var currentDistance = 0.0;
         
-        for (int i = 0; i < _observableMinuteInterval; i++)
+        for (int i = 0; i < _speedVectorMinutes; i++)
         {
             // Start of this segment
             var segmentStartX = startX + dirX * currentDistance;
@@ -118,7 +118,7 @@ public class UpdatingSpeedVectorLayer : UpdatingLayer<GeometryFeature>
     {
         var headingRadians = headingDegrees * Math.PI / 180.0;
         // Meters
-        var distance = speedMps * _observableMinuteInterval * 60d;
+        var distance = speedMps * _speedVectorMinutes * 60d;
         // EPSG:5514 is in meters, so safe to transform using pythagorean theorem
         // 0 deg. heading should be North, therefore sin and cos are swapped.
         var deltaX = distance * Math.Sin(headingRadians);

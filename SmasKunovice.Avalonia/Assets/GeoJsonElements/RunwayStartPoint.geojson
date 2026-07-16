@@ -1,9 +1,0 @@
-{
-"type": "FeatureCollection",
-"name": "RunwayStartPoint",
-"extent": [-539120.1346827993402258, -1184420.7280942231882364, -539120.1346827993402258, -1184420.7280942231882364],
-"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5514" } },
-"features": [
-{ "type": "Feature", "properties": { "id": 0 }, "geometry": { "type": "Point", "coordinates": [ -539120.134682799340226, -1184420.728094223188236 ] } }
-]
-}

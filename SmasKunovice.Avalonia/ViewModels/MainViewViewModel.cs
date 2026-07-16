@@ -45,6 +45,8 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _drawCtrOrAtz = true;
     [ObservableProperty] private string _streamingStatusMessage = string.Empty;
     [ObservableProperty] private SolidColorBrush _statusBrush = new();
+    [ObservableProperty] private bool _operation02C = true;
+    [ObservableProperty] private bool _operation20C = true;
 
     private List<ILayer> _procedureLayers = [];
     private readonly GeoJsonLayerStyleProvider _layerStyleProvider;
@@ -82,6 +84,8 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
             LogExtensions.LogDebug("Initialized ScoutData provider", this);
             await _conflictDetectionService.InitializeAsync();
             LogExtensions.LogDebug("Initialized ConflictDetectionService", this);
+            OnOperation02CChanged(Operation02C); // Let conflict service know which runways are active
+            OnOperation20CChanged(Operation20C);
         }
         catch (Exception e)
         {
@@ -285,6 +289,16 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
             LogExtensions.LogWarning(
                 "Could not find UpdatingTrajectoryPointsLayer. Please ensure that the client is properly configured.",
                 this);
+    }
+    
+    partial void OnOperation02CChanged(bool value)
+    {
+        _conflictDetectionService.SetRunwayOperation(RunwayDirection._02C, value);
+    }
+
+    partial void OnOperation20CChanged(bool value)
+    {
+        _conflictDetectionService.SetRunwayOperation(RunwayDirection._20C, value);
     }
 
     partial void OnShowSelectedFeatureLabelChanged(bool value)

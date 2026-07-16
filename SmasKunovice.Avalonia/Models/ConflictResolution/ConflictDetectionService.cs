@@ -16,21 +16,28 @@ public interface IConflictDetectionService : IDisposable
     event EventHandler<ConflictsUpdateEventArgs>? ConflictUpdate;
     Task InitializeAsync();
     void RemoveFeature(string featureId);
+    void SetRunwayOperation(RunwayDirection direction, bool value);
 }
 
-public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider, IErrorDialogService dialogService, DroneAboveLimitConflictDetector droneDetector, RpaPresenceConflictDetector rpaDetector, RunwayApproachConflictDetector approachDetector) : IConflictDetectionService
+public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider, IErrorDialogService dialogService, DroneAboveLimitConflictDetector droneDetector, RpaPresenceConflictDetector rpaDetector, (RunwayApproachConflictDetector _02C, RunwayApproachConflictDetector _20C) approachDetectors) : IConflictDetectionService
 {
     private const int UpdateIntervalSeconds = 3;
-    private const int TakeoffThresholdMs = 11; // ~40 km/h TODO check if we agree on this value
+    private const int TakeoffThresholdMps = 11; // ~40 km/h TODO check if we agree on this value
+    private const int TakeoffHeadingOffsetDegrees = 60;
     private bool _disposed;
     private readonly ConflictRepository _conflictRepository = new();
     private readonly ConcurrentDictionary<string, PointFeature> _rpaConflictZoneFeatures = new();
-    private readonly ConcurrentDictionary<string, PointFeature> _approachConflictZoneFeatures = new();
+    private readonly ConcurrentDictionary<string, PointFeature> _approachConflictZoneFeatures02C = new();
+    private readonly ConcurrentDictionary<string, PointFeature> _approachConflictZoneFeatures20C = new();
     private readonly ConcurrentDictionary<string, PointFeature> _droneConflictZoneFeatures = new();
     private bool _isInitialized;
     private readonly PeriodicTimer _timer = new(TimeSpan.FromSeconds(UpdateIntervalSeconds));
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _semaphore = new(1);
+    private bool _02C;
+    private bool _20C;
+    private readonly HeadingRangeEvaluator _headingRangeEvaluator02C = new(20, TakeoffHeadingOffsetDegrees);
+    private readonly HeadingRangeEvaluator _headingRangeEvaluator20C = new(200, TakeoffHeadingOffsetDegrees);
 
     public event EventHandler<ConflictsUpdateEventArgs>? ConflictUpdate;
 
@@ -45,7 +52,30 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
         _ = Task.Run(PeriodicConflictUpdateAsync);
     }
 
-    private async void OnProviderDataChanged(object? sender, EventArgs e)
+    public void SetRunwayOperation(RunwayDirection direction, bool value)
+    {
+        LogExtensions.LogDebug($"Runway operation set to {value} for direction {direction}");
+        
+        switch (direction)
+        {
+            case RunwayDirection._20C:
+                _20C = value;
+                if (!_20C)
+                    UpdateConflictsAndRaiseEvent(_approachConflictZoneFeatures20C, ConflictType.RunwayApproach, ConflictLevel.None);
+                break;
+            case RunwayDirection._02C:
+                _02C = value;
+                if (!_02C)
+                    UpdateConflictsAndRaiseEvent(_approachConflictZoneFeatures02C, ConflictType.RunwayApproach, ConflictLevel.None);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
+        }
+
+        ProcessApproachConflicts();
+    }
+
+    private async void OnProviderDataChanged(object? sender, EventArgs eventArgs)
     {
         try
         {
@@ -62,7 +92,14 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
             }
         }
         catch (OperationCanceledException) when (_cts.IsCancellationRequested)
-        { }
+        {
+        }
+        catch (Exception exception)
+        {
+            LogExtensions.LogError(exception, $"Error updating layer in {nameof(ConflictDetectionService)}. Service exiting.", this);
+            await dialogService.ShowErrorDialogAsync("Error updating layer. Service exiting.", exception);
+            Dispose();
+        }
         finally
         {
             _semaphore.Release();
@@ -98,6 +135,43 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
         {
             UpdateConflictAndRaiseEvent(feature, ConflictType.DroneAboveLimit, ConflictLevel.Alarm);
         }
+    }
+
+    private void ProcessApproachConflicts()
+    {
+        var maxConflictLevel = ConflictLevel.None;
+        if (_rpaConflictZoneFeatures.IsEmpty || _rpaConflictZoneFeatures.All(IsTakeoffFeature))
+        {
+            LogExtensions.LogDebug("No valid features in RPA for approach conflict. No conflict raised!");
+            UpdateConflictsAndRaiseEvent(_approachConflictZoneFeatures02C, ConflictType.RunwayApproach, ConflictLevel.None);
+            UpdateConflictsAndRaiseEvent(_approachConflictZoneFeatures20C, ConflictType.RunwayApproach, ConflictLevel.None);
+            return;
+        }
+
+        if (_02C)
+        {
+            LogExtensions.LogDebug($"Processing approach conflicts for runway 02C ({_approachConflictZoneFeatures02C.Count} features)");
+            foreach (var (uasId, feature) in _approachConflictZoneFeatures02C)
+            {
+                var conflictLevel = approachDetectors._02C.GetConflictLevel(feature);
+                UpdateConflictAndRaiseEvent(feature, ConflictType.RunwayApproach, conflictLevel);
+                maxConflictLevel = conflictLevel > maxConflictLevel ? conflictLevel : maxConflictLevel;
+            }
+        }
+
+        if (_20C)
+        {
+            LogExtensions.LogDebug($"Processing approach conflicts for runway 20C ({_approachConflictZoneFeatures20C.Count} features)");
+            foreach (var (uasId, feature) in _approachConflictZoneFeatures20C)
+            {
+                var conflictLevel = approachDetectors._20C.GetConflictLevel(feature);
+                UpdateConflictAndRaiseEvent(feature, ConflictType.RunwayApproach, conflictLevel);
+                maxConflictLevel = conflictLevel > maxConflictLevel ? conflictLevel : maxConflictLevel;
+            }
+        }
+        
+        LogExtensions.LogDebug($"Max conflict level for approach features: {maxConflictLevel}");
+        UpdateConflictsAndRaiseEvent(_rpaConflictZoneFeatures, ConflictType.RunwayApproach, maxConflictLevel);
     }
 
     private void ProcessRpaConflicts()
@@ -155,63 +229,66 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
             var pointFeature = (PointFeature)feature;
             var scoutDataId = pointFeature.GetScoutDataId();
 
-            if (approachDetector.IsInConflictZone(pointFeature))
-                _approachConflictZoneFeatures[scoutDataId] = pointFeature;
+            if (approachDetectors._02C.IsInConflictZone(pointFeature))
+                _approachConflictZoneFeatures02C[scoutDataId] = pointFeature;
             else
-                RemoveFromZoneAndConflictRepoAndRaiseEvent(scoutDataId, pointFeature, ConflictType.RunwayApproach);
+                RemoveFromZoneAndConflictRepoAndRaiseEvent(scoutDataId, pointFeature, ConflictType.RunwayApproach, RunwayDirection._02C);
+
+
+            if (approachDetectors._20C.IsInConflictZone(pointFeature))
+                _approachConflictZoneFeatures20C[scoutDataId] = pointFeature;
+            else
+                RemoveFromZoneAndConflictRepoAndRaiseEvent(scoutDataId, pointFeature, ConflictType.RunwayApproach, RunwayDirection._20C);
+
 
             if (rpaDetector.IsInConflictZone(pointFeature))
                 _rpaConflictZoneFeatures[scoutDataId] = pointFeature;
             else
-                RemoveFromZoneAndConflictRepoAndRaiseEvent(scoutDataId, pointFeature, ConflictType.RpaPresence);
+                RemoveFromZoneAndConflictRepoAndRaiseEvent(scoutDataId, pointFeature, ConflictType.RpaPresence, null);
 
             if (droneDetector.IsInConflictZone(pointFeature))
                 _droneConflictZoneFeatures[scoutDataId] = pointFeature;
             else
-                RemoveFromZoneAndConflictRepoAndRaiseEvent(scoutDataId, pointFeature, ConflictType.DroneAboveLimit);
+                RemoveFromZoneAndConflictRepoAndRaiseEvent(scoutDataId, pointFeature, ConflictType.DroneAboveLimit, null);
         }
     }
 
-    private void ProcessApproachConflicts()
-    {
-        var maxConflictLevel = ConflictLevel.None;
-        if (_rpaConflictZoneFeatures.IsEmpty || _rpaConflictZoneFeatures.Any(IsNotTakeoffFeature))
-        {
-            UpdateConflictsAndRaiseEvent(_approachConflictZoneFeatures, ConflictType.RunwayApproach, ConflictLevel.None);
-            return;
-        }
-
-        foreach (var (uasId, feature) in _approachConflictZoneFeatures)
-        {
-            var conflictLevel = approachDetector.GetConflictLevel(feature);
-            UpdateConflictAndRaiseEvent(feature, ConflictType.RunwayApproach, conflictLevel);
-            maxConflictLevel = conflictLevel > maxConflictLevel ? conflictLevel : maxConflictLevel;
-        }
-
-        UpdateConflictsAndRaiseEvent(_rpaConflictZoneFeatures, ConflictType.RunwayApproach, maxConflictLevel);
-    }
-
-    private static bool IsNotTakeoffFeature(KeyValuePair<string, PointFeature> arg)
+    private bool IsTakeoffFeature(KeyValuePair<string, PointFeature> arg)
     {
         var pointFeature = arg.Value;
         var scoutData = pointFeature.GetScoutData();
         var speed = scoutData.Odid.Location?.SpeedHorizontal;
-        return scoutData.Odid.Location?.IsGrounded is true || speed < TakeoffThresholdMs || scoutData.Odid.Location?.Direction is < 140 or > 260; // TODO this heading check for 02C will be different
+        var heading = scoutData.Odid.Location?.Direction;
+
+        if (scoutData.Odid.Location?.IsGrounded is true)
+            return false;
+
+        if (speed < TakeoffThresholdMps || heading is null)
+            return false;
+
+        if (_20C && _headingRangeEvaluator20C.IsWithinBounds(heading.Value) || _02C && _headingRangeEvaluator02C.IsWithinBounds(heading.Value))
+        {
+            LogExtensions.LogDebug("Found a takeoff feature!");
+            return true;
+        }
+
+        return false;
     }
 
 
-    private void RemoveFromZoneAndConflictRepoAndRaiseEvent(string uasId, PointFeature pointFeature, ConflictType conflictType)
+    private void RemoveFromZoneAndConflictRepoAndRaiseEvent(string uasId, PointFeature pointFeature, ConflictType conflictType, RunwayDirection? direction)
     {
         var removed = conflictType switch
         {
             ConflictType.DroneAboveLimit => _droneConflictZoneFeatures.Remove(uasId, out _),
             ConflictType.RpaPresence => _rpaConflictZoneFeatures.Remove(uasId, out _),
-            ConflictType.RunwayApproach => _approachConflictZoneFeatures.Remove(uasId, out _),
+            ConflictType.RunwayApproach when direction == RunwayDirection._02C => _approachConflictZoneFeatures02C.Remove(uasId, out _),
+            ConflictType.RunwayApproach when direction == RunwayDirection._20C => _approachConflictZoneFeatures20C.Remove(uasId, out _),
             _ => throw new ArgumentOutOfRangeException(nameof(conflictType), conflictType, null)
         };
         if (!removed)
             return;
-        
+
         _conflictRepository.RemoveConflict(uasId, conflictType);
         LogExtensions.LogDebug("Remove conflict event raised", this);
         ConflictUpdate?.Invoke(this, new ConflictsUpdateEventArgs(pointFeature, ConflictUpdateResult.Removed, conflictType, ConflictLevel.None));
@@ -239,7 +316,8 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
 
     public void RemoveFeature(string featureId)
     {
-        _approachConflictZoneFeatures.Remove(featureId, out _);
+        _approachConflictZoneFeatures02C.Remove(featureId, out _);
+        _approachConflictZoneFeatures20C.Remove(featureId, out _);
         _rpaConflictZoneFeatures.Remove(featureId, out _);
         _droneConflictZoneFeatures.Remove(featureId, out _);
         _conflictRepository.RemoveById(featureId);

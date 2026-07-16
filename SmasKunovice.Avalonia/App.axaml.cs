@@ -62,6 +62,7 @@ public partial class App : Application
             }
             catch (Exception ex)
             {
+                LogExtensions.LogError(ex, "Failed to initialize application.", this);
                 Dispatcher.UIThread.Post(async () =>
                 {
                     await _errorDialogService.ShowErrorDialogAsync("Failed to initialize application.", ex);

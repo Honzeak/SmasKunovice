@@ -1,15 +1,35 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
 using Mapsui.Layers;
 using NetTopologySuite.Geometries;
 using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.ConflictResolution;
 
-public class RunwayApproachConflictDetector(Coordinate runwayStartPoint, IntersectionDetector approachZoneDetector)
+public class RunwayApproachConflictDetector
 {
-    private const double WarningThresholdSeconds = 30;
-    private const double AlarmThresholdSeconds = 15;
+    private const int WarningThresholdSeconds = 30;
+    private const int AlarmThresholdSeconds = 15;
+    private const int HeadingThresholdOffset = 95; 
+    private readonly int _runwayDirectionDegrees;
+    private readonly HeadingRangeEvaluator _headingRangeEvaluator;
+
+    private readonly Coordinate _runwayStartPoint;
+    private readonly IntersectionDetector _approachZoneDetector;
+
+    public RunwayApproachConflictDetector(Coordinate runwayStartPoint, IntersectionDetector approachZoneDetector, RunwayDirection runwayDirection)
+    {
+        _runwayStartPoint = runwayStartPoint;
+        _approachZoneDetector = approachZoneDetector;
+        _runwayDirectionDegrees = runwayDirection switch
+        {
+            RunwayDirection._02C => 20,
+            RunwayDirection._20C => 200,
+            _ => throw new ArgumentOutOfRangeException(nameof(runwayDirection), runwayDirection.ToString(), null)
+        };
+        
+        _headingRangeEvaluator = new HeadingRangeEvaluator(_runwayDirectionDegrees, HeadingThresholdOffset);
+    }
+
 
     public bool IsInConflictZone(PointFeature feature)
     {
@@ -23,10 +43,14 @@ public class RunwayApproachConflictDetector(Coordinate runwayStartPoint, Interse
             return false;
         }
 
-        if (height.Value.MeterToFeet() > 1600 || heading is < 105 or > 295 || !approachZoneDetector.TryGetIntersectFeature(feature, out _))
+        if (height.Value.MeterToFeet() > 1600 
+            || !_headingRangeEvaluator.IsWithinBounds(heading.Value)
+            || !_approachZoneDetector.TryGetIntersectFeature(feature, out _))
             return false;
 
         var timeToTargetSeconds = CalculateTemporalDistanceSeconds(feature);
+        LogExtensions.LogDebug($"Found feature in approach zone [{_runwayDirectionDegrees}] with time to target [{timeToTargetSeconds}] s");
+        
         if (timeToTargetSeconds >= 0)
             return timeToTargetSeconds <= WarningThresholdSeconds;
 
@@ -41,8 +65,8 @@ public class RunwayApproachConflictDetector(Coordinate runwayStartPoint, Interse
         if (velocity is null or <= 0)
             return -1;
 
-        var deltaX = runwayStartPoint.X - feature.Point.X;
-        var deltaY = runwayStartPoint.Y - feature.Point.Y;
+        var deltaX = _runwayStartPoint.X - feature.Point.X;
+        var deltaY = _runwayStartPoint.Y - feature.Point.Y;
 
         // Simple Pythagorean theorem works natively for EPSG:5514
         var distanceMeters = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);

@@ -1,4 +1,3 @@
-using System.IO;
 using Mapsui.Layers;
 using SmasKunovice.Avalonia.Extensions;
 
@@ -11,6 +10,6 @@ public class RpaPresenceConflictDetector(IntersectionDetector rpaIntersectionDet
         if (!rpaIntersectionDetector.TryGetIntersectFeature(feature, out _))
             return false;
 
-        return feature.GetScoutData().Odid.Location?.IsGrounded ?? false;
+        return feature.GetScoutData().Odid.Location?.AltitudeBaro <= 1600.FeetToMeter();
     }
 }

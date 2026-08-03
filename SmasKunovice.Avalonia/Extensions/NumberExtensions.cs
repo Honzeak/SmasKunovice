@@ -18,4 +18,18 @@ public static class NumberExtensions
         return MeterToFeetConvertFactor * meter;
     }
     
+    public static double FeetToMeter(this double feet)
+    {
+        return feet / MeterToFeetConvertFactor;
+    }
+    
+    public static double FeetToMeter(this float feet)
+    {
+        return feet / MeterToFeetConvertFactor;
+    }
+    
+    public static double FeetToMeter(this int feet)
+    {
+        return feet / MeterToFeetConvertFactor;
+    }
 }

@@ -309,21 +309,29 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
 
     private void SetConflictChangedEvents()
     {
-        _conflictDetectionService.ConflictUpdate += (sender, conflictUpdates) => HandleConflictUpdate(conflictUpdates); 
-        _positionLayer?.FeatureRemoved += (sender, removeId) =>
-        {
-            Dispatcher.UIThread.Post(() =>
-            {
-                var toRemove = ConflictNotifications.Where(cn => cn.UasId.Equals(removeId)).ToList();
-                foreach (var notification in toRemove)
-                {
-                    notification.PropertyChanged -= OnConflictNotificationPropertyChanged;
-                }
+        _conflictDetectionService.ConflictUpdate += OnConflictUpdate;
+        if (_positionLayer is not null)
+            _positionLayer.FeatureRemoved += OnPositionLayerFeatureRemoved;
+    }
 
-                ConflictNotifications.RemoveMany(toRemove);
-                UpdateLabelConflictLevel(removeId);
-            });
-        };
+    private void OnConflictUpdate(object? sender, ConflictsUpdateEventArgs conflictUpdates)
+    {
+        HandleConflictUpdate(conflictUpdates);
+    }
+
+    private void OnPositionLayerFeatureRemoved(object? sender, string removeId)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            var toRemove = ConflictNotifications.Where(cn => cn.UasId.Equals(removeId)).ToList();
+            foreach (var notification in toRemove)
+            {
+                notification.PropertyChanged -= OnConflictNotificationPropertyChanged;
+            }
+
+            ConflictNotifications.RemoveMany(toRemove);
+            UpdateLabelConflictLevel(removeId);
+        });
     }
 
     private void AddConflictNotification(ConflictNotification notification)
@@ -420,22 +428,24 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
         if (_positionLayer is null)
             return;
 
-        _positionLayer.SelectedFeatureChanged += (sender, feature) =>
-        {
-            IsFeatureSelected = feature is not null;
-            ShowSelectedFeatureLabel = feature?.Styles.OfType<LabelStyle>().FirstOrDefault()?.Enabled ?? false;
+        _positionLayer.SelectedFeatureChanged += OnSelectedFeatureChanged;
+    }
 
-            if (feature is not null)
-            {
-                _selectedFeature = feature;
-                var scoutDataId = feature.GetScoutDataId();
-                NonNullProperties = GetNonNullProperties(_aircraftDatabase.GetByIcao24(scoutDataId));
-            }
-            else
-            {
-                NonNullProperties.Clear();
-            }
-        };
+    private void OnSelectedFeatureChanged(object? sender, IFeature? feature)
+    {
+        IsFeatureSelected = feature is not null;
+        ShowSelectedFeatureLabel = feature?.Styles.OfType<LabelStyle>().FirstOrDefault()?.Enabled ?? false;
+
+        if (feature is not null)
+        {
+            _selectedFeature = feature;
+            var scoutDataId = feature.GetScoutDataId();
+            NonNullProperties = GetNonNullProperties(_aircraftDatabase.GetByIcao24(scoutDataId));
+        }
+        else
+        {
+            NonNullProperties.Clear();
+        }
     }
 
     private void AddLayers(Map map, params ILayer[] layers)
@@ -452,10 +462,16 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
         return new ObservableCollection<SelectProcedure>(procedureLayerNames.Select(name => new SelectProcedure(name)));
     }
 
-    // TODO add dispose of newly added events
     public void Dispose()
     {
         ProcedureList.CollectionChanged -= OnProcedureListChanged;
+
+        _conflictDetectionService.ConflictUpdate -= OnConflictUpdate;
+        if (_positionLayer is not null)
+        {
+            _positionLayer.FeatureRemoved -= OnPositionLayerFeatureRemoved;
+            _positionLayer.SelectedFeatureChanged -= OnSelectedFeatureChanged;
+        }
 
         foreach (var selectProcedure in ProcedureList)
         {

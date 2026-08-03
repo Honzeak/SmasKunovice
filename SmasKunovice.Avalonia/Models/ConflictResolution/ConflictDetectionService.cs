@@ -22,7 +22,7 @@ public interface IConflictDetectionService : IDisposable
 public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider, IErrorDialogService dialogService, DroneAboveLimitConflictDetector droneDetector, RpaPresenceConflictDetector rpaDetector, (RunwayApproachConflictDetector _02C, RunwayApproachConflictDetector _20C) approachDetectors) : IConflictDetectionService
 {
     private const int UpdateIntervalSeconds = 3;
-    private const int TakeoffThresholdMps = 11; // ~40 km/h TODO check if we agree on this value
+    private const int TakeoffSpeedThresholdMps = 11; // ~40 km/h
     private const int TakeoffHeadingOffsetDegrees = 60;
     private bool _disposed;
     private readonly ConflictRepository _conflictRepository = new();
@@ -54,32 +54,42 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
 
     public void SetRunwayOperation(RunwayDirection direction, bool value)
     {
-        LogExtensions.LogDebug($"Runway operation set to {value} for direction {direction}");
-        
-        switch (direction)
+        _semaphore.Wait(_cts.Token);
+        try
         {
-            case RunwayDirection._20C:
-                _20C = value;
-                if (!_20C)
-                    UpdateConflictsAndRaiseEvent(_approachConflictZoneFeatures20C, ConflictType.RunwayApproach, ConflictLevel.None);
-                break;
-            case RunwayDirection._02C:
-                _02C = value;
-                if (!_02C)
-                    UpdateConflictsAndRaiseEvent(_approachConflictZoneFeatures02C, ConflictType.RunwayApproach, ConflictLevel.None);
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
-        }
+            LogExtensions.LogDebug($"Runway operation set to {value} for direction {direction}");
 
-        ProcessApproachConflicts();
+            switch (direction)
+            {
+                case RunwayDirection._20C:
+                    _20C = value;
+                    if (!_20C)
+                        UpdateConflictsAndRaiseEvent(_approachConflictZoneFeatures20C, ConflictType.RunwayApproach, ConflictLevel.None);
+                    break;
+                case RunwayDirection._02C:
+                    _02C = value;
+                    if (!_02C)
+                        UpdateConflictsAndRaiseEvent(_approachConflictZoneFeatures02C, ConflictType.RunwayApproach, ConflictLevel.None);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(direction), direction, null);
+            }
+
+            ProcessApproachConflicts();
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
     private async void OnProviderDataChanged(object? sender, EventArgs eventArgs)
     {
+        var semaphoreEntered = false;
         try
         {
             await _semaphore.WaitAsync(_cts.Token);
+            semaphoreEntered = true;
             try
             {
                 await UpdateFeaturesFromProvider();
@@ -102,7 +112,8 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
         }
         finally
         {
-            _semaphore.Release();
+            if (semaphoreEntered)
+                _semaphore.Release();
         }
     }
 
@@ -112,7 +123,15 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
         {
             while (await _timer.WaitForNextTickAsync(_cts.Token))
             {
-                UpdateConflicts();
+                await _semaphore.WaitAsync(_cts.Token);
+                try
+                {
+                    UpdateConflicts();
+                }
+                finally
+                {
+                    _semaphore.Release();
+                }
             }
         }
         catch (OperationCanceledException) when (_cts.IsCancellationRequested)
@@ -177,20 +196,19 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
     private void ProcessRpaConflicts()
     {
         var conflictLevel = ConflictLevel.None;
+        var rpaConflictZoneFeatures = _rpaConflictZoneFeatures.ToArray();
 
-        // TODO check if this implementation is correct
-        // TODO not atomical comparison!
-        if (_rpaConflictZoneFeatures.Count >= 2 &&
-            _rpaConflictZoneFeatures.Any(kvp => !kvp.Value.GetScoutData().IsVehicle()))
+        if (rpaConflictZoneFeatures.Length >= 2 &&
+            rpaConflictZoneFeatures.Any(kvp => !kvp.Value.GetScoutData().IsVehicle()))
         {
-            if (_rpaConflictZoneFeatures.Count > 2)
+            if (rpaConflictZoneFeatures.Length > 2)
             {
                 conflictLevel = ConflictLevel.Alarm;
             }
             else
             {
-                var firstFeature = _rpaConflictZoneFeatures.First().Value;
-                var secondFeature = _rpaConflictZoneFeatures.Last().Value;
+                var firstFeature = rpaConflictZoneFeatures[0].Value;
+                var secondFeature = rpaConflictZoneFeatures[1].Value;
 
                 conflictLevel = IsFeatureDistanceIncreasing(firstFeature, secondFeature)
                     ? ConflictLevel.None
@@ -198,7 +216,7 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
             }
         }
 
-        foreach (var (uasId, feature) in _rpaConflictZoneFeatures)
+        foreach (var (uasId, feature) in rpaConflictZoneFeatures)
         {
             UpdateConflictAndRaiseEvent(feature, ConflictType.RpaPresence, conflictLevel);
         }
@@ -260,10 +278,10 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
         var speed = scoutData.Odid.Location?.SpeedHorizontal;
         var heading = scoutData.Odid.Location?.Direction;
 
-        if (scoutData.Odid.Location?.IsGrounded is true)
+        if (scoutData.Odid.Location?.SpeedVertical is > 0)
             return false;
 
-        if (speed < TakeoffThresholdMps || heading is null)
+        if (speed < TakeoffSpeedThresholdMps || heading is null)
             return false;
 
         if (_20C && _headingRangeEvaluator20C.IsWithinBounds(heading.Value) || _02C && _headingRangeEvaluator02C.IsWithinBounds(heading.Value))
@@ -316,11 +334,19 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
 
     public void RemoveFeature(string featureId)
     {
-        _approachConflictZoneFeatures02C.Remove(featureId, out _);
-        _approachConflictZoneFeatures20C.Remove(featureId, out _);
-        _rpaConflictZoneFeatures.Remove(featureId, out _);
-        _droneConflictZoneFeatures.Remove(featureId, out _);
-        _conflictRepository.RemoveById(featureId);
+        _semaphore.Wait(_cts.Token);
+        try
+        {
+            _approachConflictZoneFeatures02C.Remove(featureId, out _);
+            _approachConflictZoneFeatures20C.Remove(featureId, out _);
+            _rpaConflictZoneFeatures.Remove(featureId, out _);
+            _droneConflictZoneFeatures.Remove(featureId, out _);
+            _conflictRepository.RemoveById(featureId);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
     public void Dispose()

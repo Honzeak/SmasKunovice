@@ -161,7 +161,6 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
         var maxConflictLevel = ConflictLevel.None;
         if (_rpaConflictZoneFeatures.IsEmpty || _rpaConflictZoneFeatures.All(IsTakeoffFeature))
         {
-            LogExtensions.LogDebug("No valid features in RPA for approach conflict. No conflict raised!");
             UpdateConflictsAndRaiseEvent(_approachConflictZoneFeatures02C, ConflictType.RunwayApproach, ConflictLevel.None);
             UpdateConflictsAndRaiseEvent(_approachConflictZoneFeatures20C, ConflictType.RunwayApproach, ConflictLevel.None);
             return;

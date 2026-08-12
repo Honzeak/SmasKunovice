@@ -17,6 +17,7 @@ public record ScoutData : IScoutData
 {
     public const string TimestampFormat = "yyyy-MM-ddTHH:mm:ss.ffffff";
     public const string TimestampFormatNew = "yyyy-MM-ddTHH:mm:ss.ffffffZ";
+    public const string TimestampFormatLog = "yyyy-MM-ddTHH:mm:ss";
     public bool HasLocation => Odid.Location?.Latitude is not null && Odid.Location.Longitude is not null;
 
     public bool TryCreatePointFeature(out PointFeature? pointFeature)
@@ -288,8 +289,12 @@ public record LocationData
             {
                 _ when DateTime.TryParseExact(value, ScoutData.TimestampFormatNew, NumberFormatInfo.InvariantInfo, DateTimeStyles.None, out _) => ScoutData.TimestampFormatNew,
                 _ when DateTime.TryParseExact(value, ScoutData.TimestampFormat, NumberFormatInfo.InvariantInfo, DateTimeStyles.None, out _) => ScoutData.TimestampFormat,
+                _ when DateTime.TryParseExact(value, ScoutData.TimestampFormatLog, NumberFormatInfo.InvariantInfo, DateTimeStyles.None, out _) => ScoutData.TimestampFormatLog,
                 _ => null,
             };
+            
+            if (_timestampFormat is null)
+                LogExtensions.LogError($"Failed to parse timestamp format for timestamp [{value}]", this);
             
             _timestamp = value;
         }

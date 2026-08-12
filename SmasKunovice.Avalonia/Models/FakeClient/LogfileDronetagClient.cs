@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
@@ -15,10 +16,13 @@ public class LogfileDronetagClient : FakeDronetagClient
 {
     private readonly IScoutDataCoordTransformation _transformation;
     private readonly string _sourceLogFilePath;
+    private readonly bool _isBatchedData;
 
-    private JsonArrayWrapperStream? _stream;
+    private Stream _stream;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private bool _disposed;
+    private DateTime? _startTime = null;
+    private Stopwatch _clock = new ();
 
     public LogfileDronetagClient(IOptions<ClientAdapterOptions> options, IScoutDataCoordTransformation transformation)
     {
@@ -30,43 +34,30 @@ public class LogfileDronetagClient : FakeDronetagClient
         _sourceLogFilePath = adapterOptions.ClientSourceLogFilePath;
         if (!File.Exists(_sourceLogFilePath))
             throw new FileNotFoundException($"Log file '{_sourceLogFilePath}' not found.");
+        
+        _isBatchedData = adapterOptions.IsBatchedData;
     }
 
     public override async Task ConnectAsync()
     {
-        _stream = new JsonArrayWrapperStream(File.OpenRead(_sourceLogFilePath));
+        _stream = new JsonArrayWrapperStream(File.OpenRead(_sourceLogFilePath)); // One big array of messages
         _ = PublishMessagesAsync(_stream);
         await base.ConnectAsync();
     }
 
-    private async Task PublishMessagesAsync(JsonArrayWrapperStream stream)
+    private async Task PublishMessagesAsync(Stream stream)
     {
         try
         {
-            var messages = JsonSerializer.DeserializeAsyncEnumerable<ScoutData>(stream, ScoutData.SerializerOptions, _cancellationTokenSource.Token);
-
-            DateTime? startTime = null;
-            Stopwatch? clock = null;
-
-            await foreach (var message in messages)
+            if (_isBatchedData)
             {
-                var messageTimestamp = message?.Odid.Location?.GetTimestamp();
-                if (message is null || messageTimestamp is null) continue;
-                if (startTime is null)
-                {
-                    startTime = messageTimestamp;
-                    clock = Stopwatch.StartNew();
-                }
-
-                var simTimeNow = startTime.Value + clock!.Elapsed;
-                var delay = messageTimestamp.Value - simTimeNow;
-
-                if (delay > TimeSpan.Zero)
-                    await Task.Delay(delay, _cancellationTokenSource.Token);
-
-                message.Odid?.Location?.SetTimestamp(DateTime.UtcNow);
-                _transformation.TransformScoutDataCoords(message); // message is immutable (?)
-                SendMessageReceived(new ScoutDataReceivedEventArgs { Messages = [message] });
+                var messages = JsonSerializer.DeserializeAsyncEnumerable<ScoutData[]>(stream, ScoutData.SerializerOptions, _cancellationTokenSource.Token);
+                await ProcessMessagesArrays(messages);
+            }
+            else
+            {
+                var messages = JsonSerializer.DeserializeAsyncEnumerable<ScoutData>(stream, ScoutData.SerializerOptions, _cancellationTokenSource.Token);
+                await ProcessMessages(messages);
             }
         }
         catch (OperationCanceledException)
@@ -78,7 +69,63 @@ public class LogfileDronetagClient : FakeDronetagClient
         }
         LogExtensions.LogWarning("Message replay logging finished.", this);
     }
-    
+
+    private async Task ProcessMessagesArrays(IAsyncEnumerable<ScoutData[]?> messages)
+    {
+        await foreach (var messageArray in messages)
+        {
+            if (messageArray is null) continue;
+
+            List<ScoutData> validMessages = [];
+            DateTime? batchTimestamp = null;
+            foreach (var message in messageArray)
+            {
+                var messageTimestamp = message?.Odid.Location?.GetTimestamp();
+                if (message is null || messageTimestamp is null) continue;
+
+                validMessages.Add(message);
+                if (batchTimestamp is null || messageTimestamp < batchTimestamp)
+                    batchTimestamp = messageTimestamp;
+            }
+
+            if (validMessages.Count == 0 || batchTimestamp is null) continue;
+            await ReplayMessages(validMessages, batchTimestamp.Value);
+        }
+    }
+
+    private async Task ProcessMessages(IAsyncEnumerable<ScoutData?> messages)
+    {
+        await foreach (var message in messages)
+        {
+            var messageTimestamp = message?.Odid.Location?.GetTimestamp();
+            if (message is null || messageTimestamp is null) continue;
+            await ReplayMessages([message], messageTimestamp.Value);
+        }
+    }
+
+    private async Task ReplayMessages(List<ScoutData> messages, DateTime sourceTimestamp)
+    {
+        if (_startTime is null)
+        {
+            _startTime = sourceTimestamp;
+            _clock.Restart();
+        }
+
+        var simTimeNow = _startTime.Value + _clock.Elapsed;
+        var delay = sourceTimestamp - simTimeNow;
+
+        if (delay > TimeSpan.Zero)
+            await Task.Delay(delay, _cancellationTokenSource.Token);
+
+        foreach (var message in messages)
+        {
+            message.Odid?.Location?.SetTimestamp(DateTime.UtcNow);
+            _transformation.TransformScoutDataCoords(message);
+        }
+
+        SendMessageReceived(new ScoutDataReceivedEventArgs { Messages = messages });
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (_disposed) return;

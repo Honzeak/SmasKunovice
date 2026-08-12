@@ -15,6 +15,7 @@ using CommunityToolkit.Mvvm.Input;
 using DynamicData;
 using Mapsui;
 using Mapsui.Layers;
+using Mapsui.Limiting;
 using Mapsui.Styles;
 using Mapsui.Tiling.Layers;
 using SmasKunovice.Avalonia.Extensions;
@@ -102,6 +103,12 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
             map.CRS = "EPSG:5514";
             // Dark grey
             map.BackColor = MapsuiColor.FromString("#033052");
+            map.Navigator.OverridePanBounds = new MRect(
+                minX: -614991,
+                minY: -1227070,
+                maxX: -509776,
+                maxY: -1142803);
+            map.Navigator.Limiter = new ViewportLimiterKeepWithinExtent();
             AddLayers(map, MapLayerFactory.CreateZtmDynamicLayers(ZtmDatasets.ZTM100, ZtmDatasets.ZTM25));
             AddLayers(map, layerFactory.CreateAirportElementsLayers(_layerStyleProvider, out var procedureLayerNames).ToArray());
             foreach (var procedure in CreateProceduresModelList(procedureLayerNames))

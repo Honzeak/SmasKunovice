@@ -141,6 +141,8 @@ public class MapLayerFactory(IProvider dynamicScoutDataProvider, IErrorDialogSer
                 Opacity = layerConfig.Opacity,
                 Name = layerConfig.Name
             };
+            if (layerConfig.MaxVisible.HasValue)
+                layer.MaxVisible = layerConfig.MaxVisible.Value;
 
             if (!layerConfig.Name.StartsWith(ProcedureLayerPrefix))
                 return layer;

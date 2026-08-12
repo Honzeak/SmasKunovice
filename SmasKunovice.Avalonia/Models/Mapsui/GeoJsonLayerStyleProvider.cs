@@ -72,6 +72,7 @@ public class GeoJsonLayerStyleProvider
                 var color = GetColorFromGeoJson(document!);
                 var opacity = GetOpacityFromGeoJson(document!);
                 var order = GetOrderFromGeoJson(document!);
+                var maxVisible = GetMaxVisibleFromGeoJson(document!);
                 var drawLabels = GetDrawLabelsFromGeoJson(document!);
                 var drawOutline = GetDrawOutlineFromGeoJson(document!);
 
@@ -79,6 +80,7 @@ public class GeoJsonLayerStyleProvider
                 {
                     Name = fileName,
                     Style = GetStyles(color, drawLabels, drawOutline),
+                    MaxVisible = maxVisible,
                     Opacity = opacity,
                     Order = order,
                     Provider = new GeoJsonProvider(geoJsonFile),
@@ -95,6 +97,25 @@ public class GeoJsonLayerStyleProvider
             throw;
         }
     }
+
+    private double? GetMaxVisibleFromGeoJson(JsonDocument document)
+    {
+        try
+        {
+            if (document.RootElement.TryGetProperty(MaxVisiblePropertyName, out var maxVisible))
+            {
+                return maxVisible.GetDouble();
+            }
+        }
+        catch (Exception e)
+        {
+            LogExtensions.LogError(e, "Failed to parse maxvisible from document");
+        }
+
+        return null;
+    }
+
+    private const string MaxVisiblePropertyName = "maxvisible";
 
     private bool TryGetDocument(string geoJsonPath, out JsonDocument? document)
     {
@@ -236,6 +257,7 @@ public record LayerProperty
     public required IStyle Style { get; init; }
     public required int Order { get; init; }
     public required GeoJsonProvider Provider { get; init; }
+    public double? MaxVisible { get; init; }
 
     private readonly float _opacity;
 

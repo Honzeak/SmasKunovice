@@ -1,6 +1,7 @@
 {
 "type": "FeatureCollection",
 "name": "RunwayHoldingPoint",
+"maxvisible": 5.0,
 "color": "red",
 "order": 0,
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5514" } },

@@ -23,7 +23,8 @@ public static class AircraftDataFormatter
             _ => string.Empty
             // null or 0 or <= -63 or >= 63 => string.Empty,
         };
-        var scoutDataAltitude = scoutData.Odid?.Location?.AltitudeBaro;
+        
+        var scoutDataAltitude = scoutData.IsDrone() ? scoutData.Odid?.Location?.AltitudeGeo : scoutData.Odid?.Location?.AltitudeBaro;
         string heightValue;
         if (scoutDataAltitude is null)
         {

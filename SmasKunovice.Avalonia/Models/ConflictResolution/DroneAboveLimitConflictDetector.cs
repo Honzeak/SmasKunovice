@@ -14,7 +14,7 @@ public class DroneAboveLimitConflictDetector(IntersectionDetector droneGridInter
         if (!TryGetIntersectingVerticalLimit(feature, out var verticalLimit))
             return false;
 
-        var altitudeMeters = feature.GetScoutData().Odid.Location?.AltitudeBaro;
+        var altitudeMeters = feature.GetScoutData().Odid.Location?.AltitudeGeo;
         return altitudeMeters >= verticalLimit; // Drone is dangerous when it's high up
     }
 

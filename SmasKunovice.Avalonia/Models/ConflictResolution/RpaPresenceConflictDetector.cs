@@ -10,6 +10,13 @@ public class RpaPresenceConflictDetector(IntersectionDetector rpaIntersectionDet
         if (!rpaIntersectionDetector.TryGetIntersectFeature(feature, out _))
             return false;
 
-        return feature.GetScoutData().Odid.Location?.AltitudeBaro <= 1600.FeetToMeter();
+        var scoutData = feature.GetScoutData();
+        var isInZoneVertical = scoutData.Odid.Location?.AltitudeBaro <= 1600.FeetToMeter() || scoutData.Odid.Location?.IsGrounded is true;
+        isInZoneVertical = isInZoneVertical || scoutData.IsVehicle();
+        if (isInZoneVertical)
+            LogExtensions.LogInfo($"Found feature {feature.GetScoutDataId()} in RPA zone.");
+        else
+            LogExtensions.LogInfo($"Found feature {feature.GetScoutDataId()} in RPA zone horizontal, but not vertical.");
+        return isInZoneVertical;
     }
 }

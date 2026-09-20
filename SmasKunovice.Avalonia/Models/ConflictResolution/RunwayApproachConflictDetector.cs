@@ -49,12 +49,12 @@ public class RunwayApproachConflictDetector
             return false;
 
         var timeToTargetSeconds = CalculateTemporalDistanceSeconds(feature);
-        LogExtensions.LogDebug($"Found feature in approach zone [{_runwayDirectionDegrees}] with time to target [{timeToTargetSeconds}] s");
+        LogExtensions.LogDebug($"Found feature ID {scoutData.GetUasId()} in approach zone with [{_runwayDirectionDegrees}] deg. with time to target [{timeToTargetSeconds}] s");
         
         if (timeToTargetSeconds >= 0)
             return timeToTargetSeconds <= WarningThresholdSeconds;
 
-        LogExtensions.LogWarning("Missing or invalid horizontal velocity when calculating conflict for feature ID: {0}", this, feature.GetScoutDataId());
+        LogExtensions.LogWarning("Missing or invalid horizontal velocity when calculating conflict for feature ID: {0}", this, scoutData.GetUasId());
         return false;
     }
 

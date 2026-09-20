@@ -200,21 +200,34 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
         if (rpaConflictZoneFeatures.Length >= 2 &&
             rpaConflictZoneFeatures.Any(kvp => !kvp.Value.GetScoutData().IsVehicle()))
         {
+            LogExtensions.LogInfo("Found RPA conflict.");
             if (rpaConflictZoneFeatures.Length > 2)
             {
                 conflictLevel = ConflictLevel.Alarm;
+                LogExtensions.LogInfo("RPA conflict for more than 2 targets.");
             }
             else
             {
                 var firstFeature = rpaConflictZoneFeatures[0].Value;
                 var secondFeature = rpaConflictZoneFeatures[1].Value;
 
-                conflictLevel = IsFeatureDistanceIncreasing(firstFeature, secondFeature)
-                    ? ConflictLevel.None
-                    : ConflictLevel.Alarm;
+                var isFeatureDistanceIncreasing = IsFeatureDistanceIncreasing(firstFeature, secondFeature);
+                if (isFeatureDistanceIncreasing)
+                {
+                    LogExtensions.LogInfo($"Feature {firstFeature.GetScoutDataId()} distance is increasing. No conflict raised.");
+                    conflictLevel = ConflictLevel.None;
+                }
+                else
+                {
+                    LogExtensions.LogInfo($"Feature {firstFeature.GetScoutDataId()} distance is not increasing. Raising conflict.");
+                    conflictLevel = ConflictLevel.Alarm;
+                }
             }
         }
 
+        if (rpaConflictZoneFeatures.Length > 0)
+            LogExtensions.LogInfo($"Raising conflict for RPA for {rpaConflictZoneFeatures.Length} features, level - {conflictLevel}");
+        
         foreach (var (uasId, feature) in rpaConflictZoneFeatures)
         {
             UpdateConflictAndRaiseEvent(feature, ConflictType.RpaPresence, conflictLevel);
@@ -277,7 +290,7 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
         var speed = scoutData.Odid.Location?.SpeedHorizontal;
         var heading = scoutData.Odid.Location?.Direction;
 
-        if (scoutData.Odid.Location?.SpeedVertical is > 0)
+        if (scoutData.Odid.Location?.SpeedVertical is null or < 0)
             return false;
 
         if (speed < TakeoffSpeedThresholdMps || heading is null)

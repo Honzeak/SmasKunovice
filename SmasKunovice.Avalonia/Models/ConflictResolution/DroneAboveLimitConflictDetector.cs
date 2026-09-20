@@ -4,7 +4,12 @@ using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.ConflictResolution;
 
-public class DroneAboveLimitConflictDetector(IntersectionDetector droneGridIntersectionDetector)
+public interface IConflictDetector
+{
+    bool IsInConflictZone(PointFeature feature);
+}
+
+public class DroneAboveLimitConflictDetector(IntersectionDetector droneGridIntersectionDetector) : IConflictDetector
 {
     public bool IsInConflictZone(PointFeature feature)
     {

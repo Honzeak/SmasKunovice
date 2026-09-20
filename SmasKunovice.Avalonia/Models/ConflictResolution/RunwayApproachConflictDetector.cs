@@ -5,7 +5,7 @@ using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.ConflictResolution;
 
-public class RunwayApproachConflictDetector
+public class RunwayApproachConflictDetector : IConflictDetector
 {
     private const int WarningThresholdSeconds = 30;
     private const int AlarmThresholdSeconds = 15;

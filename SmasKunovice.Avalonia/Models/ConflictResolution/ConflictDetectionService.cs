@@ -21,7 +21,7 @@ public interface IConflictDetectionService : IDisposable
 
 public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider, IErrorDialogService dialogService, DroneAboveLimitConflictDetector droneDetector, RpaPresenceConflictDetector rpaDetector, (RunwayApproachConflictDetector _02C, RunwayApproachConflictDetector _20C) approachDetectors) : IConflictDetectionService
 {
-    private const int UpdateIntervalSeconds = 3;
+    private const int UpdateIntervalMs = 300;
     private const int TakeoffSpeedThresholdMps = 11; // ~40 km/h
     private const int TakeoffHeadingOffsetDegrees = 60;
     private bool _disposed;
@@ -31,7 +31,7 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
     private readonly ConcurrentDictionary<string, PointFeature> _approachConflictZoneFeatures20C = new();
     private readonly ConcurrentDictionary<string, PointFeature> _droneConflictZoneFeatures = new();
     private bool _isInitialized;
-    private readonly PeriodicTimer _timer = new(TimeSpan.FromSeconds(UpdateIntervalSeconds));
+    private readonly PeriodicTimer _timer = new(TimeSpan.FromMilliseconds(UpdateIntervalMs));
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _semaphore = new(1);
     private bool _02C;
@@ -259,27 +259,26 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
             var pointFeature = (PointFeature)feature;
             var scoutDataId = pointFeature.GetScoutDataId();
 
-            if (approachDetectors._02C.IsInConflictZone(pointFeature))
-                _approachConflictZoneFeatures02C[scoutDataId] = pointFeature;
-            else
-                RemoveFromZoneAndConflictRepoAndRaiseEvent(scoutDataId, pointFeature, ConflictType.RunwayApproach, RunwayDirection._02C);
+            UpdateZoneFeature(pointFeature, scoutDataId, approachDetectors._02C, _approachConflictZoneFeatures02C, ConflictType.RunwayApproach, RunwayDirection._02C);
+            UpdateZoneFeature(pointFeature, scoutDataId, approachDetectors._20C, _approachConflictZoneFeatures20C, ConflictType.RunwayApproach, RunwayDirection._20C);
+            UpdateZoneFeature(pointFeature, scoutDataId, rpaDetector, _rpaConflictZoneFeatures, ConflictType.RpaPresence, null);
+            UpdateZoneFeature(pointFeature, scoutDataId, droneDetector, _droneConflictZoneFeatures, ConflictType.DroneAboveLimit, null);
+        }
+    }
 
-
-            if (approachDetectors._20C.IsInConflictZone(pointFeature))
-                _approachConflictZoneFeatures20C[scoutDataId] = pointFeature;
-            else
-                RemoveFromZoneAndConflictRepoAndRaiseEvent(scoutDataId, pointFeature, ConflictType.RunwayApproach, RunwayDirection._20C);
-
-
-            if (rpaDetector.IsInConflictZone(pointFeature))
-                _rpaConflictZoneFeatures[scoutDataId] = pointFeature;
-            else
-                RemoveFromZoneAndConflictRepoAndRaiseEvent(scoutDataId, pointFeature, ConflictType.RpaPresence, null);
-
-            if (droneDetector.IsInConflictZone(pointFeature))
-                _droneConflictZoneFeatures[scoutDataId] = pointFeature;
-            else
-                RemoveFromZoneAndConflictRepoAndRaiseEvent(scoutDataId, pointFeature, ConflictType.DroneAboveLimit, null);
+    private void UpdateZoneFeature(PointFeature pointFeature, string scoutDataId, IConflictDetector detector, ConcurrentDictionary<string, PointFeature> zoneFeatures, ConflictType conflictType, RunwayDirection? direction)
+    {
+        if (detector.IsInConflictZone(pointFeature))
+        {
+            if (zoneFeatures.TryGetValue(scoutDataId, out var existing))
+            {
+                pointFeature[FeatureAttributes.PreviousPosition] = existing.Point;
+            }
+            zoneFeatures[scoutDataId] = pointFeature;
+        }
+        else
+        {
+            RemoveFromZoneAndConflictRepoAndRaiseEvent(scoutDataId, pointFeature, conflictType, direction);
         }
     }
 

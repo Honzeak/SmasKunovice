@@ -3,7 +3,7 @@ using SmasKunovice.Avalonia.Extensions;
 
 namespace SmasKunovice.Avalonia.Models.ConflictResolution;
 
-public class RpaPresenceConflictDetector(IntersectionDetector rpaIntersectionDetector)
+public class RpaPresenceConflictDetector(IntersectionDetector rpaIntersectionDetector) : IConflictDetector
 {
     public bool IsInConflictZone(PointFeature feature)
     {

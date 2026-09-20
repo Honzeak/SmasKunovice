@@ -23,8 +23,9 @@ public class LogfileDronetagClient : FakeDronetagClient
     private bool _disposed;
     private DateTime? _startTime = null;
     private Stopwatch _clock = new ();
+    private readonly IErrorDialogService _errorDialogService;
 
-    public LogfileDronetagClient(IOptions<ClientAdapterOptions> options, IScoutDataCoordTransformation transformation)
+    public LogfileDronetagClient(IOptions<ClientAdapterOptions> options, IScoutDataCoordTransformation transformation, IErrorDialogService errorDialogService)
     {
         _transformation = transformation;
         var adapterOptions = options.Value;
@@ -36,6 +37,7 @@ public class LogfileDronetagClient : FakeDronetagClient
             throw new FileNotFoundException($"Log file '{_sourceLogFilePath}' not found.");
         
         _isBatchedData = adapterOptions.IsBatchedData;
+        _errorDialogService = errorDialogService;
     }
 
     public override async Task ConnectAsync()
@@ -65,7 +67,10 @@ public class LogfileDronetagClient : FakeDronetagClient
         }
         catch (Exception e)
         {
-            LogExtensions.LogError(e, "Message replay logging failed.", this);
+            var message = e is JsonException ? "Failed to parse JSON. Check the IsBatchedData setting." : "Message replay logging failed.";
+            LogExtensions.LogError(e, message, this);
+            await _errorDialogService.ShowErrorDialogAsync(message, e);
+            Dispose();
         }
         LogExtensions.LogWarning("Message replay logging finished.", this);
     }

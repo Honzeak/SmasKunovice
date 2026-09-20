@@ -18,7 +18,7 @@ public class LogfileDronetagClientTests : TestBase
 
         var options = TestHelpers.CreateClientAdapterOptions();
         options.Value.ClientSourceLogFilePath = jsonLogFilePath;
-        var client = new LogfileDronetagClient(options, new DummyTransformator());
+        var client = new LogfileDronetagClient(options, new DummyTransformator(), new DummyErrorDialogService());
         client.MessageReceived += (sender, args) =>
         {
             message = args.Messages.Single();

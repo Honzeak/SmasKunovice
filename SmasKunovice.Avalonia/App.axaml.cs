@@ -153,7 +153,7 @@ public partial class App : Application
             }
 
             LogExtensions.LogInfo("Initializing log file client.", this);
-            return new LogfileDronetagClient(options, sp.GetRequiredService<IScoutDataCoordTransformation>());
+            return new LogfileDronetagClient(options, sp.GetRequiredService<IScoutDataCoordTransformation>(), sp.GetRequiredService<IErrorDialogService>());
         });
         services.AddSingleton<IErrorDialogService>(_ => _errorDialogService);
         services.AddSingleton<MainViewViewModel>();

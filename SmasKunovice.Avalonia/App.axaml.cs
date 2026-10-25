@@ -31,26 +31,30 @@ public partial class App : Application
         AvaloniaXamlLoader.Load(this);
     }
 
-    public override void OnFrameworkInitializationCompleted()
+    public override async void OnFrameworkInitializationCompleted()
     {
         SetupExceptionHandling();
 
         var configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true) // Load appsettings.json
-            .AddJsonFile("appsettings.User.json", optional: false, reloadOnChange: true) // Load appsettings.User.json")
 #if DEBUG
-            .AddUserSecrets<App>(optional: true)
+            .AddJsonFile("appsettings.User.json", optional: false, reloadOnChange: true) // Load appsettings.User.json")
 #endif
             .Build();
 
-        var services = ConfigureServices(configuration);
-        _serviceProvider = services.BuildServiceProvider();
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.ShutdownMode = ShutdownMode.OnLastWindowClose;
+            desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
             // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
             // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
             DisableAvaloniaDataAnnotationValidation();
+            var services = ConfigureServices(configuration);
+
+#if !DEBUG
+            if (!await HandleUserAuthentication(desktop, services)) return;
+#endif
+
+            _serviceProvider = services.BuildServiceProvider();
             try
             {
                 var mainViewViewModel = _serviceProvider.GetRequiredService<MainViewViewModel>();
@@ -58,6 +62,8 @@ public partial class App : Application
                 {
                     DataContext = new MainWindowViewModel(mainViewViewModel),
                 };
+                desktop.MainWindow.Show();
+                desktop.ShutdownMode = ShutdownMode.OnLastWindowClose;
                 _ = mainViewViewModel.InitializeAsync();
             }
             catch (Exception ex)
@@ -80,6 +86,29 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static async Task<bool> HandleUserAuthentication(IClassicDesktopStyleApplicationLifetime desktop, ServiceCollection services)
+    {
+        var loginWindow = new LoginWindow();
+        desktop.MainWindow = loginWindow;
+        loginWindow.Show();
+        var tcs = new TaskCompletionSource<bool>();
+        loginWindow.Closed += (s, e) => tcs.SetResult(true);
+        await tcs.Task;
+        var loginVm = (LoginViewModel)loginWindow.DataContext!;
+        if (!loginVm.Success)
+        {
+            desktop.Shutdown();
+            return false;
+        }
+
+        services.PostConfigure<ClientAdapterOptions>(options =>
+        {
+            options.Username = loginVm.Username;
+            options.Password = loginVm.Password;
+        });
+        return true;
     }
 
     private void SetupExceptionHandling()

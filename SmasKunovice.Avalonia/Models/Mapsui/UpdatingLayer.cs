@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Mapsui;
 using Mapsui.Fetcher;
@@ -23,26 +24,75 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
     protected readonly IErrorDialogService ErrorDialogService;
     private FetchInfo? _fetchInfo;
     private bool _disposed;
+    private SemaphoreSlim _updateSemaphore = new(1, 1);
+    private readonly CancellationTokenSource _cts = new();
+    private readonly PeriodicTimer _timer = new(TimeSpan.FromSeconds(5));
 
     protected UpdatingLayer(IProvider dataSource, IErrorDialogService errorDialogService)
     {
         ErrorDialogService = errorDialogService ?? throw new ArgumentNullException(nameof(errorDialogService));
         _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
+        Task.Run(PeriodicUpdateAsync, _cts.Token);
         if (_dataSource is IDynamic dynamic)
             dynamic.DataChanged += OnDataSourceDataChanged;
+    }
+
+    private async Task PeriodicUpdateAsync()
+    {
+        try
+        {
+            while (!_cts.IsCancellationRequested)
+            {
+                await _timer.WaitForNextTickAsync(_cts.Token);
+
+                // Wait for semaphore outside the critical try/finally to prevent invalid releases
+                await _updateSemaphore.WaitAsync(_cts.Token);
+                try
+                {
+                    await UpdateDataAsync(false);
+                }
+                catch (Exception exception)
+                {
+                    LogExtensions.LogError(exception, "Error updating layer");
+                    Dispose();
+                    await _cts.CancelAsync();
+                    await ErrorDialogService.ShowErrorDialogAsync("Error updating layer", exception);
+                }
+                finally
+                {
+                    _updateSemaphore.Release();
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Graceful shutdown handling
+        }
     }
 
     private async void OnDataSourceDataChanged(object? sender, EventArgs e)
     {
         try
         {
-            await UpdateDataAsync(true);
+            await _updateSemaphore.WaitAsync(_cts.Token);
+            try
+            {
+                await UpdateDataAsync(true);
+            }
+            catch (Exception exception)
+            {
+                LogExtensions.LogError(exception, "Error updating layer");
+                Dispose();
+                await _cts.CancelAsync();
+                await ErrorDialogService.ShowErrorDialogAsync("Error updating layer", exception);
+            }
+            finally
+            {
+                _updateSemaphore.Release();
+            }
         }
-        catch (Exception exception)
+        catch (OperationCanceledException)
         {
-            LogExtensions.LogError(exception, "Error updating layer");
-            Dispose();
-            await ErrorDialogService.ShowErrorDialogAsync("Error updating layer", exception);
         }
     }
 
@@ -176,12 +226,15 @@ public abstract class UpdatingLayer<TFeature> : BaseLayer, IAsyncDataFetcher, IL
 
         if (disposing)
         {
+            _cts.Cancel();
             if (_dataSource is IDynamic dynamic)
                 dynamic.DataChanged -= OnDataSourceDataChanged;
 
             Features.Clear();
             PointFeatures.Clear();
             FeatureRemoved = null;
+            _timer.Dispose();
+            _cts.Dispose();
         }
 
         _disposed = true;

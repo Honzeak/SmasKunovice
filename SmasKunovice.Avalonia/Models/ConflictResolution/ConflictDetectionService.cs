@@ -57,7 +57,7 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
         _semaphore.Wait(_cts.Token);
         try
         {
-            LogExtensions.LogDebug($"Runway operation set to {value} for direction {direction}");
+            LogExtensions.LogInfo($"Runway operation set to {value} for direction {direction}");
 
             switch (direction)
             {
@@ -168,7 +168,6 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
 
         if (_02C)
         {
-            LogExtensions.LogDebug($"Processing approach conflicts for runway 02C ({_approachConflictZoneFeatures02C.Count} features)");
             foreach (var (uasId, feature) in _approachConflictZoneFeatures02C)
             {
                 var conflictLevel = approachDetectors._02C.GetConflictLevel(feature);
@@ -179,7 +178,6 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
 
         if (_20C)
         {
-            LogExtensions.LogDebug($"Processing approach conflicts for runway 20C ({_approachConflictZoneFeatures20C.Count} features)");
             foreach (var (uasId, feature) in _approachConflictZoneFeatures20C)
             {
                 var conflictLevel = approachDetectors._20C.GetConflictLevel(feature);
@@ -188,7 +186,6 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
             }
         }
         
-        LogExtensions.LogDebug($"Max conflict level for approach features: {maxConflictLevel}");
         UpdateConflictsAndRaiseEvent(_rpaConflictZoneFeatures, ConflictType.RunwayApproach, maxConflictLevel);
     }
 
@@ -200,11 +197,9 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
         if (rpaConflictZoneFeatures.Length >= 2 &&
             rpaConflictZoneFeatures.Any(kvp => !kvp.Value.GetScoutData().IsVehicle()))
         {
-            LogExtensions.LogInfo("Found RPA conflict.");
             if (rpaConflictZoneFeatures.Length > 2)
             {
                 conflictLevel = ConflictLevel.Alarm;
-                LogExtensions.LogInfo("RPA conflict for more than 2 targets.");
             }
             else
             {
@@ -214,20 +209,15 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
                 var isFeatureDistanceIncreasing = IsFeatureDistanceIncreasing(firstFeature, secondFeature);
                 if (isFeatureDistanceIncreasing)
                 {
-                    LogExtensions.LogInfo($"Feature {firstFeature.GetScoutDataId()} distance is increasing. No conflict raised.");
                     conflictLevel = ConflictLevel.None;
                 }
                 else
                 {
-                    LogExtensions.LogInfo($"Feature {firstFeature.GetScoutDataId()} distance is not increasing. Raising conflict.");
                     conflictLevel = ConflictLevel.Alarm;
                 }
             }
         }
 
-        if (rpaConflictZoneFeatures.Length > 0)
-            LogExtensions.LogInfo($"Raising conflict for RPA for {rpaConflictZoneFeatures.Length} features, level - {conflictLevel}");
-        
         foreach (var (uasId, feature) in rpaConflictZoneFeatures)
         {
             UpdateConflictAndRaiseEvent(feature, ConflictType.RpaPresence, conflictLevel);
@@ -297,7 +287,6 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
 
         if (_20C && _headingRangeEvaluator20C.IsWithinBounds(heading.Value) || _02C && _headingRangeEvaluator02C.IsWithinBounds(heading.Value))
         {
-            LogExtensions.LogDebug("Found a takeoff feature!");
             return true;
         }
 
@@ -319,7 +308,7 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
             return;
 
         _conflictRepository.RemoveConflict(uasId, conflictType);
-        LogExtensions.LogDebug("Remove conflict event raised", this);
+        LogExtensions.LogInfo($"Remove conflict event raised - conflict type [{conflictType}]", this);
         ConflictUpdate?.Invoke(this, new ConflictsUpdateEventArgs(pointFeature, ConflictUpdateResult.Removed, conflictType, ConflictLevel.None));
     }
 
@@ -329,7 +318,7 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
         if (updateResult == ConflictUpdateResult.Unchanged)
             return;
 
-        LogExtensions.LogDebug("Update conflict event raised", this);
+        LogExtensions.LogInfo($"Update conflict event raised - conflict type [{conflictType}] conflict level [{conflictLevel}]", this);
         ConflictUpdate?.Invoke(this, new ConflictsUpdateEventArgs(pointFeature, updateResult, conflictType, conflictLevel));
     }
 
@@ -339,7 +328,7 @@ public class ConflictDetectionService(DynamicScoutDataProvider scoutDataProvider
         if (!updateResults.HasChanges)
             return;
 
-        LogExtensions.LogDebug("Update conflicts event raised", this);
+        LogExtensions.LogInfo("Update conflicts event raised", this);
         ConflictUpdate?.Invoke(this, new ConflictsUpdateEventArgs(updateResults, conflictZoneFeatures.ToDictionary(), conflictType, conflictLevel));
     }
 

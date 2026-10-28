@@ -8,7 +8,6 @@ public class MqttBrokerService : BackgroundService
 {
     private readonly MqttServer _mqttServer;
     private readonly ILogger<MqttBrokerService> _logger;
-    private readonly PeriodicTimer _timer = new(TimeSpan.FromSeconds(2));
     private readonly IConfiguration _configuration;
 
     public MqttBrokerService(ILogger<MqttBrokerService> logger, IConfiguration configuration)
@@ -41,11 +40,6 @@ public class MqttBrokerService : BackgroundService
 
         try
         {
-            while (await _timer.WaitForNextTickAsync(stoppingToken))
-            {
-                await _mqttServer.InjectApplicationMessage("test", "Hello, MQTT!");
-            }
-
             // Keep the background task alive until host shutdown is signaled
             await Task.Delay(Timeout.Infinite, stoppingToken);
         }
@@ -68,6 +62,8 @@ public class MqttBrokerService : BackgroundService
         var username = _configuration["MqttBroker:Username"];
         var password = _configuration["MqttBroker:Password"];
         var isValidUser = e.UserName == username && e.Password == password;
+        _logger.LogInformation("broker username: {0} broker password: {1}", username, password);
+        _logger.LogInformation("client username: {0} client password: {1}", e.UserName, e.Password);
 
         if (!isValidUser)
         {

@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmasKunovice.Avalonia", "Sm
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmasKunovice.Avalonia.Tests", "SmasKunovice.Avalonia.Tests\SmasKunovice.Avalonia.Tests.csproj", "{1048A2C5-8279-4952-BE89-C2A6B8F37C45}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmasKunovice.BrokerService", "SmasKunovice.BrokerService\SmasKunovice.BrokerService.csproj", "{B24717B4-FA47-40E2-BE94-5A4840743859}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{1048A2C5-8279-4952-BE89-C2A6B8F37C45}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1048A2C5-8279-4952-BE89-C2A6B8F37C45}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1048A2C5-8279-4952-BE89-C2A6B8F37C45}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B24717B4-FA47-40E2-BE94-5A4840743859}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B24717B4-FA47-40E2-BE94-5A4840743859}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B24717B4-FA47-40E2-BE94-5A4840743859}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B24717B4-FA47-40E2-BE94-5A4840743859}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

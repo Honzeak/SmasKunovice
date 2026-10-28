@@ -44,15 +44,18 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
         _client = new MqttClientFactory().CreateMqttClient();
         var connectionBuilder = new MqttClientOptionsBuilder()
             .WithTcpServer(_adapterOptions.Host, _adapterOptions.Port)
-            .WithTlsOptions(builder =>
-                builder.UseTls()
-                    .WithAllowUntrustedCertificates()
-                    .WithCertificateValidationHandler(_ => true)
-                    .WithSslProtocols(SslProtocols.None)
-            )
             .WithCleanSession();
         if (_adapterOptions.HasCredentials)
             connectionBuilder.WithCredentials(_adapterOptions.Username, _adapterOptions.Password);
+        if (_adapterOptions.Port == 8883)
+        {
+            connectionBuilder.WithTlsOptions(builder =>
+                builder.UseTls()
+                    .WithAllowUntrustedCertificates()
+                    .WithCertificateValidationHandler(_ => true)
+                    .WithSslProtocols(SslProtocols.None));
+        }
+
 
         _connectOptions = connectionBuilder.Build();
 

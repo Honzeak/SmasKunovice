@@ -14,37 +14,44 @@
     <Grid
         RowDefinitions="*,Auto"
         ColumnDefinitions="0.15*,*,Auto">
-        <ItemsControl 
+        <ItemsControl
             Grid.Column="0"
             ItemsSource="{Binding ConflictNotifications}">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Border Background="#2B2B2B"
-                            BorderBrush="{Binding ConflictBrush}"
-                            BorderThickness="6,0,0,0"
-                            Margin="0,0,0,10"
-                            Padding="16,12">
-                
-                        <Grid ColumnDefinitions="*, Auto">
-                    
-                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding AircraftId}" 
-                                           Foreground="#838383" 
-                                           FontSize="12" 
-                                           Margin="0,0,0,8" />
-                        
-                                <TextBlock Text="{Binding ConflictMessage}" 
-                                           Foreground="White" 
-                                           FontSize="13" 
-                                           TextWrapping="Wrap" />
+                    <Border
+                        Background="#2B2B2B"
+                        BorderBrush="{Binding ConflictBrush}"
+                        BorderThickness="6,0,0,0"
+                        Margin="0,0,0,10"
+                        Padding="16,12">
+
+                        <Grid
+                            ColumnDefinitions="*, Auto">
+
+                            <StackPanel
+                                Grid.Column="0"
+                                VerticalAlignment="Center">
+                                <TextBlock
+                                    Text="{Binding AircraftId}"
+                                    Foreground="#838383"
+                                    FontSize="12"
+                                    Margin="0,0,0,8" />
+
+                                <TextBlock
+                                    Text="{Binding ConflictMessage}"
+                                    Foreground="White"
+                                    FontSize="13"
+                                    TextWrapping="Wrap" />
                             </StackPanel>
 
-                            <CheckBox Grid.Column="1" 
-                                      IsChecked="{Binding IsMuted}" 
-                                      VerticalAlignment="Center" 
-                                      Margin="16,0,0,0" />
+                            <CheckBox
+                                Grid.Column="1"
+                                IsChecked="{Binding IsMuted}"
+                                VerticalAlignment="Center"
+                                Margin="16,0,0,0" />
                         </Grid>
-                
+
                     </Border>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
@@ -57,12 +64,30 @@
                 Grid.Row="0"
                 Grid.Column="0"
                 x:Name="MapControl" />
-            <TextBlock
+            <Grid
                 Grid.Row="1"
-                Text="{Binding StreamingStatusMessage}"
-                Foreground="{Binding StatusBrush}"
-                Margin="5">
-            </TextBlock>
+                Grid.Column="0"
+                ColumnDefinitions="*,*">
+                <TextBlock
+                    Grid.Column="0"
+                    Foreground="{Binding StatusBrush}"
+                    Margin="5">
+                    <TextBlock.Text>
+                        <MultiBinding StringFormat="{}{0} [{1}:{2}]">
+                            <Binding Path="StreamingStatusMessage" />
+                            <Binding Path="Host" />
+                            <Binding Path="Port" />
+                        </MultiBinding>
+                    </TextBlock.Text>
+                </TextBlock>
+                <TextBlock
+                    Grid.Column="1"
+                    HorizontalAlignment="Right"
+                    Text="{Binding VersionInfo}"
+                    Foreground="White"
+                    Margin="5">
+                </TextBlock>
+            </Grid>
         </Grid>
         <Grid
             Grid.Row="0"

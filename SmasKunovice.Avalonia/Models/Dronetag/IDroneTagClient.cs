@@ -8,6 +8,8 @@ public interface IDronetagClient : IDisposable
 {
     public delegate void DronetagDataReceivedEventHandler(object sender, ScoutDataReceivedEventArgs e);
 
+    public string Host { get; }
+    public int Port { get; }
     public event DronetagDataReceivedEventHandler? MessageReceived;
     public Task ConnectAsync();
 }

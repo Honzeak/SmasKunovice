@@ -7,6 +7,8 @@ namespace SmasKunovice.Avalonia.Models.FakeClient;
 public abstract class FakeDronetagClient : IDronetagClient
 {
     private bool _disposed;
+    public string Host => "mock";
+    public int Port => 0;
     public event IDronetagClient.DronetagDataReceivedEventHandler? MessageReceived;
 
     public virtual Task ConnectAsync()

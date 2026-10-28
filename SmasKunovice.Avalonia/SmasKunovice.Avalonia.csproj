@@ -7,6 +7,7 @@
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <UserSecretsId>8c1bc9e8-d737-493c-a31d-817ab4c2ee9f</UserSecretsId>
+        <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
         <Version>0.0.0</Version>
     </PropertyGroup>
 

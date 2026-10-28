@@ -49,6 +49,10 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
     [ObservableProperty] private bool _operation02C = true;
     [ObservableProperty] private bool _operation20C = true;
 
+    public string VersionInfo => $"v{AppVersionInfo.DisplayVersion}";
+    public string Host { get; private set; }
+    public int Port { get; private set; }
+
     private List<ILayer> _procedureLayers = [];
     private readonly GeoJsonLayerStyleProvider _layerStyleProvider;
     private readonly AircraftDatabase _aircraftDatabase;
@@ -67,6 +71,8 @@ public partial class MainViewViewModel : ViewModelBase, IDisposable
         _svgStyleProvider = new SvgStyleProvider(AssetProvider.GetFullAssetPath("Svg"));
         ProcedureList.CollectionChanged += OnProcedureListChanged;
         InitializeStreamingStatus(dronetagClient);
+        Host = dronetagClient.Host;
+        Port = dronetagClient.Port;
         _dynamicScoutDataProvider = new DynamicScoutDataProvider(dronetagClient);
         _errorDialogService = errorDialogService;
         _conflictDetectionService = new ConflictDetectionService(

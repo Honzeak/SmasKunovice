@@ -27,6 +27,8 @@ public class ScoutDataMqttClientAdapter : IDronetagClient
     private readonly ClientAdapterOptions _adapterOptions;
     private bool _disposed;
 
+    public string Host => _adapterOptions.Host;
+    public int Port => _adapterOptions.Port;
     public event IDronetagClient.DronetagDataReceivedEventHandler? MessageReceived;
     public event EventHandler<string>? HeartbeatReceived;
 

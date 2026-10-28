@@ -36,10 +36,10 @@ public partial class App : Application
         SetupExceptionHandling();
 
         var configuration = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true) // Load appsettings.json
-#if DEBUG
-            .AddJsonFile("appsettings.User.json", optional: false, reloadOnChange: true) // Load appsettings.User.json")
-#endif
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+// #if DEBUG
+            .AddJsonFile("appsettings.User.json", optional: false, reloadOnChange: true)
+// #endif
             .Build();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
@@ -50,9 +50,9 @@ public partial class App : Application
             DisableAvaloniaDataAnnotationValidation();
             var services = ConfigureServices(configuration);
 
-#if !DEBUG
-            if (!await HandleUserAuthentication(desktop, services)) return;
-#endif
+// #if !DEBUG
+//             if (!await HandleUserAuthentication(desktop, services)) return;
+// #endif
 
             _serviceProvider = services.BuildServiceProvider();
             try
